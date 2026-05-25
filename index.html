@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>🏇 競馬予想ツール FINAL</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<!-- Favicon -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a1a2e' width='192' height='192'/><text x='50%' y='50%' font-size='100' fill='%23FFD700' text-anchor='middle' dominant-baseline='middle' font-family='Arial'>🏇</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a1a2e' width='192' height='192' rx='45'/><text x='50%' y='50%' font-size='100' fill='%23FFD700' text-anchor='middle' dominant-baseline='middle' font-family='Arial'>🏇</text></svg>">
+<!-- Web App Manifest -->
+<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22競馬予想ツール%22,%22short_name%22:%22競馬予想%22,%22description%22:%22出馬表とDB設定が完全統一・全項目反映版%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%23fff%22,%22theme_color%22:%221a1a2e%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a1a2e' width='192' height='192' rx='45'/><text x='50%' y='50%' font-size='100' fill='%23FFD700' text-anchor='middle' dominant-baseline='middle' font-family='Arial'>🏇</text></svg>%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="競馬予想ツール">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { font-family: 'Noto Sans JP', sans-serif; background: #f5f6fa; color: #1a1a2e; font-size: 12px; }
@@ -74,12 +83,65 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 
       <div style="margin-bottom: 12px;">
         <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px;">②レース傾向PDFをDB化</div>
-        <textarea id="prompt-trend" spellcheck="false">【重要】下記のレース傾向PDFを解析し、過去のレース結果に基づいてスコアを算出。出力はJSON形式のみ。説明文は一切不要。
+        <textarea id="prompt-trend" spellcheck="false">下記のレース傾向PDFを解析し、過去のレース結果に基づいて各項目のスコアを算出してください。
+
+【重要】
+各カテゴリーについて、過去の成績データから以下のスコアを計算してください：
+- 得票数が多い＝高スコア（+20～+25点）
+- 得票数が少ない＝低スコア（-15～-20点）
+- 中程度＝0点～±5点
 
 【出力形式】
-{"jockey": {"騎手名": スコア}, "sire": {"種牡馬": スコア}, "age": {"2": スコア}, "kyakushitsu": {"逃げ": スコア}, "ninki": {"1": スコア}, "maejun": {"1": スコア}, "maeclass": {"GI": スコア}, "waku": {"1": スコア}, "timdev": {"0～": スコア}}
+{
+  "jockey": {"騎手1": 20, "騎手2": 15, ...},
+  "sire": {"種牡馬1": 18, "種牡馬2": 12, ...},
+  "age": {"2": -20, "3": -5, "4": 10, "5": 8, ...},
+  "kyakushitsu": {"逃げ": -10, "先行": 5, "差し": 15, "追い込み": 0, "自在": 0},
+  "ninki": {"1": 5, "2": 4, "3": 3, ...},
+  "maejun": {"1": 10, "2": 8, "3": 5, ...},
+  "maeclass": {"GI": 10, "GII": 6, "GIII": 4, "L": 0, "OP": -2, "3勝": -3, "2勝": -5, "1勝": -8},
+  "waku": {"1": 0, "2": 0, "3": 0, "4": 5, "5": 5, "6": 5, "7": 0, "8": -5},
+  "timdev": {"0～": -20, "35～": -15, "40～": -10, "45～": -5, "50～": 0, "55～": 3, "60～": 5, "65～": 10, "70～": 15, "75～": 20}
+}
 
-出力はJSONのみ。PDF:</textarea>
+【各カテゴリーの説明】
+- jockey: 騎手ごとのスコア（ルメール、岩田望、川田など）
+- sire: 種牡馬ごとのスコア（ディープインパクト、キタサンブラックなど）
+- age: 馬の年齢ごと（2歳～8歳）のスコア
+- kyakushitsu: 脚質ごと（逃げ、先行、差し、追い込み、自在）のスコア
+- ninki: 単勝人気ごと（1番人気～18番人気）のスコア
+- maejun: 前走着順ごと（1着～12着）のスコア
+- maeclass: 前走レースクラスごと（GI、GII、GIII、L、OP、3勝、2勝、1勝）のスコア
+- waku: 枠順ごと（1枠～8枠）のスコア
+- timdev: タイム偏差値ごと（0～、35～、40～、45～、50～、55～、60～、65～、70～、75～）のスコア
+
+【出力時の注意】
+各スコアを付与した理由を、データから見えることとして簡潔に説明してください。
+例：
+"jockey": {"ルメール": 25 /* 過去5年の優勝率45%、データセット内での連対率60% */}
+"age": {"3": -5 /* 3歳馬は経験不足で不利、当該レースでの平均着順6.5着 */}
+"maeclass": {"GI": 10 /* GI戦経験馬が優勝している傾向、連対率62% */}
+
+【最終出力】
+JSONとその下に、各配点の根拠をまとめた説明を記載してください。
+説明文は以下の形式で：
+
+《騎手》
+- ルメール: +25点 → 理由
+- 岩田望: +20点 → 理由
+...
+
+《種牡馬》
+- ディープインパクト: +20点 → 理由
+...
+
+【この形式で出力してください】
+{"jockey": {...}, "sire": {...}, ...}
+
+《配点根拠》
+[説明文をここに記載]
+
+PDF:</textarea>
         <button class="btn btn-blue" onclick="copyPrompt('prompt-trend')" style="width: 100%; margin-top: 6px;">📋 コピー</button>
       </div>
 
@@ -317,6 +379,17 @@ function importJSON() {
     
     if (!Array.isArray(list)) { setStatus('❌ horses配列がありません', 'err'); return; }
     
+    // 正規化関数
+    const normalizeKyakushitsu = (val) => {
+      const map = {'差': '差し', '先': '先行', '逃': '逃げ', '追': '追い込み'};
+      return map[val] || String(val || '差し');
+    };
+    
+    const normalizeMaeclass = (val) => {
+      const map = {'G1': 'GI', 'G2': 'GII', 'G3': 'GIII', 'Jpn1': 'GI', 'Jpn2': 'GII', 'Jpn3': 'GIII'};
+      return map[val] || String(val || '');
+    };
+    
     horses = list.map((h, i) => ({
       id: Date.now() + i,
       banum: parseInt(h.banum || 0),
@@ -326,9 +399,9 @@ function importJSON() {
       jockey: String(h.jockey || ''),
       sire: String(h.sire || ''),
       odds: parseFloat(h.odds || 0),
-      kyakushitsu: String(h.kyakushitsu || '差し'),
+      kyakushitsu: normalizeKyakushitsu(h.kyakushitsu),
       ninki: String(h.ninki || ''),
-      maeclass: String(h.maeclass || ''),
+      maeclass: normalizeMaeclass(h.maeclass),
       maejun: String(h.maejun || ''),
       timdev: String(h.timdev || ''),
       chokyoFinal: 'B',
