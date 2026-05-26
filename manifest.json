@@ -2,7 +2,7 @@
   "name": "競馬予想ツール",
   "short_name": "競馬予想",
   "description": "偏差値方式で馬を分析・買い目判定",
-  "start_url": "./index.html",
+  "start_url": "./競馬予想_FINAL版.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -10,10 +10,10 @@
   "theme_color": "#1a1a2e",
   "icons": [
     {
-      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAAGMElEQVR4nO3dz2pdVRiG8ZWSoBRaFaTgycCpFCzSiei0KN6B9AaceRHejgOnUjE6UQcKIhmINxCUUBQKzcBU62DBZpPTgzn7XWt9f/bzmxf2+vaTb5+TnCYHm829Aix1w/oCEBsBQUJAkBAQJAQECQFBQkCQEBAkBAQJAUFCQJAQECQEBAkBQUJAkBAQJAQECQFBQkCQHFpfgBdnJ6f7/pPjB3ycvBys8EP1C1q5vrVVtZaAukazyxpiSh6QSTfbEpeUMyAn3WzLV1KqgNx2sy1NSUkCCpTOXIKMwgcUNJ250BkFDihBOnNBMwoZULJ05sJlFCygxOnMBcooTEArSWcuREYxfpi6wnpKkFN730Ahhtib51XkegNRT+V5Dn430Pip7fWF7vzyhvEY0Jh70/x+BL1skbuAcnxYJ8cprsNXQJ3mbjjxfCe6wlFAPWbtZNCJj+YloLYjdjLcbfmO6SKghmP1MNP/lem89gG1mqb5KPeV4+DGATUZYrh05qJPwPI70dFn10ST6zf8VrXZBtLPHD2dK4IOxGYDBR1WV/qJTPaQQUDUs0vEhkY/wsQTZk3nikBTGrqBAs3FlnjSkXvI9eeB5tZTTxXlvOMCUr4sokyzLeXUw5bQoICoZxn/DY0IiHoUzhty/RqIeirPc+ge0OIvAs9TG2/xNHovob4BUU9DPhvy+Aijnl0cTqZjQMvCdzgjV5bNp98S8riBEEivgFg//bhaQo42EPVcn59ZdQmI3/o+wIKJ9VhCjjYQImofEOtnGA9LyH4DUY/CfHqNA/L8m2xQtb1HxhvI/AsoAdsZtgyI9RNFwztluYFYP62s9H+mIoFmAe27FVk/be07z1ZPMTYQJAQESZuAeH55YPIUYwNBYhAQ66ef8bNtEBDfP4xLv3c8wiAZHRDPr94GT5gNBIkaEC+AohPv4GGr60jm7OT00fe3n/1zcHT4/MP3n/Dk3WXoIyzQbfjlt5vf/Hjrk8/e/OqH2z//etP6cvaT9lfcBXJ2fvT35Y37dy/+eHz0++Mj68vxi4B2+uLrVz99eP7tT7esL8Q1Atrp44/++vzRax+898T6QlwjoBc7vnP58kv/fvndK5s7l2+8fml9OX5J78ISv4d/562L8z8P33376dHh8/t3L6wvp6+zk9PFr7vHvY0P9BasRLvabccP7uX5JZtIjIAgISBICAgSAoKEgCAhIEgICBICgoSAICEgSAgIEgKChIAgifFHd7GvGH90N/qHZlAp95FHGCQEBAkBQUJAkAwNiDdiY4ycMxsIEjUg3slHJ95BNhAkowPiZVBvgyfMBoKkQUC8DIpLv3cGG4inWD/jZ8sjDJI2AVn9sSrMmfzJGzYQJAQESbOAeIrZsvqTbWwgSCwDYgm1YjjJlgHxHcUoGt4p40cYS0hnO8PGAbGE/Gt7j+xfRLOEFObTax/QgsDNpxDUgrk1f0TYbyCE1iUgltAAHtZPcbWBaOj6/MyqV0DLYvczF8+WTanTG2RHGwgRdQyIJdSDq/VTfG4gGtrF4WT6BrQ4fIeTMrd4Jl1/PNB9A9FQEz7rKT4fYRMaqjzPYURAyheB59mNoUxgwM+2B20gGlrGeT1l5COMhvblv57i/DXQ3NoainLeoQGJXxZRZqoTTzryY30Hm83ozxDqHST+3GO44Rg8wvQTZl1F4eopVq+BaGhbxHqKySNs0iSCBI+z0HOwfBfW5MzRV1HoeortBqpaFRBuFeU4uH1ApekWCZFRpvO6CKi0fhKZj3WXfMf0ElDp82rGw4hL6qM5Cqh0e0VsOOt8J7rCV0Cl87uqYXPPcYrrcBdQGfXOvPltCHrZIo8BVeO/wbPXvXF+ecP4DajE/yZhQz7rKc4/D+R2aoN5noPrDTRZ7SrynE7legNN/M+xhxCnjrGBJitZRSHSqYIFVCXOKFA6VciAqmQZhUunChxQlSCjoOlU4QOqgmYUOp0qSUBVoIwSpFOlCmjitqQ03UxyBjRxUlK+bibJA5qYlJS4m8laAppbz4d1BlhjQC/k5Pd2h0NAkMT4YSrcIiBICAgSAoKEgCAhIEgICBICgoSAICEgSAgIEgKChIAgISBICAgSAoKEgCAhIEj+A7VZMuC80mJRAAAAAElFTkSuQmCC",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "src": "./icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
     }
   ]
 }
