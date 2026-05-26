@@ -1290,52 +1290,67 @@ function analyzeDistanceCourseAuto() {
 
   const sorted = dcScores.sort((a, b) => b.totalDC - a.totalDC);
 
-  let html = `<div style="padding: 10px; background: #fff3e0; border-radius: 6px; border: 1px solid #ffb74d; margin-top: 8px;">
-    <div style="font-weight: 900; color: #e65100; margin-bottom: 10px; font-size: 12px;">📍 距離・コース適性分析</div>
+  let html = `<div style="padding: 12px; background: #fff3e0; border-radius: 8px; border: 2px solid #ff9800; margin-top: 8px;">
+    <div style="font-weight: 900; color: #e65100; margin-bottom: 12px; font-size: 13px;">📍 距離・コース適性分析</div>
     
-    <div style="background: #fff; padding: 8px; border-radius: 4px; margin-bottom: 8px; border-left: 4px solid #ff9800;">
-      <div style="font-size: 10px; color: #333; margin-bottom: 6px;">
-        <strong>レース条件：</strong> ${distance}m @ ${course} (馬場: ${condition})<br>
-        <strong>距離帯：</strong> ${getDistanceType(distance)}
+    <div style="background: #fff; padding: 10px; border-radius: 6px; margin-bottom: 12px; border-left: 5px solid #ff9800;">
+      <div style="font-size: 11px; color: #333; margin-bottom: 8px; font-weight: 700;">
+        🎯 レース条件
       </div>
-      <div style="font-size: 9px; color: #666; line-height: 1.5; padding-top: 6px; border-top: 1px solid #eee;">
-        <strong>📊 スコア算出根拠：</strong><br>
-        • 血統の距離適性（種牡馬ごと）<br>
-        • コース特性（広さ・直線長・坂）<br>
-        • 馬場状態と脚質の相性<br>
-        • 年齢による経験補正（3歳馬は短距離有利、長距離不利）
+      <div style="font-size: 10px; color: #555; margin-bottom: 8px; line-height: 1.8;">
+        <div>距離: <strong style="color: #ff9800; font-size: 12px;">${distance}m</strong> (${getDistanceType(distance)})</div>
+        <div>競馬場: <strong style="color: #ff9800; font-size: 12px;">${course}</strong></div>
+        <div>馬場: <strong style="color: #ff9800; font-size: 12px;">${condition}</strong></div>
       </div>
     </div>
 
-    <table style="width: 100%; font-size: 8px; border-collapse: collapse;">
-      <tr style="background: #ffe0b2; font-weight: 700;">
-        <th style="padding: 3px; border: 1px solid #ffb74d; text-align: left;">№</th>
-        <th style="padding: 3px; border: 1px solid #ffb74d; text-align: left;">馬名</th>
-        <th style="padding: 3px; border: 1px solid #ffb74d; text-align: left;">年</th>
-        <th style="padding: 3px; border: 1px solid #ffb74d; text-align: right; font-size: 7px;">血統</th>
-        <th style="padding: 3px; border: 1px solid #ffb74d; text-align: right; font-size: 7px;">場所</th>
-        <th style="padding: 3px; border: 1px solid #ffb74d; text-align: right; font-size: 7px;">馬場</th>
-        <th style="padding: 3px; border: 1px solid #ffb74d; text-align: right; font-size: 7px;">年齢</th>
-        <th style="padding: 3px; border: 1px solid #ff9800; text-align: right; font-weight: 900; font-size: 8px; background: #fff8e6;">合計</th>
-      </tr>`;
+    <div style="margin-bottom: 12px;">
+      <div style="font-size: 10px; font-weight: 700; color: #e65100; margin-bottom: 8px;">🏇 適性ランキング（上位8頭）</div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+        <tr style="background: #ffe0b2; font-weight: 700; border: 1px solid #ffb74d;">
+          <th style="padding: 6px; text-align: left; width: 8%;">順位</th>
+          <th style="padding: 6px; text-align: left; width: 8%;">№</th>
+          <th style="padding: 6px; text-align: left; width: 30%;">馬名</th>
+          <th style="padding: 6px; text-align: center; width: 6%;">年</th>
+          <th style="padding: 6px; text-align: right; color: #2196f3; width: 12%;">血統</th>
+          <th style="padding: 6px; text-align: right; color: #388e3c; width: 12%;">場所</th>
+          <th style="padding: 6px; text-align: right; color: #7b1fa2; width: 8%;">馬場</th>
+          <th style="padding: 6px; text-align: right; color: #f57c00; width: 8%;">年齢</th>
+          <th style="padding: 6px; text-align: right; background: #fff8e6; color: #ff9800; font-weight: 900; width: 8%; border: 1px solid #ff9800; border-radius: 4px;">合計</th>
+        </tr>`;
 
-  sorted.slice(0, 8).forEach(h => {
-    const color = h.totalDC > 10 ? '#d32f2f' : h.totalDC > 0 ? '#f57c00' : '#1976d2';
-    html += `<tr style="border-bottom: 1px solid #ffe0b2;">
-      <td style="padding: 3px;">${h.banum}</td>
-      <td style="padding: 3px; font-weight: 600;">${h.name}</td>
-      <td style="padding: 3px; text-align: center;">${h.age}</td>
-      <td style="padding: 3px; text-align: right; font-size: 7px; color: #2196f3;">${h.sireBase > 0 ? '+' : ''}${h.sireBase}</td>
-      <td style="padding: 3px; text-align: right; font-size: 7px; color: #388e3c;">${h.courseBonus > 0 ? '+' : ''}${h.courseBonus}</td>
-      <td style="padding: 3px; text-align: right; font-size: 7px; color: #7b1fa2;">${h.trackBonus > 0 ? '+' : ''}${h.trackBonus}</td>
-      <td style="padding: 3px; text-align: right; font-size: 7px; color: #f57c00;">${h.ageAdj > 0 ? '+' : ''}${h.ageAdj}</td>
-      <td style="padding: 3px; text-align: right; font-weight: 900; color: ${color};">${h.totalDC > 0 ? '+' : ''}${h.totalDC}</td>
+  sorted.slice(0, 8).forEach((h, i) => {
+    const bgColor = i === 0 ? '#fffde6' : i === 1 ? '#fff8f0' : i === 2 ? '#f0fff4' : '#ffffff';
+    const scoreBg = h.totalDC > 10 ? '#ffebee' : h.totalDC > 0 ? '#fff3e0' : '#e3f2fd';
+    const scoreColor = h.totalDC > 10 ? '#d32f2f' : h.totalDC > 0 ? '#f57c00' : '#1976d2';
+    
+    html += `<tr style="background: ${bgColor}; border-bottom: 1px solid #ffe0b2; hover: background: #fffde6;">
+      <td style="padding: 6px; font-weight: 700; color: #ff9800; font-size: 11px;">${i+1}</td>
+      <td style="padding: 6px; font-weight: 700;">${h.banum}</td>
+      <td style="padding: 6px;"><strong>${h.name}</strong></td>
+      <td style="padding: 6px; text-align: center; color: #666;">${h.age}</td>
+      <td style="padding: 6px; text-align: right; color: #2196f3; font-weight: 600;">${h.sireBase > 0 ? '+' : ''}${h.sireBase}</td>
+      <td style="padding: 6px; text-align: right; color: #388e3c; font-weight: 600;">${h.courseBonus > 0 ? '+' : ''}${h.courseBonus}</td>
+      <td style="padding: 6px; text-align: right; color: #7b1fa2; font-weight: 600;">${h.trackBonus > 0 ? '+' : ''}${h.trackBonus}</td>
+      <td style="padding: 6px; text-align: right; color: #f57c00; font-weight: 600;">${h.ageAdj > 0 ? '+' : ''}${h.ageAdj}</td>
+      <td style="padding: 6px; text-align: right; font-weight: 900; color: ${scoreColor}; background: ${scoreBg}; border: 1px solid #ffb74d; border-radius: 4px;">${h.totalDC > 0 ? '+' : ''}${h.totalDC}</td>
     </tr>`;
   });
 
   html += `</table>
-    <div style="font-size: 8px; color: #666; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ffb74d;">
-      <strong>注記：</strong> 3歳馬は未経験距離に-8～-15点の補正。長距離戦での成績予測は不正確になる可能性あり。
+    </div>
+
+    <div style="background: #fafafa; padding: 10px; border-radius: 6px; border-left: 4px solid #ff9800;">
+      <div style="font-size: 9px; color: #666; line-height: 1.6;">
+        <div style="margin-bottom: 6px;"><strong style="color: #ff9800;">📊 スコア構成：</strong></div>
+        <div>🔵 <strong>血統</strong>（種牡馬の距離適性）</div>
+        <div>🟢 <strong>場所</strong>（競馬場の特性）</div>
+        <div>🟣 <strong>馬場</strong>（馬場と脚質の相性）</div>
+        <div>🟠 <strong>年齢</strong>（3歳馬の経験補正）</div>
+        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #ddd; font-size: 8px; color: #999;">
+          ※ 3歳馬は未経験距離に補正あり。長距離戦は成績予測の精度が低下する可能性あり。
+        </div>
+      </div>
     </div>
   </div>`;
 
