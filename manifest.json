@@ -2,7 +2,7 @@
   "name": "競馬予想ツール",
   "short_name": "競馬予想",
   "description": "偏差値方式で馬を分析・買い目判定",
-  "start_url": "./競馬予想_FINAL版.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
