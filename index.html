@@ -390,7 +390,7 @@ PDF:</textarea>
           </div>
           <div style="display: flex; flex-direction: column;">
             <label style="display: block; margin-bottom: 4px; color: #666; font-weight: 700;">データベース</label>
-            <button class="btn btn-orange" onclick="loadDistanceCoursePreset()" style="font-size: 9px;">📂 血統DB読込</button>
+            <button class="btn btn-orange" onclick="showBloodlinePreset()" style="font-size: 9px;">📂 血統DB読込</button>
           </div>
         </div>
         <button class="btn btn-orange" onclick="analyzeDistanceCourseAuto()" style="width: 100%;">📍 距離適性を分析</button>
@@ -827,12 +827,105 @@ function renderAnalysis() {
   const content = document.getElementById('analysis-content');
   if (horses.length === 0) { content.innerHTML = '<div style="padding: 20px; text-align: center; color: #aab0c0;">馬を読込してください</div>'; return; }
   
+  // 展開スコア計算
+  const getDevScore = (h) => {
+    const kyakuCount = {
+      '逃げ': horses.filter(x => x.kyakushitsu === '逃げ').length,
+      '先行': horses.filter(x => x.kyakushitsu === '先行').length,
+      '差し': horses.filter(x => x.kyakushitsu === '差し').length,
+      '追い込み': horses.filter(x => x.kyakushitsu === '追い込み').length
+    };
+    
+    let paceScore = {};
+    const fugueTotal = kyakuCount['逃げ'];
+    const senkouTotal = kyakuCount['先行'];
+    
+    if (fugueTotal === 0 && senkouTotal === 0) {
+      paceScore = { '逃げ': -10, '先行': -5, '差し': 20, '追い込み': 25, '自在': 5 };
+    } else if (fugueTotal === 0) {
+      paceScore = { '逃げ': 0, '先行': 20, '差し': 10, '追い込み': 5, '自在': 10 };
+    } else if (fugueTotal >= 2) {
+      paceScore = { '逃げ': 25, '先行': 10, '差し': -5, '追い込み': -10, '自在': 15 };
+    } else {
+      paceScore = { '逃げ': 15, '先行': 15, '差し': 10, '追い込み': 5, '自在': 10 };
+    }
+    
+    return paceScore[h.kyakushitsu] || 0;
+  };
+
+  // 距離コース適性スコア計算
+  const getDistanceCourseScore = (h) => {
+    const distance = document.getElementById('race-distance')?.value || '1600';
+    const course = document.getElementById('race-course')?.value || '阪神';
+    
+    const sireDistanceAffinity = {
+      'キングカメハメハ': { '1200': 15, '1400': 12, '1600': 5, '2000': -5, '2400': -15, '2500': -20, '3000': -25 },
+      'ディープインパクト': { '1200': 0, '1400': 5, '1600': 15, '2000': 20, '2400': 15, '2500': 5, '3000': -5 },
+      'ゼンノロブロイ': { '1200': 10, '1400': 15, '1600': 18, '2000': 10, '2400': 0, '2500': -10, '3000': -15 },
+      'タイキシャトル': { '1200': 18, '1400': 15, '1600': 8, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
+      'ハードスプン': { '1200': 12, '1400': 10, '1600': 5, '2000': -5, '2400': -10, '2500': -15, '3000': -20 },
+      'アドマイヤドン': { '1200': 15, '1400': 12, '1600': 10, '2000': 5, '2400': 0, '2500': -5, '3000': -10 },
+      'ステイゴールド': { '1200': -10, '1400': -5, '1600': 0, '2000': 15, '2400': 20, '2500': 25, '3000': 20 },
+      'パイロ': { '1200': 15, '1400': 12, '1600': 5, '2000': -5, '2400': -10, '2500': -15, '3000': -20 },
+      'デュランダル': { '1200': 5, '1400': 8, '1600': 15, '2000': 12, '2400': 8, '2500': 5, '3000': 0 },
+      'スウェプトオーバーボード': { '1200': 10, '1400': 8, '1600': 5, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
+      'キタサンブラック': { '1200': 5, '1400': 8, '1600': 12, '2000': 15, '2400': 18, '2500': 15, '3000': 10 },
+      'ジャスタウェイ': { '1200': -5, '1400': 0, '1600': 5, '2000': 18, '2400': 20, '2500': 18, '3000': 15 },
+      'オルフェーヴル': { '1200': -2, '1400': 2, '1600': 8, '2000': 18, '2400': 20, '2500': 15, '3000': 10 },
+      'ルーラーシップ': { '1200': 8, '1400': 10, '1600': 15, '2000': 12, '2400': 8, '2500': 3, '3000': -2 },
+      'エプソムダービー': { '1200': 0, '1400': 3, '1600': 10, '2000': 15, '2400': 12, '2500': 5, '3000': 0 },
+      'サンデーサイレンス': { '1200': 5, '1400': 8, '1600': 12, '2000': 15, '2400': 12, '2500': 8, '3000': 5 },
+      'ヘネシー': { '1200': 8, '1400': 10, '1600': 5, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
+      'アグネスタキオン': { '1200': 2, '1400': 5, '1600': 10, '2000': 18, '2400': 15, '2500': 10, '3000': 5 },
+      'ネオユニヴァース': { '1200': 0, '1400': 2, '1600': 8, '2000': 15, '2400': 18, '2500': 12, '3000': 8 }
+    };
+
+    const courseCharacteristics = {
+      '東京': { '短距離': 2, 'マイル': 3, '中距離': 2, '長距離': -2 },
+      '中山': { '短距離': 5, 'マイル': 3, '中距離': 0, '長距離': -5 },
+      '阪神': { '短距離': 0, 'マイル': 3, '中距離': 5, '長距離': 2 },
+      '京都': { '短距離': 0, 'マイル': 2, '中距離': 5, '長距離': 8 },
+      '新潟': { '短距離': -2, 'マイル': 5, '中距離': 5, '長距離': 3 },
+      '中京': { '短距離': 2, 'マイル': 5, '中距離': 3, '長距離': 0 },
+      '福島': { '短距離': 4, 'マイル': 2, '中距離': -2, '長距離': -5 }
+    };
+
+    const getDistanceType = (dist) => {
+      if (dist === '1200' || dist === '1400') return '短距離';
+      if (dist === '1600') return 'マイル';
+      if (dist === '2000' || dist === '2400') return '中距離';
+      return '長距離';
+    };
+
+    const getAgeAdjustment = (age, dist) => {
+      if (age === '3') {
+        if (dist === '1200' || dist === '1400') return 5;
+        if (dist === '1600') return 0;
+        return -8;
+      }
+      if (age === '2') {
+        if (dist === '1200' || dist === '1400') return 8;
+        return -15;
+      }
+      return 0;
+    };
+
+    const sireBase = sireDistanceAffinity[h.sire]?.[distance] || 0;
+    const distType = getDistanceType(distance);
+    const courseBonus = courseCharacteristics[course]?.[distType] || 0;
+    const ageAdj = getAgeAdjustment(h.age, distance);
+    
+    return sireBase + courseBonus + ageAdj;
+  };
+
   const ranked = horses.map(h => {
     const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0);
     const chokyoScore = ({'A': 10, 'B': 0, 'C': -15}[h.chokyoFinal] || 0) + ({'A': 10, 'B': 0, 'C': -15}[h.chokyoPrev] || 0);
     const commentScore = {'◎': 10, '◯': 5, '△': -5, '×': -15}[h.comment] || 0;
-    const totalScore = trendScore + chokyoScore + commentScore;
-    return {...h, trendScore, chokyoScore, commentScore, totalScore};
+    const devScore = getDevScore(h);  // 展開スコア
+    const dcScore = getDistanceCourseScore(h);  // 距離コース適性スコア
+    const totalScore = trendScore + chokyoScore + commentScore + devScore + dcScore;
+    return {...h, trendScore, chokyoScore, commentScore, devScore, dcScore, totalScore};
   }).sort((a, b) => b.totalScore - a.totalScore);
 
   // 偏差値計算
@@ -923,11 +1016,11 @@ function renderAnalysis() {
     recommendation = '🚫 見送り推奨';
   }
 
-  let html = '<table class="table" style="margin-bottom: 12px;"><thead style="background: #0f3460; color: #FFD700;"><tr><th>印</th><th>順</th><th>№</th><th>馬名</th><th>傾向</th><th>調</th><th>厩</th><th>計</th><th>ODD</th></tr></thead><tbody>';
+  let html = '<table class="table" style="margin-bottom: 12px; font-size: 9px;"><thead style="background: #0f3460; color: #FFD700;"><tr><th>印</th><th>順</th><th>№</th><th>馬名</th><th style="color: #2563eb;">傾向</th><th style="color: #27ae60;">調</th><th style="color: #2563eb;">厩</th><th style="color: #f39c12;">展開</th><th style="color: #ff9800;">距離</th><th style="color: #e94560;">計</th><th>ODD</th></tr></thead><tbody>';
   ranked.forEach((h, i) => {
     const bg = i < 3 ? ['#fffde6', '#fff8f0', '#f0fff4'][i] : '#fff';
     const mark = rankingMarkMap[i] || '';
-    html += `<tr style="background: ${bg};"><td style="font-weight: 900; font-size: 13px; color: #e94560;">${mark}</td><td style="font-weight: 900; color: #e94560;">${i+1}</td><td>${h.banum}</td><td><strong>${h.name}</strong></td><td style="color: #2563eb; font-weight: 700;">${Math.round(h.trendScore)}</td><td style="color: #27ae60;">+${h.chokyoScore}</td><td style="color: #2563eb;">+${h.commentScore}</td><td style="color: #e94560; font-weight: 900;">${h.totalScore}</td><td>${h.odds.toFixed(1)}</td></tr>`;
+    html += `<tr style="background: ${bg};"><td style="font-weight: 900; font-size: 12px; color: #e94560;">${mark}</td><td style="font-weight: 900; color: #e94560;">${i+1}</td><td>${h.banum}</td><td><strong>${h.name}</strong></td><td style="color: #2563eb; font-weight: 700;">${Math.round(h.trendScore)}</td><td style="color: #27ae60;">+${h.chokyoScore}</td><td style="color: #2563eb;">+${h.commentScore}</td><td style="color: #f39c12; font-weight: 700;">${h.devScore > 0 ? '+' : ''}${h.devScore}</td><td style="color: #ff9800; font-weight: 700;">${h.dcScore > 0 ? '+' : ''}${h.dcScore}</td><td style="color: #e94560; font-weight: 900;">${h.totalScore}</td><td>${h.odds.toFixed(1)}</td></tr>`;
   });
   html += '</tbody></table>';
   
@@ -1350,6 +1443,49 @@ function loadDistanceCoursePreset() {
   setStatus('✅ 血統プリセットを読込完了', 'ok');
   return sirePreset;
 }
+
+// 血統プリセット表示
+function showBloodlinePreset() {
+  const preset = loadDistanceCoursePreset();
+  
+  let html = '<table style="width: 100%; border-collapse: collapse; font-size: 8px;">';
+  html += '<tr style="background: #ffe0b2; font-weight: 700;"><th style="padding: 4px; border: 1px solid #ffb74d; text-align: left;">血統</th>';
+  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">1200</th>';
+  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">1400</th>';
+  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">1600</th>';
+  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">2000</th>';
+  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">2400</th>';
+  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">2500</th>';
+  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">3000</th></tr>';
+  
+  Object.entries(preset).forEach(([sire, scores]) => {
+    html += `<tr style="border-bottom: 1px solid #ffe0b2;">
+      <td style="padding: 4px; border: 1px solid #ffb74d; font-weight: 700;">${sire}</td>`;
+    ['1200', '1400', '1600', '2000', '2400', '2500', '3000'].forEach(dist => {
+      const score = scores[dist];
+      const color = score > 10 ? '#d32f2f' : score > 0 ? '#f57c00' : score < -10 ? '#1565c0' : '#666';
+      html += `<td style="padding: 4px; border: 1px solid #ffb74d; text-align: center; color: ${color}; font-weight: 700;">${score > 0 ? '+' : ''}${score}</td>`;
+    });
+    html += '</tr>';
+  });
+  
+  html += '</table>';
+  html += '<div style="margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; font-size: 8px; color: #666;">';
+  html += '<strong>📌 使い方：</strong> 「適用」ボタンをクリックすると、この距離適性データが反映されます。';
+  html += '</div>';
+  
+  document.getElementById('bloodline-preset-content').innerHTML = html;
+  document.getElementById('bloodline-modal').classList.add('active');
+}
+
+function closeBloodlineModal() {
+  document.getElementById('bloodline-modal').classList.remove('active');
+}
+
+function applyBloodlinePreset() {
+  setStatus('✅ 血統データを適用しました', 'ok');
+  closeBloodlineModal();
+}
 </script>
 <div id="jockey-modal" class="modal">
   <div class="modal-content">
@@ -1358,6 +1494,19 @@ function loadDistanceCoursePreset() {
     <div class="modal-buttons">
       <button style="background: #2563eb; color: #fff;" onclick="confirmJockeyEdit()">✅ 変更</button>
       <button style="background: #999; color: #fff;" onclick="closeJockeyModal()">✕ キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<div id="bloodline-modal" class="modal">
+  <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-title">📚 血統プリセット（距離適性）</div>
+    <div id="bloodline-preset-content" style="max-height: 400px; overflow-y: auto; font-size: 9px; color: #666; line-height: 1.6;">
+      読み込み中...
+    </div>
+    <div class="modal-buttons" style="margin-top: 12px;">
+      <button style="background: #f39c12; color: #fff;" onclick="applyBloodlinePreset()">✅ 適用</button>
+      <button style="background: #999; color: #fff;" onclick="closeBloodlineModal()">✕ 閉じる</button>
     </div>
   </div>
 </div>
