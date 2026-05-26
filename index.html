@@ -52,6 +52,22 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 .record-card { background: #fafbff; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 8px; }
 .record-header { font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
 .record-stat { font-size: 10px; color: #6080a0; }
+.waku-color { display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: 700; color: #fff; text-align: center; min-width: 30px; }
+.waku-1 { background: #fff; color: #1a1a2e; border: 2px solid #1a1a2e; }
+.waku-2 { background: #1a1a2e; color: #fff; }
+.waku-3 { background: #e74c3c; }
+.waku-4 { background: #3498db; }
+.waku-5 { background: #f1c40f; color: #1a1a2e; }
+.waku-6 { background: #27ae60; }
+.waku-7 { background: #e67e22; }
+.waku-8 { background: #e91e63; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal.active { display: flex; }
+.modal-content { background: #fff; border-radius: 8px; padding: 16px; max-width: 300px; width: 90%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.modal-title { font-weight: 700; font-size: 13px; margin-bottom: 12px; color: #1a1a2e; }
+.modal-input { width: 100%; padding: 8px; border: 1px solid #d0d7e8; border-radius: 4px; margin-bottom: 8px; font-size: 11px; }
+.modal-buttons { display: flex; gap: 8px; }
+.modal-buttons button { flex: 1; padding: 8px; font-size: 11px; font-weight: 700; border: none; border-radius: 4px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -508,13 +524,18 @@ function renderTable() {
     const commentScore = {'◎': 10, '◯': 5, '△': -5, '×': -15}[h.comment] || 0;
     const totalScore = trendScore + chokyoScore + commentScore;
     
+    const getWakuColor = (waku) => {
+      const colorMap = {'1': 'waku-1', '2': 'waku-2', '3': 'waku-3', '4': 'waku-4', '5': 'waku-5', '6': 'waku-6', '7': 'waku-7', '8': 'waku-8'};
+      return colorMap[waku] || '';
+    };
+    
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${h.banum}</td>
-      <td><input class="inp" style="width: 30px;" value="${h.waku}" onchange="horses[${idx}].waku=this.value; renderTable();"></td>
+      <td><span class="waku-color ${getWakuColor(h.waku)}">${h.waku}</span></td>
       <td><strong>${h.name}</strong></td>
       <td><input class="inp" style="width: 30px;" value="${h.age}" onchange="horses[${idx}].age=this.value; renderTable();"></td>
-      <td style="font-size: 8px;">${h.jockey}</td>
+      <td style="font-size: 8px; cursor: pointer; color: #2563eb; text-decoration: underline;" onclick="editJockey(${idx})">${h.jockey}</td>
       <td style="font-size: 8px;">${h.sire}</td>
       <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].kyakushitsu=this.value; renderTable();"><option>-</option><option ${h.kyakushitsu==='逃げ'?'selected':''}>逃げ</option><option ${h.kyakushitsu==='先行'?'selected':''}>先行</option><option ${h.kyakushitsu==='差し'?'selected':''}>差し</option><option ${h.kyakushitsu==='追い込み'?'selected':''}>追い込み</option><option ${h.kyakushitsu==='自在'?'selected':''}>自在</option></select></td>
       <td><input class="inp" style="width: 30px;" value="${h.ninki}" onchange="horses[${idx}].ninki=this.value; renderTable();"></td>
@@ -857,7 +878,54 @@ window.addEventListener('load', () => {
   try { const saved = localStorage.getItem('kp_saved_jsons'); if (saved) savedJsons = JSON.parse(saved); renderSavedJsonList(); } catch (e) {}
   setStatus('🏇 準備完了！', 'ok');
 });
+
+let editingJockeyIndex = null;
+
+function editJockey(idx) {
+  editingJockeyIndex = idx;
+  document.getElementById('jockey-input').value = horses[idx].jockey;
+  document.getElementById('jockey-modal').classList.add('active');
+  document.getElementById('jockey-input').focus();
+}
+
+function closeJockeyModal() {
+  document.getElementById('jockey-modal').classList.remove('active');
+  editingJockeyIndex = null;
+}
+
+function confirmJockeyEdit() {
+  const newJockey = document.getElementById('jockey-input').value.trim();
+  if (!newJockey) {
+    setStatus('❌ 騎手名を入力してください', 'err');
+    return;
+  }
+  
+  horses[editingJockeyIndex].jockey = newJockey;
+  closeJockeyModal();
+  renderTable();
+  renderAnalysis();
+  setStatus('✅ 騎手を変更', 'ok');
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && document.getElementById('jockey-modal').classList.contains('active')) {
+    confirmJockeyEdit();
+  }
+  if (e.key === 'Escape' && document.getElementById('jockey-modal').classList.contains('active')) {
+    closeJockeyModal();
+  }
+});
 </script>
+<div id="jockey-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-title">騎手を編集</div>
+    <input type="text" id="jockey-input" class="modal-input" placeholder="新しい騎手名">
+    <div class="modal-buttons">
+      <button style="background: #2563eb; color: #fff;" onclick="confirmJockeyEdit()">✅ 変更</button>
+      <button style="background: #999; color: #fff;" onclick="closeJockeyModal()">✕ キャンセル</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
