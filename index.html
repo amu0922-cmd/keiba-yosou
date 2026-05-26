@@ -779,45 +779,64 @@ function renderAnalysis() {
   const waideHorses = ranked.filter(h => h.comment === '△').map(h => `${h.banum}番`).join('・');
   const boxHorses = ranked.filter(h => ['◎', '◯', '△'].includes(h.comment)).map(h => `${h.banum}番`).join('・');
   
+  // コメント未設定の場合のデフォルト買い目生成
+  let defaultMaruHorses = '';
+  let defaultWaideHorses = '';
+  let defaultBoxHorses = '';
+  
+  if (!marukuHorses) {
+    defaultMaruHorses = ranked[0]?.banum ? `${ranked[0].banum}番` : '';
+  }
+  if (!waideHorses) {
+    defaultWaideHorses = ranked[1]?.banum ? `${ranked[1].banum}番` : '';
+  }
+  if (!boxHorses) {
+    defaultBoxHorses = ranked.slice(0, 3).map(h => `${h.banum}番`).join('・');
+  }
+  
+  const finalMaruHorses = marukuHorses || defaultMaruHorses;
+  const finalWaideHorses = waideHorses || defaultWaideHorses;
+  const finalBoxHorses = boxHorses || defaultBoxHorses;
+  
   let formation = '';
   let recommendation = '';
   let buyStyle = '';
   
   if (top1Score >= 50 && dansoSa >= 10) {
     formation = '【1強・不動陣形】';
-    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${waideHorses}》`;
+    buyStyle = `《単勝 ${finalMaruHorses}》\n《ワイド ${finalMaruHorses} - ${finalWaideHorses}》`;
     recommendation = '🔥 買い推奨！';
   } else if (top2Score >= 50 && dansoSa >= 5) {
     formation = '【2強・鉄板陣形】';
-    buyStyle = `《馬連BOX ${boxHorses}》`;
+    buyStyle = `《馬連BOX ${finalBoxHorses}》`;
     recommendation = '🔥 買い推奨！';
   } else if (top1Score >= 50 && dansoSa >= 5) {
     formation = '【1強・不動陣形】';
-    buyStyle = `《馬連BOX ${boxHorses}》`;
+    buyStyle = `《馬連BOX ${finalBoxHorses}》`;
     recommendation = '🔥 買い推奨！';
   } else if (top1Score < 40 && dansoSa >= 5) {
     formation = '【波乱・包囲陣形】';
-    buyStyle = `《馬連BOX ${boxHorses}》`;
+    buyStyle = `《馬連BOX ${finalBoxHorses}》`;
     recommendation = '⚠️ 高リスク';
   } else if (dansoSa >= 5) {
     formation = '【通常・標準陣形】';
-    buyStyle = `《馬連BOX ${boxHorses}》`;
+    buyStyle = `《馬連BOX ${finalBoxHorses}》`;
     recommendation = '💰 通常推奨';
   } else if (top2Score >= 50) {
     formation = '【2強・鉄板陣形（見送り推奨）】';
-    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${waideHorses}》`;
+    buyStyle = `《単勝 ${finalMaruHorses}》\n《ワイド ${finalMaruHorses} - ${finalWaideHorses}》`;
     recommendation = '🚫 見送り推奨';
   } else if (top1Score >= 50) {
     formation = '【1強・不動陣形（見送り推奨）】';
-    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${waideHorses}》`;
+    buyStyle = `《単勝 ${finalMaruHorses}》\n《ワイド ${finalMaruHorses} - ${finalWaideHorses}》`;
     recommendation = '🚫 見送り推奨';
   } else if (top1Score < 40) {
     formation = '【波乱・包囲陣形（見送り推奨）】';
-    buyStyle = `《馬連BOX ${boxHorses}》`;
+    buyStyle = `《馬連BOX ${finalBoxHorses}》`;
     recommendation = '🚫 見送り推奨';
   } else {
     formation = '【通常・標準陣形（見送り推奨）】';
-    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${waideHorses}》`;
+    buyStyle = `《単勝 ${finalMaruHorses}》\n《ワイド ${finalMaruHorses} - ${finalWaideHorses}》`;
     recommendation = '🚫 見送り推奨';
   }
 
