@@ -6,12 +6,8 @@
 <title>🏇 競馬予想ツール FINAL</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 <!-- Favicon -->
-<link rel="icon" type="image/jpeg" href="./9241.jpg">
-<link rel="apple-touch-icon" type="image/jpeg" href="./9241.jpg">
-<link rel="apple-touch-icon" sizes="180x180" href="./9241.jpg">
-<link rel="apple-touch-icon" sizes="152x152" href="./9241.jpg">
-<link rel="apple-touch-icon" sizes="144x144" href="./9241.jpg">
-<link rel="apple-touch-icon" sizes="120x120" href="./9241.jpg">
+<link rel="icon" type="image/jpeg" href="./icon.jpg">
+<link rel="apple-touch-icon" type="image/jpeg" href="./icon.jpg">
 <!-- Web App Manifest -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a1a2e">
@@ -23,9 +19,9 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { font-family: 'Noto Sans JP', sans-serif; background: #f5f6fa; color: #1a1a2e; font-size: 12px; }
-#hdr { background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); border-bottom: 3px solid #e94560; padding: 10px; }
-#app-title { font-size: 18px; font-weight: 900; color: #FFD700; }
-#app-sub { font-size: 9px; color: #8090c0; margin-top: 2px; }
+#hdr { border-bottom: 3px solid #e94560; padding: 15px 10px 15px 20px; min-height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; background-size: cover !important; background-position: center 30% !important; background-repeat: no-repeat !important; }
+#app-title { font-size: 20px; font-weight: 900; color: #FFD700; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); }
+#app-sub { font-size: 10px; color: #a0b0d0; margin-top: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
 .container { max-width: 1400px; margin: 0 auto; padding: 10px; }
 .card { background: #fff; border: 1px solid #e0e6f0; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
 .card-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; border-bottom: 2px solid #e94560; padding-bottom: 6px; }
@@ -52,27 +48,11 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 .record-card { background: #fafbff; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 8px; }
 .record-header { font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
 .record-stat { font-size: 10px; color: #6080a0; }
-.waku-color { display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: 700; color: #fff; text-align: center; min-width: 30px; }
-.waku-1 { background: #fff; color: #1a1a2e; border: 2px solid #1a1a2e; }
-.waku-2 { background: #1a1a2e; color: #fff; }
-.waku-3 { background: #e74c3c; }
-.waku-4 { background: #3498db; }
-.waku-5 { background: #f1c40f; color: #1a1a2e; }
-.waku-6 { background: #27ae60; }
-.waku-7 { background: #e67e22; }
-.waku-8 { background: #e91e63; }
-.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-.modal.active { display: flex; }
-.modal-content { background: #fff; border-radius: 8px; padding: 16px; max-width: 300px; width: 90%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-.modal-title { font-weight: 700; font-size: 13px; margin-bottom: 12px; color: #1a1a2e; }
-.modal-input { width: 100%; padding: 8px; border: 1px solid #d0d7e8; border-radius: 4px; margin-bottom: 8px; font-size: 11px; }
-.modal-buttons { display: flex; gap: 8px; }
-.modal-buttons button { flex: 1; padding: 8px; font-size: 11px; font-weight: 700; border: none; border-radius: 4px; cursor: pointer; }
 </style>
 </head>
 <body>
 
-<div id="hdr">
+<div id="hdr" style="background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.4)), url('./9198.webp?v=9');">
   <div id="app-title">🏇 競馬予想ツール FINAL</div>
   <div id="app-sub">出馬表とDB設定が完全統一・全項目反映版</div>
 </div>
@@ -84,7 +64,6 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     <button class="tab-btn active" onclick="switchTo('input')">📥 JSON/プロンプト</button>
     <button class="tab-btn" onclick="switchTo('main')">🏇 出馬表</button>
     <button class="tab-btn" onclick="switchTo('db')">⚙️ DB設定</button>
-    <button class="tab-btn" onclick="switchTo('advanced')">🎯 展開・距離</button>
     <button class="tab-btn" onclick="switchTo('record')">📚 成績表</button>
     <button class="tab-btn" onclick="switchTo('analysis')">📊 予想分析</button>
   </div>
@@ -313,90 +292,7 @@ PDF:</textarea>
           <div style="font-weight: 900; font-size: 11px; margin-bottom: 6px; color: #3498db; border-bottom: 2px solid #3498db; padding-bottom: 4px;">⏱️ タイム偏差値</div>
           <div id="db-timdev-list" style="max-height: 200px; overflow-y: auto; font-size: 9px;"></div>
         </div>
-
-        <!-- 距離別適性 -->
-        <div style="border: 1px solid #27ae60; border-radius: 6px; padding: 8px; background: #f0fff4; min-width: 0; grid-column: span 2;">
-          <div style="font-weight: 900; font-size: 11px; margin-bottom: 6px; color: #27ae60; border-bottom: 2px solid #27ae60; padding-bottom: 4px;">📏 距離別適性</div>
-          <div style="font-size: 9px; color: #666; margin-bottom: 6px; line-height: 1.4;">
-            JSON形式:<br>
-            {"1200": {"馬名": スコア}, "1400": {...}, ...}
-          </div>
-          <textarea id="db-distance-input" spellcheck="false" placeholder='{"1200": {}, "1400": {}, "1600": {}, "2000": {}}' style="width: 100%; height: 80px; font-size: 8px; padding: 4px; border: 1px solid #27ae60; border-radius: 4px;"></textarea>
-          <button class="btn btn-green" onclick="importDistanceData()" style="width: 100%; margin-top: 4px; font-size: 9px;">読込</button>
-        </div>
-
-        <!-- 競馬場別適性 -->
-        <div style="border: 1px solid #e94560; border-radius: 6px; padding: 8px; background: #fdf0f5; min-width: 0; grid-column: span 2;">
-          <div style="font-weight: 900; font-size: 11px; margin-bottom: 6px; color: #e94560; border-bottom: 2px solid #e94560; padding-bottom: 4px;">🏟️ 競馬場別適性</div>
-          <div style="font-size: 9px; color: #666; margin-bottom: 6px; line-height: 1.4;">
-            JSON形式:<br>
-            {"東京": {"馬名": スコア}, "阪神": {...}, ...}
-          </div>
-          <textarea id="db-course-input" spellcheck="false" placeholder='{"東京": {}, "中山": {}, "阪神": {}, "京都": {}}' style="width: 100%; height: 80px; font-size: 8px; padding: 4px; border: 1px solid #e94560; border-radius: 4px;"></textarea>
-          <button class="btn btn-red" onclick="importCourseData()" style="width: 100%; margin-top: 4px; font-size: 9px; background: #e94560;">読込</button>
-        </div>
       </div>
-    </div>
-  </div>
-
-  <!-- 展開予想・距離コース適性タブ -->
-  <div id="advanced" class="tab-content">
-    <div class="card">
-      <div class="card-title">🎯 展開予想・距離コース適性</div>
-      
-      <div style="margin-bottom: 12px; padding: 10px; background: #f0f8ff; border-radius: 6px; border-left: 4px solid #2563eb;">
-        <div style="font-weight: 900; font-size: 11px; color: #2563eb; margin-bottom: 8px;">📊 展開予想分析（自動計算）</div>
-        <div style="display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 10px;">
-          <button class="btn btn-blue" onclick="analyzeRaceFormation()" style="width: 100%;">🔍 レース構成を分析</button>
-        </div>
-        <div id="formation-analysis" style="margin-top: 8px;"></div>
-      </div>
-
-      <div style="margin-bottom: 12px; padding: 10px; background: #fff8e6; border-radius: 6px; border-left: 4px solid #f39c12;">
-        <div style="font-weight: 900; font-size: 11px; color: #f39c12; margin-bottom: 8px;">🏁 距離・コース適性分析（自動計算）</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 10px; margin-bottom: 8px;">
-          <div>
-            <label style="display: block; margin-bottom: 4px; color: #666; font-weight: 700;">レース距離(m)</label>
-            <select id="race-distance" class="sel" style="width: 100%;">
-              <option value="1200">1200m（短距離）</option>
-              <option value="1400">1400m（短距離）</option>
-              <option value="1600" selected>1600m（マイル）</option>
-              <option value="2000">2000m（中距離）</option>
-              <option value="2400">2400m（中距離）</option>
-              <option value="2500">2500m（長距離）</option>
-              <option value="3000">3000m（長距離）</option>
-            </select>
-          </div>
-          <div>
-            <label style="display: block; margin-bottom: 4px; color: #666; font-weight: 700;">開催競馬場</label>
-            <select id="race-course" class="sel" style="width: 100%;">
-              <option value="東京">東京（広い・直線長い）</option>
-              <option value="中山">中山（小回り）</option>
-              <option value="阪神" selected>阪神（広い・直線短い）</option>
-              <option value="京都">京都（広い・坂あり）</option>
-              <option value="新潟">新潟（広い・長い）</option>
-              <option value="中京">中京（バランス型）</option>
-              <option value="福島">福島（小回り）</option>
-            </select>
-          </div>
-          <div>
-            <label style="display: block; margin-bottom: 4px; color: #666; font-weight: 700;">馬場状態</label>
-            <select id="track-condition" class="sel" style="width: 100%;">
-              <option value="良" selected>☀️ 良</option>
-              <option value="稍重">🌦️ 稍重</option>
-              <option value="重">☔ 重</option>
-              <option value="不良">⛈️ 不良</option>
-            </select>
-          </div>
-          <div style="display: flex; flex-direction: column;">
-            <label style="display: block; margin-bottom: 4px; color: #666; font-weight: 700;">データベース</label>
-            <button class="btn btn-orange" onclick="showBloodlinePreset()" style="font-size: 9px;">📂 血統DB読込</button>
-          </div>
-        </div>
-        <button class="btn btn-orange" onclick="analyzeDistanceCourseAuto()" style="width: 100%;">📍 距離適性を分析</button>
-      </div>
-
-      <div id="advanced-results" style="margin-top: 12px;"></div>
     </div>
   </div>
 
@@ -404,18 +300,82 @@ PDF:</textarea>
   <div id="record" class="tab-content">
     <div class="card">
       <div class="card-title">📚 成績表</div>
+      
       <div style="display: grid; grid-template-columns: 1fr; gap: 6px; margin-bottom: 8px;">
         <input type="text" id="record-race" class="inp" placeholder="レース名" style="font-size: 10px;">
         <input type="date" id="record-date" class="inp" style="font-size: 10px;">
       </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+        <select id="record-formation" class="sel" style="font-size: 10px;">
+          <option value="">陣形</option>
+          <option value="1強・不動">1強・不動</option>
+          <option value="1強・拮抗">1強・拮抗</option>
+          <option value="2強・鉄板">2強・鉄板</option>
+          <option value="2強・混線">2強・混線</option>
+          <option value="通常・拮抗">通常・拮抗</option>
+          <option value="通常・混線">通常・混線</option>
+          <option value="波乱">波乱</option>
+        </select>
+        <select id="record-purchase" class="sel" style="font-size: 10px;">
+          <option value="">買い目</option>
+          <option value="単勝">単勝</option>
+          <option value="単勝・ワイド">単勝・ワイド</option>
+          <option value="馬連BOX">馬連BOX</option>
+          <option value="三連複">三連複</option>
+          <option value="購入なし">購入なし</option>
+        </select>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+        <select id="record-distance" class="sel" style="font-size: 10px;">
+          <option value="">距離</option>
+          <option value="1200">1200m</option>
+          <option value="1400">1400m</option>
+          <option value="1600">1600m</option>
+          <option value="2000">2000m</option>
+          <option value="2400">2400m</option>
+          <option value="2500">2500m</option>
+          <option value="3000">3000m</option>
+        </select>
+        <select id="record-course" class="sel" style="font-size: 10px;">
+          <option value="">競馬場</option>
+          <option value="東京">東京</option>
+          <option value="中山">中山</option>
+          <option value="阪神">阪神</option>
+          <option value="京都">京都</option>
+          <option value="新潟">新潟</option>
+          <option value="中京">中京</option>
+          <option value="福島">福島</option>
+        </select>
+        <select id="record-condition" class="sel" style="font-size: 10px;">
+          <option value="">馬場</option>
+          <option value="良">良</option>
+          <option value="稍重">稍重</option>
+          <option value="重">重</option>
+          <option value="不良">不良</option>
+        </select>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
         <input type="text" id="record-invest" class="inp" placeholder="投資¥" style="font-size: 10px;">
         <input type="text" id="record-return" class="inp" placeholder="回収¥" style="font-size: 10px;">
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+        <select id="record-rank" class="sel" style="font-size: 10px;">
+          <option value="">着順</option>
+          <option value="1着">1着</option>
+          <option value="2着">2着</option>
+          <option value="3着">3着</option>
+          <option value="4着">4着</option>
+          <option value="5着">5着</option>
+          <option value="外">外</option>
+        </select>
+        <input type="text" id="record-score" class="inp" placeholder="偏差値" style="font-size: 10px;">
       </div>
       <div style="margin-bottom: 8px;">
         <input type="text" id="record-memo" class="inp" placeholder="備考" style="width: 100%; font-size: 10px;">
       </div>
       <button class="btn btn-green" onclick="addRecord()" style="width: 100%; font-size: 11px;">📝 記録</button>
+      <button class="btn btn-blue" onclick="showLearningEngine()" style="width: 100%; font-size: 11px; margin-top: 8px;">🧠 学習エンジン分析</button>
+      <div id="learning-result" style="margin-top: 12px;"></div>
       <div id="record-list" style="max-height: 400px; overflow-y: auto; margin-top: 12px;"></div>
     </div>
   </div>
@@ -434,10 +394,7 @@ PDF:</textarea>
 <script>
 let horses = [];
 let records = [];
-let db = {
-  distance: {},  // 距離別スコア
-  course: {}     // 競馬場別スコア
-};
+let db = {};
 let savedJsons = {};
 
 function setStatus(msg, type = 'info') {
@@ -611,18 +568,13 @@ function renderTable() {
     const commentScore = {'◎': 10, '◯': 5, '△': -5, '×': -15}[h.comment] || 0;
     const totalScore = trendScore + chokyoScore + commentScore;
     
-    const getWakuColor = (waku) => {
-      const colorMap = {'1': 'waku-1', '2': 'waku-2', '3': 'waku-3', '4': 'waku-4', '5': 'waku-5', '6': 'waku-6', '7': 'waku-7', '8': 'waku-8'};
-      return colorMap[waku] || '';
-    };
-    
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${h.banum}</td>
-      <td><span class="waku-color ${getWakuColor(h.waku)}">${h.waku}</span></td>
+      <td><input class="inp" style="width: 30px;" value="${h.waku}" onchange="horses[${idx}].waku=this.value; renderTable();"></td>
       <td><strong>${h.name}</strong></td>
       <td><input class="inp" style="width: 30px;" value="${h.age}" onchange="horses[${idx}].age=this.value; renderTable();"></td>
-      <td style="font-size: 8px; cursor: pointer; color: #2563eb; text-decoration: underline;" onclick="editJockey(${idx})">${h.jockey}</td>
+      <td style="font-size: 8px;">${h.jockey}</td>
       <td style="font-size: 8px;">${h.sire}</td>
       <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].kyakushitsu=this.value; renderTable();"><option>-</option><option ${h.kyakushitsu==='逃げ'?'selected':''}>逃げ</option><option ${h.kyakushitsu==='先行'?'selected':''}>先行</option><option ${h.kyakushitsu==='差し'?'selected':''}>差し</option><option ${h.kyakushitsu==='追い込み'?'selected':''}>追い込み</option><option ${h.kyakushitsu==='自在'?'selected':''}>自在</option></select></td>
       <td><input class="inp" style="width: 30px;" value="${h.ninki}" onchange="horses[${idx}].ninki=this.value; renderTable();"></td>
@@ -796,15 +748,31 @@ function deleteSavedJSON(name) {
 function addRecord() {
   const race = document.getElementById('record-race').value || '無名';
   const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
+  const formation = document.getElementById('record-formation').value || '';
+  const purchase = document.getElementById('record-purchase').value || '';
+  const distance = document.getElementById('record-distance').value || '';
+  const course = document.getElementById('record-course').value || '';
+  const condition = document.getElementById('record-condition').value || '';
+  const rank = document.getElementById('record-rank').value || '';
+  const score = document.getElementById('record-score').value || '';
   const invest = parseInt(document.getElementById('record-invest').value) || 0;
   const ret = parseInt(document.getElementById('record-return').value) || 0;
   const memo = document.getElementById('record-memo').value;
   
   if (invest === 0) { setStatus('❌ 金額を入力', 'err'); return; }
   
-  records.push({id: Date.now(), race, date, invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo});
+  records.push({id: Date.now(), race, date, formation, purchase, distance, course, condition, rank, score, invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo});
   localStorage.setItem('kp_records', JSON.stringify(records));
   renderRecordList();
+  document.getElementById('record-race').value = '';
+  document.getElementById('record-date').value = '';
+  document.getElementById('record-formation').value = '';
+  document.getElementById('record-purchase').value = '';
+  document.getElementById('record-distance').value = '';
+  document.getElementById('record-course').value = '';
+  document.getElementById('record-condition').value = '';
+  document.getElementById('record-rank').value = '';
+  document.getElementById('record-score').value = '';
   document.getElementById('record-invest').value = '';
   document.getElementById('record-return').value = '';
   document.getElementById('record-memo').value = '';
@@ -815,10 +783,19 @@ function renderRecordList() {
   const list = document.getElementById('record-list');
   list.innerHTML = records.map((r, i) => `
     <div style="background: #fafbff; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
-      <div style="font-weight: 700; font-size: 10px; color: #1a1a2e; margin-bottom: 4px;">${r.race} (${r.date})</div>
-      <div style="font-size: 9px; color: #6080a0; margin-bottom: 4px;">投¥${r.invest.toLocaleString()} | 回¥${r.return.toLocaleString()} | ${r.rate}%</div>
-      ${r.memo ? `<div style="font-size: 8px; color: #8090a0; margin-bottom: 4px;">備: ${r.memo}</div>` : ''}
-      <button class="btn btn-red" style="width: 100%; padding: 4px; font-size: 8px;" onclick="records.splice(${i}, 1); renderRecordList();">✕ 削除</button>
+      <div style="font-weight: 700; font-size: 10px; color: #1a1a2e; margin-bottom: 4px;">
+        ${r.race}
+        ${r.formation ? `<span style="color: #e94560; font-size: 9px; margin-left: 8px;">📊 ${r.formation}</span>` : ''}
+        ${r.purchase ? `<span style="color: #2563eb; font-size: 9px; margin-left: 4px;">🎯 ${r.purchase}</span>` : ''}
+        ${r.rank ? `<span style="color: #16a34a; font-size: 9px; margin-left: 4px;">🏁 ${r.rank}</span>` : ''}
+      </div>
+      <div style="font-size: 9px; color: #6080a0; margin-bottom: 4px;">
+        (${r.date}) 投¥${r.invest.toLocaleString()} | 回¥${r.return.toLocaleString()} | ${r.rate}%
+        ${r.score ? `| 偏差値${r.score}` : ''}
+      </div>
+      ${r.distance ? `<div style="font-size: 8px; color: #8090a0; margin-bottom: 2px;">📍 ${r.distance}m | ${r.course || '?'} | ${r.condition || '?'}</div>` : ''}
+      ${r.memo && r.memo !== '📋 コピペインポート' ? `<div style="font-size: 8px; color: #8090a0; margin-bottom: 4px;">備: ${r.memo}</div>` : ''}
+      <button class="btn btn-red" style="width: 100%; padding: 4px; font-size: 8px;" onclick="records.splice(${i}, 1); localStorage.setItem('kp_records', JSON.stringify(records)); renderRecordList();">✕ 削除</button>
     </div>
   `).join('');
 }
@@ -827,118 +804,12 @@ function renderAnalysis() {
   const content = document.getElementById('analysis-content');
   if (horses.length === 0) { content.innerHTML = '<div style="padding: 20px; text-align: center; color: #aab0c0;">馬を読込してください</div>'; return; }
   
-  // 展開スコア計算
-  const getDevScore = (h) => {
-    const kyakuCount = {
-      '逃げ': horses.filter(x => x.kyakushitsu === '逃げ').length,
-      '先行': horses.filter(x => x.kyakushitsu === '先行').length,
-      '差し': horses.filter(x => x.kyakushitsu === '差し').length,
-      '追い込み': horses.filter(x => x.kyakushitsu === '追い込み').length
-    };
-    
-    let paceScore = {};
-    const fugueTotal = kyakuCount['逃げ'];
-    const senkouTotal = kyakuCount['先行'];
-    
-    if (fugueTotal === 0 && senkouTotal === 0) {
-      paceScore = { '逃げ': -10, '先行': -5, '差し': 20, '追い込み': 25, '自在': 5 };
-    } else if (fugueTotal === 0) {
-      paceScore = { '逃げ': 0, '先行': 20, '差し': 10, '追い込み': 5, '自在': 10 };
-    } else if (fugueTotal >= 2) {
-      paceScore = { '逃げ': 25, '先行': 10, '差し': -5, '追い込み': -10, '自在': 15 };
-    } else {
-      paceScore = { '逃げ': 15, '先行': 15, '差し': 10, '追い込み': 5, '自在': 10 };
-    }
-    
-    return paceScore[h.kyakushitsu] || 0;
-  };
-
-  // 距離コース適性スコア計算
-  const getDistanceCourseScore = (h) => {
-    const distance = document.getElementById('race-distance')?.value || '1600';
-    const course = document.getElementById('race-course')?.value || '阪神';
-    
-    const sireDistanceAffinity = {
-      // 短距離向き血統
-      'キングカメハメハ': { '1200': 15, '1400': 12, '1600': 5, '2000': -5, '2400': -15, '2500': -20, '3000': -25 },
-      'タイキシャトル': { '1200': 18, '1400': 15, '1600': 8, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-      'ハードスプン': { '1200': 12, '1400': 10, '1600': 5, '2000': -5, '2400': -10, '2500': -15, '3000': -20 },
-      'パイロ': { '1200': 15, '1400': 12, '1600': 5, '2000': -5, '2400': -10, '2500': -15, '3000': -20 },
-      'ヘネシー': { '1200': 8, '1400': 10, '1600': 5, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-      'アドマイヤドン': { '1200': 15, '1400': 12, '1600': 10, '2000': 5, '2400': 0, '2500': -5, '3000': -10 },
-      // マイル・中距離向き血統
-      'ディープインパクト': { '1200': 0, '1400': 5, '1600': 15, '2000': 20, '2400': 15, '2500': 5, '3000': -5 },
-      'ゼンノロブロイ': { '1200': 10, '1400': 15, '1600': 18, '2000': 10, '2400': 0, '2500': -10, '3000': -15 },
-      'デュランダル': { '1200': 5, '1400': 8, '1600': 15, '2000': 12, '2400': 8, '2500': 5, '3000': 0 },
-      'ルーラーシップ': { '1200': 8, '1400': 10, '1600': 15, '2000': 12, '2400': 8, '2500': 3, '3000': -2 },
-      'キタサンブラック': { '1200': 5, '1400': 8, '1600': 12, '2000': 15, '2400': 18, '2500': 15, '3000': 10 },
-      'サンデーサイレンス': { '1200': 5, '1400': 8, '1600': 12, '2000': 15, '2400': 12, '2500': 8, '3000': 5 },
-      // 長距離向き血統
-      'ステイゴールド': { '1200': -10, '1400': -5, '1600': 0, '2000': 15, '2400': 20, '2500': 25, '3000': 20 },
-      'ジャスタウェイ': { '1200': -5, '1400': 0, '1600': 5, '2000': 18, '2400': 20, '2500': 18, '3000': 15 },
-      'オルフェーヴル': { '1200': -2, '1400': 2, '1600': 8, '2000': 18, '2400': 20, '2500': 15, '3000': 10 },
-      'アグネスタキオン': { '1200': 2, '1400': 5, '1600': 10, '2000': 18, '2400': 15, '2500': 10, '3000': 5 },
-      'ネオユニヴァース': { '1200': 0, '1400': 2, '1600': 8, '2000': 15, '2400': 18, '2500': 12, '3000': 8 },
-      'エプソムダービー': { '1200': 0, '1400': 3, '1600': 10, '2000': 15, '2400': 12, '2500': 5, '3000': 0 },
-      'スウェプトオーバーボード': { '1200': 10, '1400': 8, '1600': 5, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-      // その他一般的な血統
-      'ハーツクライ': { '1200': -2, '1400': 2, '1600': 10, '2000': 18, '2400': 18, '2500': 15, '3000': 12 },
-      'ヨハネスブルグ': { '1200': 12, '1400': 10, '1600': 8, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-      'シンボリクリスエス': { '1200': 8, '1400': 10, '1600': 12, '2000': 8, '2400': 5, '2500': 0, '3000': -5 },
-      'ダンシングブレーヴ': { '1200': 5, '1400': 8, '1600': 15, '2000': 12, '2400': 8, '2500': 3, '3000': 0 },
-      'マリエンバッド': { '1200': 10, '1400': 12, '1600': 10, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-      'ジャングルポケット': { '1200': 8, '1400': 10, '1600': 12, '2000': 10, '2400': 5, '2500': 0, '3000': -5 },
-      'シンボリインディ': { '1200': 0, '1400': 3, '1600': 10, '2000': 15, '2400': 12, '2500': 8, '3000': 5 },
-      'サクラユタカオー': { '1200': 12, '1400': 15, '1600': 12, '2000': 0, '2400': -8, '2500': -12, '3000': -15 },
-      'メジロマックイーン': { '1200': 5, '1400': 8, '1600': 10, '2000': 15, '2400': 18, '2500': 12, '3000': 8 }
-    };
-
-    const courseCharacteristics = {
-      '東京': { '短距離': 2, 'マイル': 3, '中距離': 2, '長距離': -2 },
-      '中山': { '短距離': 5, 'マイル': 3, '中距離': 0, '長距離': -5 },
-      '阪神': { '短距離': 0, 'マイル': 3, '中距離': 5, '長距離': 2 },
-      '京都': { '短距離': 0, 'マイル': 2, '中距離': 5, '長距離': 8 },
-      '新潟': { '短距離': -2, 'マイル': 5, '中距離': 5, '長距離': 3 },
-      '中京': { '短距離': 2, 'マイル': 5, '中距離': 3, '長距離': 0 },
-      '福島': { '短距離': 4, 'マイル': 2, '中距離': -2, '長距離': -5 }
-    };
-
-    const getDistanceType = (dist) => {
-      if (dist === '1200' || dist === '1400') return '短距離';
-      if (dist === '1600') return 'マイル';
-      if (dist === '2000' || dist === '2400') return '中距離';
-      return '長距離';
-    };
-
-    const getAgeAdjustment = (age, dist) => {
-      if (age === '3') {
-        if (dist === '1200' || dist === '1400') return 5;
-        if (dist === '1600') return 0;
-        return -8;
-      }
-      if (age === '2') {
-        if (dist === '1200' || dist === '1400') return 8;
-        return -15;
-      }
-      return 0;
-    };
-
-    const sireBase = sireDistanceAffinity[h.sire]?.[distance] || 0;
-    const distType = getDistanceType(distance);
-    const courseBonus = courseCharacteristics[course]?.[distType] || 0;
-    const ageAdj = getAgeAdjustment(h.age, distance);
-    
-    return sireBase + courseBonus + ageAdj;
-  };
-
   const ranked = horses.map(h => {
     const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0);
     const chokyoScore = ({'A': 10, 'B': 0, 'C': -15}[h.chokyoFinal] || 0) + ({'A': 10, 'B': 0, 'C': -15}[h.chokyoPrev] || 0);
     const commentScore = {'◎': 10, '◯': 5, '△': -5, '×': -15}[h.comment] || 0;
-    const devScore = getDevScore(h);  // 展開スコア
-    const dcScore = getDistanceCourseScore(h);  // 距離コース適性スコア
-    const totalScore = trendScore + chokyoScore + commentScore + devScore + dcScore;
-    return {...h, trendScore, chokyoScore, commentScore, devScore, dcScore, totalScore};
+    const totalScore = trendScore + chokyoScore + commentScore;
+    return {...h, trendScore, chokyoScore, commentScore, totalScore};
   }).sort((a, b) => b.totalScore - a.totalScore);
 
   // 偏差値計算
@@ -967,25 +838,10 @@ function renderAnalysis() {
     topLabel = '⚠️ どんぐりの背比べ';
   }
   
-  // ランキング順位に基づいて自動的に印を割り当て
-  const rankingMarkMap = {
-    0: '◎',  // 1位
-    1: '◯',  // 2位
-    2: '▲',  // 3位
-    3: '△',  // 4位
-    4: '✕',  // 5位
-    5: '注'   // 6位
-  };
-  
-  // ランキング順位に基づいて買い目を生成
-  const marukuHorses = ranked[0]?.banum ? `${ranked[0].banum}番` : '';  // ◎
-  const maruHorses = ranked[1]?.banum ? `${ranked[1].banum}番` : '';     // ◯
-  const sankakuHorses = ranked[2]?.banum ? `${ranked[2].banum}番` : '';  // ▲
-  const waideHorses = ranked[3]?.banum ? `${ranked[3].banum}番` : '';    // △
-  const boxHorses = [ranked[0], ranked[1], ranked[2], ranked[3]]
-    .filter(h => h)
-    .map(h => `${h.banum}番`)
-    .join('・');
+  // 陣形判定＆推奨買い目
+  const marukuHorses = ranked.filter(h => h.comment === '◎').map(h => `${h.banum}番`).join('・');
+  const waideHorses = ranked.filter(h => h.comment === '△').map(h => `${h.banum}番`).join('・');
+  const boxHorses = ranked.filter(h => ['◎', '◯', '△'].includes(h.comment)).map(h => `${h.banum}番`).join('・');
   
   let formation = '';
   let recommendation = '';
@@ -993,7 +849,7 @@ function renderAnalysis() {
   
   if (top1Score >= 50 && dansoSa >= 10) {
     formation = '【1強・不動陣形】';
-    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${maruHorses}》`;
+    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${waideHorses}》`;
     recommendation = '🔥 買い推奨！';
   } else if (top2Score >= 50 && dansoSa >= 5) {
     formation = '【2強・鉄板陣形】';
@@ -1013,11 +869,11 @@ function renderAnalysis() {
     recommendation = '💰 通常推奨';
   } else if (top2Score >= 50) {
     formation = '【2強・鉄板陣形（見送り推奨）】';
-    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${maruHorses}》`;
+    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${waideHorses}》`;
     recommendation = '🚫 見送り推奨';
   } else if (top1Score >= 50) {
     formation = '【1強・不動陣形（見送り推奨）】';
-    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${maruHorses}》`;
+    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${waideHorses}》`;
     recommendation = '🚫 見送り推奨';
   } else if (top1Score < 40) {
     formation = '【波乱・包囲陣形（見送り推奨）】';
@@ -1025,15 +881,14 @@ function renderAnalysis() {
     recommendation = '🚫 見送り推奨';
   } else {
     formation = '【通常・標準陣形（見送り推奨）】';
-    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${maruHorses}》`;
+    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${waideHorses}》`;
     recommendation = '🚫 見送り推奨';
   }
 
-  let html = '<table class="table" style="margin-bottom: 12px; font-size: 9px;"><thead style="background: #0f3460; color: #FFD700;"><tr><th>印</th><th>順</th><th>№</th><th>馬名</th><th style="color: #2563eb;">傾向</th><th style="color: #27ae60;">調</th><th style="color: #2563eb;">厩</th><th style="color: #f39c12;">展開</th><th style="color: #ff9800;">距離</th><th style="color: #e94560;">計</th><th>ODD</th></tr></thead><tbody>';
+  let html = '<table class="table" style="margin-bottom: 12px;"><thead style="background: #0f3460; color: #FFD700;"><tr><th>順</th><th>№</th><th>馬名</th><th>傾向</th><th>調</th><th>厩</th><th>計</th><th>ODD</th></tr></thead><tbody>';
   ranked.forEach((h, i) => {
     const bg = i < 3 ? ['#fffde6', '#fff8f0', '#f0fff4'][i] : '#fff';
-    const mark = rankingMarkMap[i] || '';
-    html += `<tr style="background: ${bg};"><td style="font-weight: 900; font-size: 12px; color: #e94560;">${mark}</td><td style="font-weight: 900; color: #e94560;">${i+1}</td><td>${h.banum}</td><td><strong>${h.name}</strong></td><td style="color: #2563eb; font-weight: 700;">${Math.round(h.trendScore)}</td><td style="color: #27ae60;">+${h.chokyoScore}</td><td style="color: #2563eb;">+${h.commentScore}</td><td style="color: #f39c12; font-weight: 700;">${h.devScore > 0 ? '+' : ''}${h.devScore}</td><td style="color: #ff9800; font-weight: 700;">${h.dcScore > 0 ? '+' : ''}${h.dcScore}</td><td style="color: #e94560; font-weight: 900;">${h.totalScore}</td><td>${h.odds.toFixed(1)}</td></tr>`;
+    html += `<tr style="background: ${bg};"><td style="font-weight: 900; color: #e94560;">${i+1}</td><td>${h.banum}</td><td><strong>${h.name}</strong></td><td style="color: #2563eb; font-weight: 700;">${Math.round(h.trendScore)}</td><td style="color: #27ae60;">+${h.chokyoScore}</td><td style="color: #2563eb;">+${h.commentScore}</td><td style="color: #e94560; font-weight: 900;">${h.totalScore}</td><td>${h.odds.toFixed(1)}</td></tr>`;
   });
   html += '</tbody></table>';
   
@@ -1081,315 +936,192 @@ function renderAnalysis() {
   content.innerHTML = html;
 }
 
-// レース構成の自動分析（システマチック方式）
-function analyzeRaceFormation() {
-  if (horses.length === 0) {
-    setStatus('❌ 出馬表を先に読込してください', 'err');
+// テキストコピペからインポート
+function showLearningEngine() {
+  const result = analyzeLearningPatterns();
+  const div = document.getElementById('learning-result');
+  
+  if (result.patterns.length === 0) {
+    div.innerHTML = '<div style="padding: 10px; background: #fff3cd; border-radius: 4px; color: #856404; font-size: 9px;">📊 データが足りません。3件以上の成績を記録してください。</div>';
     return;
   }
-
-  // 脚質別の頭数を集計
-  const kyakuCount = {
-    '逃げ': horses.filter(h => h.kyakushitsu === '逃げ').length,
-    '先行': horses.filter(h => h.kyakushitsu === '先行').length,
-    '差し': horses.filter(h => h.kyakushitsu === '差し').length,
-    '追い込み': horses.filter(h => h.kyakushitsu === '追い込み').length,
-    '自在': horses.filter(h => h.kyakushitsu === '自在').length
-  };
-
-  // ペース予想：脚質構成から自動判定
-  let pacePrediction = '';
-  let paceIcon = '';
-  let paceScore = {};
-
-  const fugueTotal = kyakuCount['逃げ'] + kyakuCount['自在'];
-  const senkouTotal = kyakuCount['先行'];
   
-  // ペース判定ロジック
-  if (fugueTotal === 0 && senkouTotal === 0) {
-    // 逃げ・先行がいない → ハイペース
-    pacePrediction = 'ハイペース（差し・追い込みが優位）';
-    paceIcon = '🔥';
-    paceScore = { '逃げ': -10, '先行': -5, '差し': 20, '追い込み': 25, '自在': 5 };
-  } else if (fugueTotal === 0) {
-    // 逃げがいない→先行のみ → 中程度ペース
-    pacePrediction = 'ミドルペース（先行優位）';
-    paceIcon = '⚡';
-    paceScore = { '逃げ': 0, '先行': 20, '差し': 10, '追い込み': 5, '自在': 10 };
-  } else if (fugueTotal >= 2) {
-    // 逃げが2頭以上 → スロー展開
-    pacePrediction = 'スロー展開（逃げ優位）';
-    paceIcon = '🐌';
-    paceScore = { '逃げ': 25, '先行': 10, '差し': -5, '追い込み': -10, '自在': 15 };
-  } else {
-    // 逃げが1頭 → 適性ペース
-    pacePrediction = '適性ペース（バランス型）';
-    paceIcon = '⚖️';
-    paceScore = { '逃げ': 15, '先行': 15, '差し': 10, '追い込み': 5, '自在': 10 };
-  }
-
-  // 決定力判定：上位馬の脚質から判定
-  const topHorses = horses.slice().sort((a, b) => {
-    const aScore = (db.jockey?.[a.jockey] || 0) + (db.sire?.[a.sire] || 0) + (db.age?.[a.age] || 0);
-    const bScore = (db.jockey?.[b.jockey] || 0) + (db.sire?.[b.sire] || 0) + (db.age?.[b.age] || 0);
-    return bScore - aScore;
-  }).slice(0, 3);
-
-  const topKyaku = topHorses.map(h => h.kyakushitsu);
-  let finisherStrength = '普通';
-  let finisherIcon = '⚖️';
-  let finisherBonus = {};
-
-  if (topKyaku.includes('差し') && topKyaku.includes('追い込み')) {
-    // 上位に差し・追い込みが多い → 決定力が強い
-    finisherStrength = '強い（後半戦力充実）';
-    finisherIcon = '📈';
-    finisherBonus = { '逃げ': -10, '先行': -5, '差し': 20, '追い込み': 25 };
-  } else if (topKyaku.filter(k => k === '逃げ' || k === '先行').length >= 2) {
-    // 上位に逃げ・先行が多い → 決定力が弱い
-    finisherStrength = '弱い（前半有力馬多数）';
-    finisherIcon = '📉';
-    finisherBonus = { '逃げ': 15, '先行': 15, '差し': 0, '追い込み': -5 };
-  } else {
-    finisherStrength = '普通';
-    finisherIcon = '⚖️';
-    finisherBonus = { '逃げ': 5, '先行': 10, '差し': 10, '追い込み': 5 };
-  }
-
-  // 脚質別スコア計算
-  const devScores = horses.map(h => {
-    const devScore = (paceScore[h.kyakushitsu] || 0) + (finisherBonus[h.kyakushitsu] || 0);
-    return {...h, devScore};
+  let html = '<div style="padding: 12px; background: #e8f5e9; border-radius: 6px; border-left: 4px solid #4caf50;">';
+  html += '<div style="font-weight: 900; color: #2e7d32; margin-bottom: 10px; font-size: 11px;">🧠 学習エンジン分析</div>';
+  
+  // パターンの表示
+  result.patterns.forEach(pattern => {
+    html += `<div style="font-size: 9px; color: #1b5e20; margin-bottom: 6px; padding: 6px; background: #fff; border-radius: 4px; border-left: 3px solid #4caf50;">✓ ${pattern}</div>`;
   });
-
-  const sorted = devScores.sort((a, b) => b.devScore - a.devScore);
-
-  let html = `<div style="padding: 10px; background: #e3f2fd; border-radius: 6px; border: 1px solid #90caf9;">
-    <div style="font-weight: 900; color: #1565c0; margin-bottom: 10px; font-size: 12px;">📊 レース構成分析</div>
-    
-    <div style="background: #fff; padding: 8px; border-radius: 4px; margin-bottom: 8px; border-left: 4px solid #2196f3;">
-      <div style="font-size: 10px; color: #333; margin-bottom: 6px; line-height: 1.5;">
-        <strong>脚質構成：</strong><br>
-        逃げ: ${kyakuCount['逃げ']}頭 | 先行: ${kyakuCount['先行']}頭 | 差し: ${kyakuCount['差し']}頭 | 追い込み: ${kyakuCount['追い込み']}頭 | 自在: ${kyakuCount['自在']}頭
-      </div>
-      <div style="font-size: 11px; color: #1565c0; font-weight: 700;">
-        ${paceIcon} ペース予想：${pacePrediction}
-      </div>
-      <div style="font-size: 11px; color: #1565c0; font-weight: 700;">
-        ${finisherIcon} 決定力：${finisherStrength}
-      </div>
-    </div>
-
-    <div style="font-size: 10px; color: #666; margin-bottom: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px;">
-      <strong>展開スコア算出根拠：</strong><br>
-      ペース判定 + 決定力判定に基づいて脚質別の相性を自動計算
-    </div>
-
-    <table style="width: 100%; font-size: 9px; border-collapse: collapse;">
-      <tr style="background: #bbdefb; font-weight: 700;">
-        <th style="padding: 4px; border: 1px solid #64b5f6; text-align: left;">№</th>
-        <th style="padding: 4px; border: 1px solid #64b5f6; text-align: left;">馬名</th>
-        <th style="padding: 4px; border: 1px solid #64b5f6; text-align: left;">脚質</th>
-        <th style="padding: 4px; border: 1px solid #64b5f6; text-align: right; color: #1565c0;">展開+</th>
-      </tr>`;
-
-  sorted.slice(0, 8).forEach(h => {
-    const color = h.devScore > 15 ? '#d32f2f' : h.devScore > 5 ? '#f57c00' : '#1976d2';
-    html += `<tr style="border-bottom: 1px solid #bbdefb;">
-      <td style="padding: 4px;">${h.banum}</td>
-      <td style="padding: 4px;"><strong>${h.name}</strong></td>
-      <td style="padding: 4px;">${h.kyakushitsu}</td>
-      <td style="padding: 4px; text-align: right; font-weight: 700; color: ${color};">+${h.devScore}</td>
-    </tr>`;
-  });
-
-  html += `</table></div>`;
-  document.getElementById('formation-analysis').innerHTML = html;
-  setStatus('✅ レース構成を分析', 'ok');
+  
+  // 詳細データ：陣形別
+  if (result.formationStats && Object.keys(result.formationStats).length > 0) {
+    html += '<div style="margin-top: 12px; font-size: 9px; color: #1b5e20;"><strong>📊 陣形別的中率：</strong></div>';
+    Object.entries(result.formationStats).forEach(([formation, stat]) => {
+      const rate = stat.total > 0 ? (stat.hit / stat.total * 100).toFixed(1) : 0;
+      const recovery = stat.totalInvest > 0 ? (stat.totalReturn / stat.totalInvest * 100).toFixed(1) : 0;
+      html += `<div style="font-size: 8px; color: #333; margin-bottom: 4px; padding: 4px; background: #f5f5f5; border-radius: 3px;">
+        ${formation}: 的中率${rate}% (${stat.hit}/${stat.total}) | 回収率${recovery}%
+      </div>`;
+    });
+  }
+  
+  // 詳細データ：買い目別
+  if (result.purchaseStats && Object.keys(result.purchaseStats).length > 0) {
+    html += '<div style="margin-top: 12px; font-size: 9px; color: #1b5e20;"><strong>🎯 買い目別的中率：</strong></div>';
+    Object.entries(result.purchaseStats).forEach(([purchase, stat]) => {
+      const rate = stat.total > 0 ? (stat.hit / stat.total * 100).toFixed(1) : 0;
+      const recovery = stat.totalInvest > 0 ? (stat.totalReturn / stat.totalInvest * 100).toFixed(1) : 0;
+      html += `<div style="font-size: 8px; color: #333; margin-bottom: 4px; padding: 4px; background: #f5f5f5; border-radius: 3px;">
+        ${purchase}: 的中率${rate}% (${stat.hit}/${stat.total}) | 回収率${recovery}%
+      </div>`;
+    });
+  }
+  
+  // スコア帯別分析
+  if (result.scoreStats && Object.keys(result.scoreStats).length > 0) {
+    html += '<div style="margin-top: 12px; font-size: 9px; color: #1b5e20;"><strong>📈 偏差値帯別的中率：</strong></div>';
+    const sortedScores = Object.entries(result.scoreStats).sort((a, b) => {
+      const scoreA = parseInt(a[0].split('～')[0]);
+      const scoreB = parseInt(b[0].split('～')[0]);
+      return scoreB - scoreA;
+    });
+    sortedScores.forEach(([band, stat]) => {
+      const rate = stat.total > 0 ? (stat.hit / stat.total * 100).toFixed(1) : 0;
+      const recovery = stat.totalInvest > 0 ? (stat.totalReturn / stat.totalInvest * 100).toFixed(1) : 0;
+      html += `<div style="font-size: 8px; color: #333; margin-bottom: 4px; padding: 4px; background: #f5f5f5; border-radius: 3px;">
+        偏差値${band}: 的中率${rate}% (${stat.hit}/${stat.total}) | 回収率${recovery}%
+      </div>`;
+    });
+  }
+  
+  // 推奨度インジケータ（※次のレースに適用する際の参考）
+  html += '<div style="margin-top: 12px; font-size: 9px; color: #1b5e20;"><strong>🚀 推奨度ガイド（参考）：</strong></div>';
+  html += '<div style="font-size: 8px; color: #333; margin-bottom: 4px; padding: 4px; background: #ffe0e0; border-radius: 3px;">🔥🔥🔥 過去の最強陣形が出現した時</div>';
+  html += '<div style="font-size: 8px; color: #333; margin-bottom: 4px; padding: 4px; background: #ffefcc; border-radius: 3px;">🔥🔥 的中率が高い陣形（50%以上）が出現した時</div>';
+  html += '<div style="font-size: 8px; color: #333; margin-bottom: 4px; padding: 4px; background: #fff5f5; border-radius: 3px;">🔥 的中率が低い陣形（30%以下）は注意</div>';
+  
+  html += '</div>';
+  
+  div.innerHTML = html;
 }
 
-// 血統ベースの距離・コース適性自動分析
-function analyzeDistanceCourseAuto() {
-  if (horses.length === 0) {
-    setStatus('❌ 出馬表を先に読込してください', 'err');
-    return;
+// 学習エンジン：過去データから法則を抽出
+function analyzeLearningPatterns() {
+  if (records.length < 3) return { patterns: [], insight: '📊 データが足りません。3件以上の成績を記録してください。' };
+  
+  // 陣形別的中率分析
+  const formationStats = {};
+  records.forEach(r => {
+    if (!r.formation) return;
+    if (!formationStats[r.formation]) {
+      formationStats[r.formation] = { total: 0, hit: 0, totalReturn: 0, totalInvest: 0 };
+    }
+    formationStats[r.formation].total++;
+    formationStats[r.formation].totalInvest += r.invest;
+    formationStats[r.formation].totalReturn += r.return;
+    if (r.return > r.invest) {
+      formationStats[r.formation].hit++;
+    }
+  });
+  
+  // 買い目別的中率分析
+  const purchaseStats = {};
+  records.forEach(r => {
+    if (!r.purchase || r.purchase === '購入なし') return;
+    if (!purchaseStats[r.purchase]) {
+      purchaseStats[r.purchase] = { total: 0, hit: 0, totalReturn: 0, totalInvest: 0 };
+    }
+    purchaseStats[r.purchase].total++;
+    purchaseStats[r.purchase].totalInvest += r.invest;
+    purchaseStats[r.purchase].totalReturn += r.return;
+    if (r.return > r.invest) {
+      purchaseStats[r.purchase].hit++;
+    }
+  });
+  
+  // 距離別的中率分析
+  const distanceStats = {};
+  records.forEach(r => {
+    if (!r.distance) return;
+    if (!distanceStats[r.distance]) {
+      distanceStats[r.distance] = { total: 0, hit: 0, totalReturn: 0, totalInvest: 0 };
+    }
+    distanceStats[r.distance].total++;
+    distanceStats[r.distance].totalInvest += r.invest;
+    distanceStats[r.distance].totalReturn += r.return;
+    if (r.return > r.invest) {
+      distanceStats[r.distance].hit++;
+    }
+  });
+  
+  // 馬場別的中率分析
+  const conditionStats = {};
+  records.forEach(r => {
+    if (!r.condition) return;
+    if (!conditionStats[r.condition]) {
+      conditionStats[r.condition] = { total: 0, hit: 0, totalReturn: 0, totalInvest: 0 };
+    }
+    conditionStats[r.condition].total++;
+    conditionStats[r.condition].totalInvest += r.invest;
+    conditionStats[r.condition].totalReturn += r.return;
+    if (r.return > r.invest) {
+      conditionStats[r.condition].hit++;
+    }
+  });
+  
+  // 最強の陣形を検出
+  let bestFormation = null, bestFormationRate = 0;
+  Object.entries(formationStats).forEach(([form, stat]) => {
+    const rate = stat.total > 0 ? stat.hit / stat.total : 0;
+    if (rate > bestFormationRate) {
+      bestFormationRate = rate;
+      bestFormation = form;
+    }
+  });
+  
+  // 最強の買い目を検出
+  let bestPurchase = null, bestPurchaseRate = 0;
+  Object.entries(purchaseStats).forEach(([purch, stat]) => {
+    const rate = stat.total > 0 ? stat.hit / stat.total : 0;
+    if (rate > bestPurchaseRate) {
+      bestPurchaseRate = rate;
+      bestPurchase = purch;
+    }
+  });
+  
+  const patterns = [];
+  if (bestFormation) {
+    patterns.push(`📊 陣形「${bestFormation}」が最強：的中率${(bestFormationRate * 100).toFixed(1)}%（${formationStats[bestFormation].hit}/${formationStats[bestFormation].total}）`);
   }
-
-  const distance = document.getElementById('race-distance').value;
-  const course = document.getElementById('race-course').value;
-  const condition = document.getElementById('track-condition').value;
-
-  // 血統による距離適性の一般的な特性
-  const sireDistanceAffinity = {
-    // 短距離向き血統
-    'キングカメハメハ': { '1200': 15, '1400': 12, '1600': 5, '2000': -5, '2400': -15, '2500': -20, '3000': -25 },
-    'タイキシャトル': { '1200': 18, '1400': 15, '1600': 8, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-    'ハードスプン': { '1200': 12, '1400': 10, '1600': 5, '2000': -5, '2400': -10, '2500': -15, '3000': -20 },
-    'パイロ': { '1200': 15, '1400': 12, '1600': 5, '2000': -5, '2400': -10, '2500': -15, '3000': -20 },
-    'ヘネシー': { '1200': 8, '1400': 10, '1600': 5, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-    'アドマイヤドン': { '1200': 15, '1400': 12, '1600': 10, '2000': 5, '2400': 0, '2500': -5, '3000': -10 },
-    // マイル・中距離向き血統
-    'ディープインパクト': { '1200': 0, '1400': 5, '1600': 15, '2000': 20, '2400': 15, '2500': 5, '3000': -5 },
-    'ゼンノロブロイ': { '1200': 10, '1400': 15, '1600': 18, '2000': 10, '2400': 0, '2500': -10, '3000': -15 },
-    'デュランダル': { '1200': 5, '1400': 8, '1600': 15, '2000': 12, '2400': 8, '2500': 5, '3000': 0 },
-    'ルーラーシップ': { '1200': 8, '1400': 10, '1600': 15, '2000': 12, '2400': 8, '2500': 3, '3000': -2 },
-    'キタサンブラック': { '1200': 5, '1400': 8, '1600': 12, '2000': 15, '2400': 18, '2500': 15, '3000': 10 },
-    'サンデーサイレンス': { '1200': 5, '1400': 8, '1600': 12, '2000': 15, '2400': 12, '2500': 8, '3000': 5 },
-    // 長距離向き血統
-    'ステイゴールド': { '1200': -10, '1400': -5, '1600': 0, '2000': 15, '2400': 20, '2500': 25, '3000': 20 },
-    'ジャスタウェイ': { '1200': -5, '1400': 0, '1600': 5, '2000': 18, '2400': 20, '2500': 18, '3000': 15 },
-    'オルフェーヴル': { '1200': -2, '1400': 2, '1600': 8, '2000': 18, '2400': 20, '2500': 15, '3000': 10 },
-    'アグネスタキオン': { '1200': 2, '1400': 5, '1600': 10, '2000': 18, '2400': 15, '2500': 10, '3000': 5 },
-    'ネオユニヴァース': { '1200': 0, '1400': 2, '1600': 8, '2000': 15, '2400': 18, '2500': 12, '3000': 8 },
-    'エプソムダービー': { '1200': 0, '1400': 3, '1600': 10, '2000': 15, '2400': 12, '2500': 5, '3000': 0 },
-    'スウェプトオーバーボード': { '1200': 10, '1400': 8, '1600': 5, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-    // その他一般的な血統
-    'ハーツクライ': { '1200': -2, '1400': 2, '1600': 10, '2000': 18, '2400': 18, '2500': 15, '3000': 12 },
-    'ヨハネスブルグ': { '1200': 12, '1400': 10, '1600': 8, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-    'シンボリクリスエス': { '1200': 8, '1400': 10, '1600': 12, '2000': 8, '2400': 5, '2500': 0, '3000': -5 },
-    'ダンシングブレーヴ': { '1200': 5, '1400': 8, '1600': 15, '2000': 12, '2400': 8, '2500': 3, '3000': 0 },
-    'マリエンバッド': { '1200': 10, '1400': 12, '1600': 10, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-    'ジャングルポケット': { '1200': 8, '1400': 10, '1600': 12, '2000': 10, '2400': 5, '2500': 0, '3000': -5 },
-    'シンボルインディ': { '1200': 0, '1400': 3, '1600': 10, '2000': 15, '2400': 12, '2500': 8, '3000': 5 },
-    'サクラユタカオー': { '1200': 12, '1400': 15, '1600': 12, '2000': 0, '2400': -8, '2500': -12, '3000': -15 },
-    'メジロマックイーン': { '1200': 5, '1400': 8, '1600': 10, '2000': 15, '2400': 18, '2500': 12, '3000': 8 }
-  };
-
-  // コース特性による加点
-  const courseCharacteristics = {
-    '東京': { '短距離': 2, 'マイル': 3, '中距離': 2, '長距離': -2 },  // 広い・直線長い
-    '中山': { '短距離': 5, 'マイル': 3, '中距離': 0, '長距離': -5 },  // 小回り
-    '阪神': { '短距離': 0, 'マイル': 3, '中距離': 5, '長距離': 2 },   // 直線短い
-    '京都': { '短距離': 0, 'マイル': 2, '中距離': 5, '長距離': 8 },   // 坂あり
-    '新潟': { '短距離': -2, 'マイル': 5, '中距離': 5, '長距離': 3 },  // 広い・長い
-    '中京': { '短距離': 2, 'マイル': 5, '中距離': 3, '長距離': 0 },   // バランス
-    '福島': { '短距離': 4, 'マイル': 2, '中距離': -2, '長距離': -5 }  // 小回り
-  };
-
-  // 距離帯分類
-  const getDistanceType = (dist) => {
-    if (dist === '1200' || dist === '1400') return '短距離';
-    if (dist === '1600') return 'マイル';
-    if (dist === '2000' || dist === '2400') return '中距離';
-    return '長距離';
-  };
-
-  // 馬場による脚質別ボーナス
-  const getTrackBonus = (h, cond) => {
-    let bonus = 0;
-    if (cond === '重' || cond === '不良') {
-      if (h.kyakushitsu === '逃げ') bonus = 8;
-      if (h.kyakushitsu === '先行') bonus = 5;
-    } else if (cond === '良') {
-      if (h.kyakushitsu === '差し') bonus = 8;
-      if (h.kyakushitsu === '追い込み') bonus = 6;
+  if (bestPurchase) {
+    patterns.push(`🎯 買い目「${bestPurchase}」が最強：的中率${(bestPurchaseRate * 100).toFixed(1)}%（${purchaseStats[bestPurchase].hit}/${purchaseStats[bestPurchase].total}）`);
+  }
+  
+  const totalInvest = records.reduce((a, b) => a + b.invest, 0);
+  const totalReturn = records.reduce((a, b) => a + b.return, 0);
+  const overallRate = totalInvest > 0 ? totalReturn / totalInvest : 0;
+  patterns.push(`💰 総合回収率：${(overallRate * 100).toFixed(1)}%`);
+  
+  // スコア帯別分析
+  const scoreStats = {};
+  records.forEach(r => {
+    if (!r.score) return;
+    const score = parseInt(r.score);
+    // スコアを10刻みでグルーピング
+    const band = Math.floor(score / 10) * 10 + '～' + (Math.floor(score / 10) * 10 + 9);
+    if (!scoreStats[band]) {
+      scoreStats[band] = { total: 0, hit: 0, totalReturn: 0, totalInvest: 0 };
     }
-    return bonus;
-  };
-
-  // 年齢による調整（3歳馬は経験不足を補正）
-  const getAgeAdjustment = (age, dist) => {
-    if (age === '3') {
-      // 3歳馬は短距離経験が多いので短距離に適正
-      if (dist === '1200' || dist === '1400') return 5;
-      if (dist === '1600') return 0;
-      return -8;  // 長距離未経験
+    scoreStats[band].total++;
+    scoreStats[band].totalInvest += r.invest;
+    scoreStats[band].totalReturn += r.return;
+    if (r.return > r.invest) {
+      scoreStats[band].hit++;
     }
-    if (age === '2') {
-      if (dist === '1200' || dist === '1400') return 8;
-      return -15;
-    }
-    return 0;  // 4歳以上は経験豊富
-  };
-
-  // スコア計算
-  const dcScores = horses.map(h => {
-    const sireBase = sireDistanceAffinity[h.sire]?.[distance] || 0;
-    const distType = getDistanceType(distance);
-    const courseBonus = courseCharacteristics[course]?.[distType] || 0;
-    const trackBonus = getTrackBonus(h, condition);
-    const ageAdj = getAgeAdjustment(h.age, distance);
-    
-    const totalDC = sireBase + courseBonus + trackBonus + ageAdj;
-    
-    return {
-      ...h,
-      sireBase,
-      courseBonus,
-      trackBonus,
-      ageAdj,
-      totalDC
-    };
   });
-
-  const sorted = dcScores.sort((a, b) => b.totalDC - a.totalDC);
-
-  let html = `<div style="padding: 12px; background: #fff3e0; border-radius: 8px; border: 2px solid #ff9800; margin-top: 8px;">
-    <div style="font-weight: 900; color: #e65100; margin-bottom: 12px; font-size: 13px;">📍 距離・コース適性分析</div>
-    
-    <div style="background: #fff; padding: 10px; border-radius: 6px; margin-bottom: 12px; border-left: 5px solid #ff9800;">
-      <div style="font-size: 11px; color: #333; margin-bottom: 8px; font-weight: 700;">
-        🎯 レース条件
-      </div>
-      <div style="font-size: 10px; color: #555; margin-bottom: 8px; line-height: 1.8;">
-        <div>距離: <strong style="color: #ff9800; font-size: 12px;">${distance}m</strong> (${getDistanceType(distance)})</div>
-        <div>競馬場: <strong style="color: #ff9800; font-size: 12px;">${course}</strong></div>
-        <div>馬場: <strong style="color: #ff9800; font-size: 12px;">${condition}</strong></div>
-      </div>
-    </div>
-
-    <div style="margin-bottom: 12px;">
-      <div style="font-size: 10px; font-weight: 700; color: #e65100; margin-bottom: 8px;">🏇 適性ランキング（上位8頭）</div>
-      <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-        <tr style="background: #ffe0b2; font-weight: 700; border: 1px solid #ffb74d;">
-          <th style="padding: 6px; text-align: left; width: 8%;">順位</th>
-          <th style="padding: 6px; text-align: left; width: 8%;">№</th>
-          <th style="padding: 6px; text-align: left; width: 30%;">馬名</th>
-          <th style="padding: 6px; text-align: center; width: 6%;">年</th>
-          <th style="padding: 6px; text-align: right; color: #2196f3; width: 12%;">血統</th>
-          <th style="padding: 6px; text-align: right; color: #388e3c; width: 12%;">場所</th>
-          <th style="padding: 6px; text-align: right; color: #7b1fa2; width: 8%;">馬場</th>
-          <th style="padding: 6px; text-align: right; color: #f57c00; width: 8%;">年齢</th>
-          <th style="padding: 6px; text-align: right; background: #fff8e6; color: #ff9800; font-weight: 900; width: 8%; border: 1px solid #ff9800; border-radius: 4px;">合計</th>
-        </tr>`;
-
-  sorted.slice(0, 8).forEach((h, i) => {
-    const bgColor = i === 0 ? '#fffde6' : i === 1 ? '#fff8f0' : i === 2 ? '#f0fff4' : '#ffffff';
-    const scoreBg = h.totalDC > 10 ? '#ffebee' : h.totalDC > 0 ? '#fff3e0' : '#e3f2fd';
-    const scoreColor = h.totalDC > 10 ? '#d32f2f' : h.totalDC > 0 ? '#f57c00' : '#1976d2';
-    
-    html += `<tr style="background: ${bgColor}; border-bottom: 1px solid #ffe0b2; hover: background: #fffde6;">
-      <td style="padding: 6px; font-weight: 700; color: #ff9800; font-size: 11px;">${i+1}</td>
-      <td style="padding: 6px; font-weight: 700;">${h.banum}</td>
-      <td style="padding: 6px;"><strong>${h.name}</strong></td>
-      <td style="padding: 6px; text-align: center; color: #666;">${h.age}</td>
-      <td style="padding: 6px; text-align: right; color: #2196f3; font-weight: 600;">${h.sireBase > 0 ? '+' : ''}${h.sireBase}</td>
-      <td style="padding: 6px; text-align: right; color: #388e3c; font-weight: 600;">${h.courseBonus > 0 ? '+' : ''}${h.courseBonus}</td>
-      <td style="padding: 6px; text-align: right; color: #7b1fa2; font-weight: 600;">${h.trackBonus > 0 ? '+' : ''}${h.trackBonus}</td>
-      <td style="padding: 6px; text-align: right; color: #f57c00; font-weight: 600;">${h.ageAdj > 0 ? '+' : ''}${h.ageAdj}</td>
-      <td style="padding: 6px; text-align: right; font-weight: 900; color: ${scoreColor}; background: ${scoreBg}; border: 1px solid #ffb74d; border-radius: 4px;">${h.totalDC > 0 ? '+' : ''}${h.totalDC}</td>
-    </tr>`;
-  });
-
-  html += `</table>
-    </div>
-
-    <div style="background: #fafafa; padding: 10px; border-radius: 6px; border-left: 4px solid #ff9800;">
-      <div style="font-size: 9px; color: #666; line-height: 1.6;">
-        <div style="margin-bottom: 6px;"><strong style="color: #ff9800;">📊 スコア構成：</strong></div>
-        <div>🔵 <strong>血統</strong>（種牡馬の距離適性）</div>
-        <div>🟢 <strong>場所</strong>（競馬場の特性）</div>
-        <div>🟣 <strong>馬場</strong>（馬場と脚質の相性）</div>
-        <div>🟠 <strong>年齢</strong>（3歳馬の経験補正）</div>
-        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #ddd; font-size: 8px; color: #999;">
-          ※ 3歳馬は未経験距離に補正あり。長距離戦は成績予測の精度が低下する可能性あり。
-        </div>
-      </div>
-    </div>
-  </div>`;
-
-  document.getElementById('advanced-results').innerHTML = html;
-  setStatus('✅ 距離適性を分析', 'ok');
+  
+  return { formationStats, purchaseStats, distanceStats, conditionStats, scoreStats, patterns };
 }
 
 window.addEventListener('load', () => {
@@ -1398,167 +1130,7 @@ window.addEventListener('load', () => {
   try { const saved = localStorage.getItem('kp_saved_jsons'); if (saved) savedJsons = JSON.parse(saved); renderSavedJsonList(); } catch (e) {}
   setStatus('🏇 準備完了！', 'ok');
 });
-
-let editingJockeyIndex = null;
-
-function editJockey(idx) {
-  editingJockeyIndex = idx;
-  document.getElementById('jockey-input').value = horses[idx].jockey;
-  document.getElementById('jockey-modal').classList.add('active');
-  document.getElementById('jockey-input').focus();
-}
-
-function closeJockeyModal() {
-  document.getElementById('jockey-modal').classList.remove('active');
-  editingJockeyIndex = null;
-}
-
-function confirmJockeyEdit() {
-  const newJockey = document.getElementById('jockey-input').value.trim();
-  if (!newJockey) {
-    setStatus('❌ 騎手名を入力してください', 'err');
-    return;
-  }
-  
-  horses[editingJockeyIndex].jockey = newJockey;
-  closeJockeyModal();
-  renderTable();
-  renderAnalysis();
-  setStatus('✅ 騎手を変更', 'ok');
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && document.getElementById('jockey-modal').classList.contains('active')) {
-    confirmJockeyEdit();
-  }
-  if (e.key === 'Escape' && document.getElementById('jockey-modal').classList.contains('active')) {
-    closeJockeyModal();
-  }
-});
-
-// 距離別適性をインポート
-function importDistanceData() {
-  try {
-    const input = document.getElementById('db-distance-input').value.trim();
-    if (!input) { setStatus('❌ JSONを入力してください', 'err'); return; }
-    const data = JSON.parse(input);
-    db.distance = data;
-    localStorage.setItem('kp_db', JSON.stringify(db));
-    setStatus('✅ 距離別適性を保存', 'ok');
-  } catch (e) {
-    setStatus('❌ JSON形式エラー', 'err');
-  }
-}
-
-// 競馬場別適性をインポート
-function importCourseData() {
-  try {
-    const input = document.getElementById('db-course-input').value.trim();
-    if (!input) { setStatus('❌ JSONを入力してください', 'err'); return; }
-    const data = JSON.parse(input);
-    db.course = data;
-    localStorage.setItem('kp_db', JSON.stringify(db));
-    setStatus('✅ 競馬場別適性を保存', 'ok');
-  } catch (e) {
-    setStatus('❌ JSON形式エラー', 'err');
-  }
-}
-
-// 血統距離適性プリセットを読込
-function loadDistanceCoursePreset() {
-  // 主要血統の距離適性プリセット
-  const sirePreset = {
-    'キングカメハメハ': { '1200': 15, '1400': 12, '1600': 5, '2000': -5, '2400': -15, '2500': -20, '3000': -25 },
-    'ディープインパクト': { '1200': 0, '1400': 5, '1600': 15, '2000': 20, '2400': 15, '2500': 5, '3000': -5 },
-    'ゼンノロブロイ': { '1200': 10, '1400': 15, '1600': 18, '2000': 10, '2400': 0, '2500': -10, '3000': -15 },
-    'タイキシャトル': { '1200': 18, '1400': 15, '1600': 8, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-    'ハードスプン': { '1200': 12, '1400': 10, '1600': 5, '2000': -5, '2400': -10, '2500': -15, '3000': -20 },
-    'アドマイヤドン': { '1200': 15, '1400': 12, '1600': 10, '2000': 5, '2400': 0, '2500': -5, '3000': -10 },
-    'ステイゴールド': { '1200': -10, '1400': -5, '1600': 0, '2000': 15, '2400': 20, '2500': 25, '3000': 20 },
-    'パイロ': { '1200': 15, '1400': 12, '1600': 5, '2000': -5, '2400': -10, '2500': -15, '3000': -20 },
-    'デュランダル': { '1200': 5, '1400': 8, '1600': 15, '2000': 12, '2400': 8, '2500': 5, '3000': 0 },
-    'スウェプトオーバーボード': { '1200': 10, '1400': 8, '1600': 5, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-    'キタサンブラック': { '1200': 5, '1400': 8, '1600': 12, '2000': 15, '2400': 18, '2500': 15, '3000': 10 },
-    'ジャスタウェイ': { '1200': -5, '1400': 0, '1600': 5, '2000': 18, '2400': 20, '2500': 18, '3000': 15 },
-    'オルフェーヴル': { '1200': -2, '1400': 2, '1600': 8, '2000': 18, '2400': 20, '2500': 15, '3000': 10 },
-    'ルーラーシップ': { '1200': 8, '1400': 10, '1600': 15, '2000': 12, '2400': 8, '2500': 3, '3000': -2 },
-    'エプソムダービー': { '1200': 0, '1400': 3, '1600': 10, '2000': 15, '2400': 12, '2500': 5, '3000': 0 },
-    'サンデーサイレンス': { '1200': 5, '1400': 8, '1600': 12, '2000': 15, '2400': 12, '2500': 8, '3000': 5 },
-    'ヘネシー': { '1200': 8, '1400': 10, '1600': 5, '2000': 0, '2400': -5, '2500': -10, '3000': -15 },
-    'アグネスタキオン': { '1200': 2, '1400': 5, '1600': 10, '2000': 18, '2400': 15, '2500': 10, '3000': 5 },
-    'ネオユニヴァース': { '1200': 0, '1400': 2, '1600': 8, '2000': 15, '2400': 18, '2500': 12, '3000': 8 }
-  };
-
-  setStatus('✅ 血統プリセットを読込完了', 'ok');
-  return sirePreset;
-}
-
-// 血統プリセット表示
-function showBloodlinePreset() {
-  const preset = loadDistanceCoursePreset();
-  
-  let html = '<table style="width: 100%; border-collapse: collapse; font-size: 8px;">';
-  html += '<tr style="background: #ffe0b2; font-weight: 700;"><th style="padding: 4px; border: 1px solid #ffb74d; text-align: left;">血統</th>';
-  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">1200</th>';
-  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">1400</th>';
-  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">1600</th>';
-  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">2000</th>';
-  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">2400</th>';
-  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">2500</th>';
-  html += '<th style="padding: 4px; border: 1px solid #ffb74d; text-align: center;">3000</th></tr>';
-  
-  Object.entries(preset).forEach(([sire, scores]) => {
-    html += `<tr style="border-bottom: 1px solid #ffe0b2;">
-      <td style="padding: 4px; border: 1px solid #ffb74d; font-weight: 700;">${sire}</td>`;
-    ['1200', '1400', '1600', '2000', '2400', '2500', '3000'].forEach(dist => {
-      const score = scores[dist];
-      const color = score > 10 ? '#d32f2f' : score > 0 ? '#f57c00' : score < -10 ? '#1565c0' : '#666';
-      html += `<td style="padding: 4px; border: 1px solid #ffb74d; text-align: center; color: ${color}; font-weight: 700;">${score > 0 ? '+' : ''}${score}</td>`;
-    });
-    html += '</tr>';
-  });
-  
-  html += '</table>';
-  html += '<div style="margin-top: 8px; padding: 8px; background: #f5f5f5; border-radius: 4px; font-size: 8px; color: #666;">';
-  html += '<strong>📌 使い方：</strong> 「適用」ボタンをクリックすると、この距離適性データが反映されます。';
-  html += '</div>';
-  
-  document.getElementById('bloodline-preset-content').innerHTML = html;
-  document.getElementById('bloodline-modal').classList.add('active');
-}
-
-function closeBloodlineModal() {
-  document.getElementById('bloodline-modal').classList.remove('active');
-}
-
-function applyBloodlinePreset() {
-  setStatus('✅ 血統データを適用しました', 'ok');
-  closeBloodlineModal();
-}
 </script>
-<div id="jockey-modal" class="modal">
-  <div class="modal-content">
-    <div class="modal-title">騎手を編集</div>
-    <input type="text" id="jockey-input" class="modal-input" placeholder="新しい騎手名">
-    <div class="modal-buttons">
-      <button style="background: #2563eb; color: #fff;" onclick="confirmJockeyEdit()">✅ 変更</button>
-      <button style="background: #999; color: #fff;" onclick="closeJockeyModal()">✕ キャンセル</button>
-    </div>
-  </div>
-</div>
-
-<div id="bloodline-modal" class="modal">
-  <div class="modal-content" style="max-width: 500px;">
-    <div class="modal-title">📚 血統プリセット（距離適性）</div>
-    <div id="bloodline-preset-content" style="max-height: 400px; overflow-y: auto; font-size: 9px; color: #666; line-height: 1.6;">
-      読み込み中...
-    </div>
-    <div class="modal-buttons" style="margin-top: 12px;">
-      <button style="background: #f39c12; color: #fff;" onclick="applyBloodlinePreset()">✅ 適用</button>
-      <button style="background: #999; color: #fff;" onclick="closeBloodlineModal()">✕ 閉じる</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
