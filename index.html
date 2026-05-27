@@ -327,7 +327,7 @@ PDF:</textarea>
       </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px;">
         <select id="record-distance" class="sel" style="font-size: 10px;">
-          <option value="">距離</option>
+          <option value="">距離（芝）</option>
           <option value="1200">1200m</option>
           <option value="1400">1400m</option>
           <option value="1600">1600m</option>
@@ -335,6 +335,20 @@ PDF:</textarea>
           <option value="2400">2400m</option>
           <option value="2500">2500m</option>
           <option value="3000">3000m</option>
+          <option value="3200">3200m</option>
+          <option value="3600">3600m</option>
+        </select>
+        <select id="record-distance-dirt" class="sel" style="font-size: 10px;">
+          <option value="">距離（ダート）</option>
+          <option value="1000D">1000m</option>
+          <option value="1150D">1150m</option>
+          <option value="1200D">1200m</option>
+          <option value="1400D">1400m</option>
+          <option value="1600D">1600m</option>
+          <option value="1700D">1700m</option>
+          <option value="1900D">1900m</option>
+          <option value="2000D">2000m</option>
+          <option value="2500D">2500m</option>
         </select>
         <select id="record-course" class="sel" style="font-size: 10px;">
           <option value="">競馬場</option>
@@ -346,6 +360,8 @@ PDF:</textarea>
           <option value="中京">中京</option>
           <option value="福島">福島</option>
         </select>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr; gap: 6px; margin-bottom: 8px;">
         <select id="record-condition" class="sel" style="font-size: 10px;">
           <option value="">馬場</option>
           <option value="良">良</option>
@@ -353,7 +369,6 @@ PDF:</textarea>
           <option value="重">重</option>
           <option value="不良">不良</option>
         </select>
-      </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
         <input type="text" id="record-invest" class="inp" placeholder="投資¥" style="font-size: 10px;">
         <input type="text" id="record-return" class="inp" placeholder="回収¥" style="font-size: 10px;">
@@ -375,6 +390,13 @@ PDF:</textarea>
       </div>
       <button class="btn btn-green" onclick="addRecord()" style="width: 100%; font-size: 11px;">📝 記録</button>
       <button class="btn btn-blue" onclick="showLearningEngine()" style="width: 100%; font-size: 11px; margin-top: 8px;">🧠 学習エンジン分析</button>
+      
+      <!-- バックアップ機能 -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; margin-bottom: 12px;">
+        <button class="btn btn-purple" onclick="downloadBackup()" style="font-size: 10px; padding: 10px; background: #9c27b0;">💾 データをダウンロード</button>
+        <input type="file" id="backup-upload" accept=".json" style="display: none;" onchange="uploadBackup()">
+        <button class="btn btn-purple" onclick="document.getElementById('backup-upload').click()" style="font-size: 10px; padding: 10px; background: #7b1fa2;">📂 データを復元</button>
+      </div>
       <div id="learning-result" style="margin-top: 12px;"></div>
       <div id="record-list" style="max-height: 400px; overflow-y: auto; margin-top: 12px;"></div>
     </div>
@@ -745,12 +767,101 @@ function deleteSavedJSON(name) {
   setStatus(`✅ 「${name}」を削除`, 'ok');
 }
 
+// レコード編集機能
+function editRecord(idx) {
+  const r = records[idx];
+  
+  document.getElementById('record-race').value = r.race;
+  document.getElementById('record-date').value = r.date;
+  document.getElementById('record-formation').value = r.formation || '';
+  document.getElementById('record-purchase').value = r.purchase || '';
+  
+  // 距離がダートか芝かで分ける
+  if (r.distance && r.distance.includes('D')) {
+    document.getElementById('record-distance-dirt').value = r.distance;
+    document.getElementById('record-distance').value = '';
+  } else {
+    document.getElementById('record-distance').value = r.distance || '';
+    document.getElementById('record-distance-dirt').value = '';
+  }
+  
+  document.getElementById('record-course').value = r.course || '';
+  document.getElementById('record-condition').value = r.condition || '';
+  document.getElementById('record-rank').value = r.rank || '';
+  document.getElementById('record-score').value = r.score || '';
+  document.getElementById('record-invest').value = r.invest;
+  document.getElementById('record-return').value = r.return;
+  document.getElementById('record-memo').value = r.memo || '';
+  
+  // ボタンを更新に変更
+  const btn = document.querySelector('button[onclick*="addRecord"]');
+  btn.textContent = '✏️ 更新';
+  btn.style.background = '#ff9800';
+  btn.onclick = () => updateRecord(idx);
+  
+  // スクロール
+  document.getElementById('record-race').scrollIntoView({ behavior: 'smooth' });
+  setStatus('✏️ レース情報を編集中です', 'info');
+}
+
+// レコード更新機能
+function updateRecord(idx) {
+  const race = document.getElementById('record-race').value || '無名';
+  const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
+  const formation = document.getElementById('record-formation').value || '';
+  const purchase = document.getElementById('record-purchase').value || '';
+  const distanceTurf = document.getElementById('record-distance').value || '';
+  const distanceDirt = document.getElementById('record-distance-dirt').value || '';
+  const distance = distanceTurf || distanceDirt;
+  const course = document.getElementById('record-course').value || '';
+  const condition = document.getElementById('record-condition').value || '';
+  const rank = document.getElementById('record-rank').value || '';
+  const score = document.getElementById('record-score').value || '';
+  const invest = parseInt(document.getElementById('record-invest').value) || 0;
+  const ret = parseInt(document.getElementById('record-return').value) || 0;
+  const memo = document.getElementById('record-memo').value;
+  
+  if (invest === 0) { setStatus('❌ 金額を入力', 'err'); return; }
+  
+  records[idx] = {id: records[idx].id, race, date, formation, purchase, distance, course, condition, rank, score, invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo};
+  
+  localStorage.setItem('kp_records', JSON.stringify(records));
+  renderRecordList();
+  resetRecordForm();
+  
+  const btn = document.querySelector('button[onclick*="addRecord"]');
+  btn.textContent = '📝 記録';
+  btn.style.background = '';
+  btn.onclick = () => addRecord();
+  
+  setStatus('✅ 記録を更新しました', 'ok');
+}
+
+// フォームリセット
+function resetRecordForm() {
+  document.getElementById('record-race').value = '';
+  document.getElementById('record-date').value = '';
+  document.getElementById('record-formation').value = '';
+  document.getElementById('record-purchase').value = '';
+  document.getElementById('record-distance').value = '';
+  document.getElementById('record-distance-dirt').value = '';
+  document.getElementById('record-course').value = '';
+  document.getElementById('record-condition').value = '';
+  document.getElementById('record-rank').value = '';
+  document.getElementById('record-score').value = '';
+  document.getElementById('record-invest').value = '';
+  document.getElementById('record-return').value = '';
+  document.getElementById('record-memo').value = '';
+}
+
 function addRecord() {
   const race = document.getElementById('record-race').value || '無名';
   const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
   const formation = document.getElementById('record-formation').value || '';
   const purchase = document.getElementById('record-purchase').value || '';
-  const distance = document.getElementById('record-distance').value || '';
+  const distanceTurf = document.getElementById('record-distance').value || '';
+  const distanceDirt = document.getElementById('record-distance-dirt').value || '';
+  const distance = distanceTurf || distanceDirt;
   const course = document.getElementById('record-course').value || '';
   const condition = document.getElementById('record-condition').value || '';
   const rank = document.getElementById('record-rank').value || '';
@@ -764,24 +875,18 @@ function addRecord() {
   records.push({id: Date.now(), race, date, formation, purchase, distance, course, condition, rank, score, invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo});
   localStorage.setItem('kp_records', JSON.stringify(records));
   renderRecordList();
-  document.getElementById('record-race').value = '';
-  document.getElementById('record-date').value = '';
-  document.getElementById('record-formation').value = '';
-  document.getElementById('record-purchase').value = '';
-  document.getElementById('record-distance').value = '';
-  document.getElementById('record-course').value = '';
-  document.getElementById('record-condition').value = '';
-  document.getElementById('record-rank').value = '';
-  document.getElementById('record-score').value = '';
-  document.getElementById('record-invest').value = '';
-  document.getElementById('record-return').value = '';
-  document.getElementById('record-memo').value = '';
+  resetRecordForm();
   setStatus('✅ 記録保存', 'ok');
 }
 
 function renderRecordList() {
   const list = document.getElementById('record-list');
-  list.innerHTML = records.map((r, i) => `
+  // 日付の降順でソート
+  const sorted = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  list.innerHTML = sorted.map((r) => {
+    const origIdx = records.findIndex(rec => rec.id === r.id);
+    return `
     <div style="background: #fafbff; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
       <div style="font-weight: 700; font-size: 10px; color: #1a1a2e; margin-bottom: 4px;">
         ${r.race}
@@ -795,9 +900,12 @@ function renderRecordList() {
       </div>
       ${r.distance ? `<div style="font-size: 8px; color: #8090a0; margin-bottom: 2px;">📍 ${r.distance}m | ${r.course || '?'} | ${r.condition || '?'}</div>` : ''}
       ${r.memo && r.memo !== '📋 コピペインポート' ? `<div style="font-size: 8px; color: #8090a0; margin-bottom: 4px;">備: ${r.memo}</div>` : ''}
-      <button class="btn btn-red" style="width: 100%; padding: 4px; font-size: 8px;" onclick="records.splice(${i}, 1); localStorage.setItem('kp_records', JSON.stringify(records)); renderRecordList();">✕ 削除</button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+        <button class="btn btn-blue" style="padding: 4px; font-size: 8px;" onclick="editRecord(${origIdx});">✏️ 編集</button>
+        <button class="btn btn-red" style="padding: 4px; font-size: 8px;" onclick="records.splice(${origIdx}, 1); localStorage.setItem('kp_records', JSON.stringify(records)); renderRecordList();">✕ 削除</button>
+      </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function renderAnalysis() {
@@ -1122,6 +1230,69 @@ function analyzeLearningPatterns() {
   });
   
   return { formationStats, purchaseStats, distanceStats, conditionStats, scoreStats, patterns };
+}
+
+// データバックアップ機能
+function downloadBackup() {
+  const backup = {
+    records: records,
+    db: db,
+    exportDate: new Date().toISOString(),
+    exportCount: records.length
+  };
+  
+  const jsonString = JSON.stringify(backup, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = '競馬予想ツール_バックアップ_' + new Date().toISOString().split('T')[0] + '.json';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  
+  setStatus('✅ ' + records.length + '件のデータをダウンロードしました', 'ok');
+}
+
+// データ復元機能
+function uploadBackup() {
+  const fileInput = document.getElementById('backup-upload');
+  if (!fileInput.files || fileInput.files.length === 0) return;
+  
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+  
+  reader.onload = (e) => {
+    try {
+      const backup = JSON.parse(e.target.result);
+      
+      if (!backup.records || !Array.isArray(backup.records)) {
+        setStatus('❌ 無効なバックアップファイルです', 'err');
+        return;
+      }
+      
+      // データを復元
+      records = backup.records;
+      if (backup.db) db = backup.db;
+      
+      // LocalStorageに保存
+      localStorage.setItem('kp_records', JSON.stringify(records));
+      if (backup.db) localStorage.setItem('kp_db', JSON.stringify(db));
+      
+      // 表示を更新
+      renderRecordList();
+      
+      setStatus('✅ ' + records.length + '件のデータを復元しました', 'ok');
+    } catch (error) {
+      setStatus('❌ ファイルの読み込みに失敗しました', 'err');
+    }
+    
+    // ファイル入力をリセット
+    fileInput.value = '';
+  };
+  
+  reader.readAsText(file);
 }
 
 window.addEventListener('load', () => {
