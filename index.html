@@ -331,7 +331,9 @@ PDF:</textarea>
           <option value="1200">1200m</option>
           <option value="1400">1400m</option>
           <option value="1600">1600m</option>
+          <option value="1800">1800m</option>
           <option value="2000">2000m</option>
+          <option value="2200">2200m</option>
           <option value="2400">2400m</option>
           <option value="2500">2500m</option>
           <option value="3000">3000m</option>
@@ -345,6 +347,7 @@ PDF:</textarea>
           <option value="新潟">新潟</option>
           <option value="中京">中京</option>
           <option value="福島">福島</option>
+          <option value="地方">地方</option>
         </select>
         <select id="record-condition" class="sel" style="font-size: 10px;">
           <option value="">馬場</option>
@@ -751,6 +754,78 @@ function deleteSavedJSON(name) {
   setStatus(`✅ 「${name}」を削除`, 'ok');
 }
 
+// 編集機能
+function editRecord(idx) {
+  const r = records[idx];
+  document.getElementById('record-race').value = r.race;
+  document.getElementById('record-date').value = r.date;
+  document.getElementById('record-formation').value = r.formation || '';
+  document.getElementById('record-purchase').value = r.purchase || '';
+  document.getElementById('record-distance').value = r.distance || '';
+  document.getElementById('record-course').value = r.course || '';
+  document.getElementById('record-condition').value = r.condition || '';
+  document.getElementById('record-rank').value = r.rank || '';
+  document.getElementById('record-score').value = r.score || '';
+  document.getElementById('record-invest').value = r.invest;
+  document.getElementById('record-return').value = r.return;
+  document.getElementById('record-memo').value = r.memo || '';
+  
+  const btn = document.querySelector('button[onclick*="addRecord"]');
+  btn.textContent = '✏️ 更新';
+  btn.style.background = '#ff9800';
+  btn.onclick = () => updateRecord(idx);
+  
+  document.getElementById('record-race').scrollIntoView({ behavior: 'smooth' });
+  setStatus('✏️ レース情報を編集中です', 'ok');
+}
+
+// 更新機能
+function updateRecord(idx) {
+  const race = document.getElementById('record-race').value || '無名';
+  const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
+  const formation = document.getElementById('record-formation').value || '';
+  const purchase = document.getElementById('record-purchase').value || '';
+  const distance = document.getElementById('record-distance').value || '';
+  const course = document.getElementById('record-course').value || '';
+  const condition = document.getElementById('record-condition').value || '';
+  const rank = document.getElementById('record-rank').value || '';
+  const score = document.getElementById('record-score').value || '';
+  const invest = parseInt(document.getElementById('record-invest').value) || 0;
+  const ret = parseInt(document.getElementById('record-return').value) || 0;
+  const memo = document.getElementById('record-memo').value;
+  
+  if (invest === 0) { setStatus('❌ 金額を入力', 'err'); return; }
+  
+  records[idx] = {id: records[idx].id, race, date, formation, purchase, distance, course, condition, rank, score, invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo};
+  
+  localStorage.setItem('kp_records', JSON.stringify(records));
+  renderRecordList();
+  resetRecordForm();
+  
+  const btn = document.querySelector('button[onclick*="addRecord"]');
+  btn.textContent = '📝 記録';
+  btn.style.background = '';
+  btn.onclick = () => addRecord();
+  
+  setStatus('✅ 記録を更新しました', 'ok');
+}
+
+// フォームリセット
+function resetRecordForm() {
+  document.getElementById('record-race').value = '';
+  document.getElementById('record-date').value = '';
+  document.getElementById('record-formation').value = '';
+  document.getElementById('record-purchase').value = '';
+  document.getElementById('record-distance').value = '';
+  document.getElementById('record-course').value = '';
+  document.getElementById('record-condition').value = '';
+  document.getElementById('record-rank').value = '';
+  document.getElementById('record-score').value = '';
+  document.getElementById('record-invest').value = '';
+  document.getElementById('record-return').value = '';
+  document.getElementById('record-memo').value = '';
+}
+
 function addRecord() {
   const race = document.getElementById('record-race').value || '無名';
   const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
@@ -770,24 +845,18 @@ function addRecord() {
   records.push({id: Date.now(), race, date, formation, purchase, distance, course, condition, rank, score, invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo});
   localStorage.setItem('kp_records', JSON.stringify(records));
   renderRecordList();
-  document.getElementById('record-race').value = '';
-  document.getElementById('record-date').value = '';
-  document.getElementById('record-formation').value = '';
-  document.getElementById('record-purchase').value = '';
-  document.getElementById('record-distance').value = '';
-  document.getElementById('record-course').value = '';
-  document.getElementById('record-condition').value = '';
-  document.getElementById('record-rank').value = '';
-  document.getElementById('record-score').value = '';
-  document.getElementById('record-invest').value = '';
-  document.getElementById('record-return').value = '';
-  document.getElementById('record-memo').value = '';
+  resetRecordForm();
   setStatus('✅ 記録保存', 'ok');
 }
 
 function renderRecordList() {
   const list = document.getElementById('record-list');
-  list.innerHTML = records.map((r, i) => `
+  // 日付の降順でソート
+  const sorted = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  list.innerHTML = sorted.map((r) => {
+    const origIdx = records.findIndex(rec => rec.id === r.id);
+    return `
     <div style="background: #fafbff; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
       <div style="font-weight: 700; font-size: 10px; color: #1a1a2e; margin-bottom: 4px;">
         ${r.race}
@@ -801,9 +870,12 @@ function renderRecordList() {
       </div>
       ${r.distance ? `<div style="font-size: 8px; color: #8090a0; margin-bottom: 2px;">📍 ${r.distance}m | ${r.course || '?'} | ${r.condition || '?'}</div>` : ''}
       ${r.memo && r.memo !== '📋 コピペインポート' ? `<div style="font-size: 8px; color: #8090a0; margin-bottom: 4px;">備: ${r.memo}</div>` : ''}
-      <button class="btn btn-red" style="width: 100%; padding: 4px; font-size: 8px;" onclick="records.splice(${i}, 1); localStorage.setItem('kp_records', JSON.stringify(records)); renderRecordList();">✕ 削除</button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+        <button class="btn btn-blue" style="padding: 4px; font-size: 8px;" onclick="editRecord(${origIdx});">✏️ 編集</button>
+        <button class="btn btn-red" style="padding: 4px; font-size: 8px;" onclick="records.splice(${origIdx}, 1); localStorage.setItem('kp_records', JSON.stringify(records)); renderRecordList();">✕ 削除</button>
+      </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function renderAnalysis() {
