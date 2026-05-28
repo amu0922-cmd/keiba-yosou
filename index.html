@@ -171,11 +171,12 @@ PDF:</textarea>
 
     <!-- JSON保存セクション -->
     <div class="card">
-      <div class="card-title">💾 JSON名前付き保存</div>
+      <div class="card-title">🎯 レース用統合バックアップ</div>
       <div style="display: flex; gap: 6px; margin-bottom: 10px; align-items: center;">
-        <input type="text" id="save-name" class="inp" placeholder="レース名（例：東京芝1600m）" style="flex: 1; font-size: 10px;">
-        <button class="btn btn-green" onclick="saveJSONWithName()" style="font-size: 10px; padding: 6px 12px;">💾 保存</button>
+        <input type="text" id="save-name" class="inp" placeholder="レース名（例：日本ダービー、東京芝1600m）" style="flex: 1; font-size: 10px;">
+        <button class="btn btn-green" onclick="saveRaceBackup()" style="font-size: 10px; padding: 6px 12px;">💾 保存</button>
       </div>
+      <div style="font-size: 8px; color: #666; margin-bottom: 10px;">※ 出馬表とDB設定を一緒に保存します</div>
       <div id="saved-list" style="max-height: 200px; overflow-y: auto;"></div>
     </div>
 
@@ -687,7 +688,7 @@ function exportDBJSON() {
   }
 }
 
-function saveJSONWithName() {
+function saveRaceBackup() {
   try {
     const name = document.getElementById('save-name').value.trim();
     if (!name) { setStatus('❌ レース名を入力', 'err'); return; }
@@ -712,20 +713,108 @@ function saveJSONWithName() {
   }
 }
 
+// ローカルストレージからファイルとしてダウンロード
+function downloadRaceBackup(name) {
+  try {
+    const data = savedJsons[name];
+    if (!data) { setStatus('❌ データが見つかりません', 'err'); return; }
+    
+    const backup = {
+      name: name,
+      horses: JSON.parse(data.horses),
+      db: JSON.parse(data.db),
+      savedAt: data.savedAt,
+      horseCount: data.horseCount
+    };
+    
+    const jsonString = JSON.stringify(backup, null, 2);
+    const blob = new Blob([jsonString], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name + '_' + new Date().toISOString().split('T')[0] + '.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    setStatus(`✅ 「${name}」をダウンロード`, 'ok');
+  } catch (e) {
+    setStatus('❌ ダウンロードエラー', 'err');
+  }
+}
+
+// ファイルからレースセットをアップロード
+function uploadRaceBackupFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const backup = JSON.parse(event.target.result);
+        if (!backup.horses || !backup.db) {
+          setStatus('❌ 無効なレースバックアップファイルです', 'err');
+          return;
+        }
+        
+        const name = backup.name || 'インポート_' + new Date().getTime();
+        savedJsons[name] = {
+          horses: JSON.stringify(backup.horses),
+          db: JSON.stringify(backup.db),
+          savedAt: backup.savedAt || new Date().toLocaleString('ja-JP'),
+          horseCount: backup.horseCount || (backup.horses.horses ? backup.horses.horses.length : 0)
+        };
+        
+        localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
+        renderSavedJsonList();
+        
+        setStatus(`✅ 「${name}」をインポート`, 'ok');
+      } catch (error) {
+        setStatus('❌ ファイルの読み込みに失敗しました', 'err');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function saveJSONWithName() {
+  saveRaceBackup();
+}
+
 function renderSavedJsonList() {
   const list = document.getElementById('saved-list');
   const items = Object.entries(savedJsons).map(([name, data], i) => `
     <div style="background: #f0f8ff; border: 1px solid #2563eb; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
       <div style="font-weight: 700; font-size: 10px; color: #2563eb; margin-bottom: 4px;">${name}</div>
       <div style="font-size: 8px; color: #6080a0; margin-bottom: 6px;">${data.horseCount}頭 | ${data.savedAt}</div>
-      <div style="display: flex; gap: 4px;">
-        <button class="btn btn-gold" style="flex: 1; padding: 4px; font-size: 8px;" onclick="loadSavedJSON('${name}')">📥 読込</button>
-        <button class="btn btn-red" style="flex: 1; padding: 4px; font-size: 8px;" onclick="deleteSavedJSON('${name}')">✕ 削除</button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
+        <button class="btn btn-gold" style="padding: 4px; font-size: 8px;" onclick="loadSavedJSON('${name}')">📥 読込</button>
+        <button class="btn" style="background: #9c27b0; color: white; padding: 4px; font-size: 8px;" onclick="downloadRaceBackup('${name}')">💾 DL</button>
+        <button class="btn btn-red" style="padding: 4px; font-size: 8px;" onclick="deleteSavedJSON('${name}')">✕</button>
       </div>
     </div>
   `).join('');
   
   list.innerHTML = items || '<div style="color: #999; font-size: 9px; padding: 10px; text-align: center;">保存済みレースなし</div>';
+  
+  // アップロードボタンを追加
+  const uploadBtn = document.createElement('button');
+  uploadBtn.className = 'btn';
+  uploadBtn.style.background = '#7b1fa2';
+  uploadBtn.style.color = 'white';
+  uploadBtn.style.width = '100%';
+  uploadBtn.style.padding = '8px';
+  uploadBtn.style.fontSize = '10px';
+  uploadBtn.style.marginTop = '8px';
+  uploadBtn.textContent = '📂 ファイルからインポート';
+  uploadBtn.onclick = uploadRaceBackupFile;
+  
+  list.parentNode.appendChild(uploadBtn);
 }
 
 function loadSavedJSON(name) {
