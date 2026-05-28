@@ -236,6 +236,11 @@ PDF:</textarea>
       <div style="margin-bottom: 12px;">
         <button class="btn btn-green" onclick="loadDBPreset()">📂 プリセット読込</button>
         <button class="btn btn-blue" onclick="saveDB()">💾 保存</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px;">
+          <button class="btn" onclick="downloadDBBackup()" style="background: #9c27b0; color: white;">💾 DLバックアップ</button>
+          <input type="file" id="db-backup-file" accept=".json" style="display: none;" onchange="uploadDBBackup()">
+          <button class="btn" onclick="document.getElementById('db-backup-file').click()" style="background: #7b1fa2; color: white;">📂 復元</button>
+        </div>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-x: hidden;">
@@ -1200,6 +1205,45 @@ function analyzeLearningPatterns() {
   });
   
   return { formationStats, purchaseStats, distanceStats, conditionStats, scoreStats, patterns };
+}
+
+// DB設定専用バックアップ機能
+function downloadDBBackup() {
+  const backup = {db: db, exportDate: new Date().toISOString()};
+  const jsonString = JSON.stringify(backup, null, 2);
+  const blob = new Blob([jsonString], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'DB設定_バックアップ_' + new Date().toISOString().split('T')[0] + '.json';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  setStatus('✅ DB設定をダウンロードしました', 'ok');
+}
+
+function uploadDBBackup() {
+  const file = document.getElementById('db-backup-file').files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const backup = JSON.parse(e.target.result);
+      if (!backup.db || typeof backup.db !== 'object') {
+        setStatus('❌ 無効なDB設定ファイルです', 'err');
+        return;
+      }
+      db = backup.db;
+      localStorage.setItem('kp_db', JSON.stringify(db));
+      renderDBSection();
+      setStatus('✅ DB設定を復元しました', 'ok');
+    } catch (error) {
+      setStatus('❌ ファイルの読み込みに失敗しました', 'err');
+    }
+    document.getElementById('db-backup-file').value = '';
+  };
+  reader.readAsText(file);
 }
 
 // バックアップ機能
