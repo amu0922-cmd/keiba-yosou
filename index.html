@@ -176,7 +176,7 @@ PDF:</textarea>
         <input type="text" id="save-name" class="inp" placeholder="レース名（例：日本ダービー、東京芝1600m）" style="flex: 1; font-size: 10px;">
         <button class="btn btn-green" onclick="saveRaceBackup()" style="font-size: 10px; padding: 6px 12px;">💾 保存</button>
       </div>
-      <div style="font-size: 8px; color: #666; margin-bottom: 10px;">※ 出馬表とDB設定を一緒に保存します</div>
+      <div style="font-size: 8px; color: #666; margin-bottom: 10px;">※ 出馬表の全データ＋DB設定を自動ダウンロード保存</div>
       <div id="saved-list" style="max-height: 200px; overflow-y: auto;"></div>
     </div>
 
@@ -694,22 +694,78 @@ function saveRaceBackup() {
     if (!name) { setStatus('❌ レース名を入力', 'err'); return; }
     if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
     
-    const horseJSON = JSON.stringify({ horses });
-    const dbJSON = JSON.stringify(db);
-    
-    savedJsons[name] = {
-      horses: horseJSON,
-      db: dbJSON,
+    // JSONをシンプルなフォーマットで作成
+    const backup = {
+      name: name,
+      horses: horses,
+      db: db,
       savedAt: new Date().toLocaleString('ja-JP'),
       horseCount: horses.length
     };
     
-    localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
+    // JSONに変換できるかテスト
+    let jsonString;
+    try {
+      jsonString = JSON.stringify(backup, null, 2);
+    } catch (e) {
+      setStatus('❌ JSON変換エラー', 'err');
+      console.error('JSON stringify error:', e);
+      return;
+    }
+    
+    // ブラウザストレージにも保存（参照用）
+    try {
+      const horseJSON = JSON.stringify({ horses });
+      const dbJSON = JSON.stringify(db);
+      
+      savedJsons[name] = {
+        horses: horseJSON,
+        db: dbJSON,
+        savedAt: new Date().toLocaleString('ja-JP'),
+        horseCount: horses.length
+      };
+      
+      localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
+    } catch (e) {
+      // LocalStorageが満杯の場合は古いデータを削除
+      if (e.name === 'QuotaExceededError') {
+        const keys = Object.keys(savedJsons);
+        if (keys.length > 0) {
+          delete savedJsons[keys[0]];
+          try {
+            localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
+          } catch (e2) {}
+        }
+      }
+    }
+    
     renderSavedJsonList();
+    
+    // スマホのストレージにダウンロード
+    try {
+      const blob = new Blob([jsonString], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name + '_' + new Date().toISOString().split('T')[0] + '.json';
+      document.body.appendChild(link);
+      link.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+    } catch (e) {
+      setStatus('❌ ダウンロードエラー', 'err');
+      console.error('Download error:', e);
+      return;
+    }
+    
     document.getElementById('save-name').value = '';
-    setStatus(`✅ 「${name}」を保存（出馬表+DB設定）`, 'ok');
+    setStatus(`✅ 「${name}」を保存＆ダウンロード`, 'ok');
   } catch (e) {
-    setStatus('❌ 保存エラー', 'err');
+    setStatus('❌ エラー: ' + e.message.substring(0, 20), 'err');
+    console.error('Save error:', e);
   }
 }
 
