@@ -66,6 +66,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     <button class="tab-btn" onclick="switchTo('db')">⚙️ DB設定</button>
     <button class="tab-btn" onclick="switchTo('record')">📚 成績表</button>
     <button class="tab-btn" onclick="switchTo('analysis')">📊 予想分析</button>
+    <button class="tab-btn" onclick="switchTo('pace')">🏃 展開予想</button>
   </div>
 
   <!-- JSON/プロンプトタブ -->
@@ -199,13 +200,14 @@ PDF:</textarea>
   <!-- 出馬表タブ -->
   <div id="main" class="tab-content">
     <div class="card">
-      <div class="card-title">🏇 出馬表（<span id="count-badge">0</span>頭）</div>
+      <div class="card-title">🏇 出馬表（<span id="count-badge">0</span>頭）<span id="race-name-badge" style="margin-left:8px;font-size:13px;font-weight:900;color:#e94560;"></span></div>
       <div style="overflow-x: auto; overflow-y: auto; max-height: 650px;">
         <table class="table" id="main-table" style="min-width: 1200px;">
           <thead style="background: linear-gradient(135deg, #0f3460, #1a3a52); color: #FFD700; position: sticky; top: 0; z-index: 10;">
             <tr style="font-weight: 900; font-size: 11px;">
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">№</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">枠</th>
+              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">印</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">馬名</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">年</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">騎手</th>
@@ -395,6 +397,42 @@ PDF:</textarea>
     </div>
   </div>
 
+  <!-- 展開予想タブ -->
+  <div id="pace" class="tab-content">
+    <div class="card">
+      <div class="card-title">🏃 展開予想・ペース判定</div>
+
+      <!-- ペース手動設定 -->
+      <div style="margin-bottom: 10px;">
+        <div style="font-weight: 700; font-size: 11px; margin-bottom: 6px; color: #1a1a2e;">🎛️ ペース設定（手動上書き可）</div>
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+          <select id="pace-override" class="sel" style="flex: 1; font-size: 10px;" onchange="renderPaceAnalysis()">
+            <option value="auto">🤖 自動判定</option>
+            <option value="high">🔥 ハイペース</option>
+            <option value="mid">⚡ ミドルペース</option>
+            <option value="slow">🐢 スローペース</option>
+          </select>
+          <button class="btn btn-gold" onclick="renderPaceAnalysis()" style="padding: 6px 14px; font-size: 10px;">🔄 再計算</button>
+        </div>
+        <!-- ペース別ボーナス設定 -->
+        <div style="background: #f7f8ff; border: 1px solid #d0d7e8; border-radius: 6px; padding: 8px; font-size: 9px;">
+          <div style="font-weight: 700; margin-bottom: 6px; color: #2563eb;">⚙️ ペース別加減点設定</div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px;">
+            <div style="text-align:center; font-weight:700; color:#e94560;">🔥 ハイペース</div>
+            <div style="text-align:center; font-weight:700; color:#f39c12;">⚡ ミドル</div>
+            <div style="text-align:center; font-weight:700; color:#27ae60;">🐢 スロー</div>
+          </div>
+          <div id="pace-bonus-grid"></div>
+        </div>
+      </div>
+
+      <!-- 分析結果 -->
+      <div id="pace-analysis-content">
+        <div style="padding: 20px; text-align: center; color: #aab0c0;">馬を読込すると展開予想が表示されます</div>
+      </div>
+    </div>
+  </div>
+
   <!-- 予想分析タブ -->
   <div id="analysis" class="tab-content">
     <div class="card">
@@ -411,6 +449,13 @@ let horses = [];
 let records = [];
 let db = {};
 let savedJsons = {};
+let currentRaceName = '';
+
+function setRaceName(name) {
+  currentRaceName = name || '';
+  const el = document.getElementById('race-name-badge');
+  if (el) el.textContent = name ? `【${name}】` : '';
+}
 
 function setStatus(msg, type = 'info') {
   const el = document.getElementById('status');
@@ -430,6 +475,7 @@ function switchTo(tab) {
   if (tab === 'db') renderDBSection();
   if (tab === 'record') renderRecordList();
   if (tab === 'analysis') renderAnalysis();
+  if (tab === 'pace') { initPaceBonusGrid(); renderPaceAnalysis(); }
 }
 
 function copyPrompt(id) {
@@ -491,6 +537,7 @@ function importJSON() {
     }));
     
     document.getElementById('count-badge').textContent = horses.length;
+    setRaceName(parsed.name || '');
     renderTable();
     setStatus(`✅ ${horses.length}頭を読込`, 'ok');
   } catch (e) {
@@ -574,19 +621,59 @@ function applyOdds() {
   }
 }
 
+// 印マスター（競馬印）
+const UMAJIRUSHI = ['◎','○','▲','△','✕','注'];
+const UMAJIRUSHI_COLOR = ['#e94560','#2563eb','#27ae60','#f39c12','#888','#9b59b6'];
+
+function calcAllScores() {
+  const _overrideEl = document.getElementById('pace-override');
+  const _override = _overrideEl ? _overrideEl.value : 'auto';
+  const _pace = (_override === 'auto') ? calcPaceFromHorses(horses) : _override;
+  const _bonusMap = paceBonus[_pace];
+  return horses.map((h, idx) => {
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0);
+    const chokyoScore = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
+    const commentScore = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const paceAdj = _bonusMap[h.kyakushitsu]||0;
+    const totalScore = trendScore+chokyoScore+commentScore+paceAdj;
+    return {idx, id: h.id, trendScore, chokyoScore, commentScore, paceAdj, totalScore};
+  });
+}
+
+function getJirushiMap() {
+  const scored = calcAllScores().sort((a,b) => b.totalScore - a.totalScore);
+  const map = {};
+  scored.forEach((s, rank) => {
+    const jirushi = rank < UMAJIRUSHI.length ? UMAJIRUSHI[rank] : '';
+    const color   = rank < UMAJIRUSHI_COLOR.length ? UMAJIRUSHI_COLOR[rank] : '#aaa';
+    map[s.id] = { jirushi, color, rank };
+  });
+  return map;
+}
+
 function renderTable() {
   const tbody = document.getElementById('table-body');
   tbody.innerHTML = '';
+  // 展開ペース取得
+  const _overrideEl = document.getElementById('pace-override');
+  const _override = _overrideEl ? _overrideEl.value : 'auto';
+  const _pace = (_override === 'auto') ? calcPaceFromHorses(horses) : _override;
+  const _bonusMap = paceBonus[_pace];
+  // 全馬スコア計算→印マップ生成
+  const jirushiMap = getJirushiMap();
   horses.forEach((h, idx) => {
     const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0);
     const chokyoScore = ({'A': 10, 'B': 0, 'C': -15}[h.chokyoFinal] || 0) + ({'A': 10, 'B': 0, 'C': -15}[h.chokyoPrev] || 0);
     const commentScore = {'◎': 10, '◯': 5, '△': -5, '×': -15}[h.comment] || 0;
-    const totalScore = trendScore + chokyoScore + commentScore;
+    const paceAdj = _bonusMap[h.kyakushitsu] || 0;
+    const totalScore = trendScore + chokyoScore + commentScore + paceAdj;
+    const ji = jirushiMap[h.id] || { jirushi: '', color: '#aaa' };
     
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${h.banum}</td>
       <td><input class="inp" style="width: 30px;" value="${h.waku}" onchange="horses[${idx}].waku=this.value; renderTable();"></td>
+      <td style="font-size:16px;font-weight:900;color:${ji.color};text-align:center;line-height:1;font-family:'Noto Sans JP',sans-serif;">${ji.jirushi}</td>
       <td><strong>${h.name}</strong></td>
       <td><input class="inp" style="width: 30px;" value="${h.age}" onchange="horses[${idx}].age=this.value; renderTable();"></td>
       <td style="font-size: 8px;">${h.jockey}</td>
@@ -601,7 +688,7 @@ function renderTable() {
       <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].chokyoPrev=this.value; renderTable();"><option ${h.chokyoPrev==='A'?'selected':''}>A</option><option ${h.chokyoPrev==='B'?'selected':''}>B</option><option ${h.chokyoPrev==='C'?'selected':''}>C</option></select></td>
       <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].comment=this.value; renderTable();"><option ${h.comment==='◎'?'selected':''}>◎</option><option ${h.comment==='◯'?'selected':''}>◯</option><option ${h.comment==='△'?'selected':''}>△</option><option ${h.comment==='×'?'selected':''}>×</option></select></td>
       <td style="font-weight: 900; color: #2563eb;">${Math.round(trendScore)}</td>
-      <td style="font-weight: 700; color: #27ae60;">+${chokyoScore}${commentScore>0?'+':''}${commentScore}</td>
+      <td style="font-weight: 700; color: #27ae60; font-size:8px;">調${chokyoScore>=0?'+':''}${chokyoScore} 厩${commentScore>=0?'+':''}${commentScore} 展${paceAdj>=0?'+':''}${paceAdj}</td>
       <td style="font-weight: 900; color: #e94560;">${totalScore}</td>
     `;
     tbody.appendChild(row);
@@ -816,19 +903,41 @@ function uploadRaceBackupFile() {
           setStatus('❌ 無効なレースバックアップファイルです', 'err');
           return;
         }
-        
+
+        // 馬配列を正規化（二重・三重ネスト対応）
+        // パターン1: backup.horses = { horses: [...] }  ← 二重ネスト（保存バグ由来）
+        // パターン2: backup.horses = [...]              ← 配列直接
+        let horseArray = backup.horses;
+        while (horseArray && !Array.isArray(horseArray) && horseArray.horses !== undefined) {
+          horseArray = horseArray.horses;
+        }
+        if (!Array.isArray(horseArray)) {
+          setStatus('❌ 馬データが見つかりません', 'err');
+          return;
+        }
+
         const name = backup.name || 'インポート_' + new Date().getTime();
+        // 内部保存は常に { horses: [...] } の統一フォーマット
         savedJsons[name] = {
-          horses: JSON.stringify(backup.horses),
-          db: JSON.stringify(backup.db),
+          horses: JSON.stringify({ horses: horseArray }),
+          db: (typeof backup.db === 'string') ? backup.db : JSON.stringify(backup.db),
           savedAt: backup.savedAt || new Date().toLocaleString('ja-JP'),
-          horseCount: backup.horseCount || (backup.horses.horses ? backup.horses.horses.length : 0)
+          horseCount: horseArray.length
         };
-        
+
         localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
         renderSavedJsonList();
-        
-        setStatus(`✅ 「${name}」をインポート`, 'ok');
+
+        // インポート後そのまま出馬表・DB・分析に反映
+        horses = horseArray;
+        db = (typeof backup.db === 'string') ? JSON.parse(backup.db) : backup.db;
+        setRaceName(backup.name || '');
+        renderTable();
+        renderDBSection();
+        renderAnalysis();
+        document.getElementById('count-badge').textContent = horses.length;
+
+        setStatus(`✅ 「${name}」をインポート・反映（${horseArray.length}頭）`, 'ok');
       } catch (error) {
         setStatus('❌ ファイルの読み込みに失敗しました', 'err');
       }
@@ -857,9 +966,12 @@ function renderSavedJsonList() {
   `).join('');
   
   list.innerHTML = items || '<div style="color: #999; font-size: 9px; padding: 10px; text-align: center;">保存済みレースなし</div>';
-  
-  // アップロードボタンを追加
+
+  // アップロードボタン：既存があれば削除してから追加（重複防止）
+  const existingBtn = document.getElementById('upload-race-btn');
+  if (existingBtn) existingBtn.remove();
   const uploadBtn = document.createElement('button');
+  uploadBtn.id = 'upload-race-btn';
   uploadBtn.className = 'btn';
   uploadBtn.style.background = '#7b1fa2';
   uploadBtn.style.color = 'white';
@@ -869,28 +981,38 @@ function renderSavedJsonList() {
   uploadBtn.style.marginTop = '8px';
   uploadBtn.textContent = '📂 ファイルからインポート';
   uploadBtn.onclick = uploadRaceBackupFile;
-  
   list.parentNode.appendChild(uploadBtn);
 }
 
 function loadSavedJSON(name) {
   try {
     const data = savedJsons[name];
-    const horseData = JSON.parse(data.horses);
     const dbData = JSON.parse(data.db);
-    
-    document.getElementById('json-input').value = data.horses;
+
+    // 馬配列を正規化（ネスト構造の違いを吸収）
+    let horseData = JSON.parse(data.horses);
+    let horseArray = horseData;
+    while (horseArray && !Array.isArray(horseArray) && horseArray.horses !== undefined) {
+      horseArray = horseArray.horses;
+    }
+    if (!Array.isArray(horseArray)) {
+      setStatus('❌ 読込エラー：馬データが不正です', 'err');
+      return;
+    }
+
+    document.getElementById('json-input').value = JSON.stringify({ horses: horseArray }, null, 2);
     document.getElementById('db-json').value = data.db;
-    
-    horses = horseData.horses || horseData;
+
+    horses = horseArray;
     db = dbData;
-    
+    setRaceName(name);
+
     renderTable();
     renderDBSection();
     renderAnalysis();
     document.getElementById('count-badge').textContent = horses.length;
-    
-    setStatus(`✅ 「${name}」を読込（出馬表+DB設定）`, 'ok');
+
+    setStatus(`✅ 「${name}」を読込（${horses.length}頭・DB設定）`, 'ok');
   } catch (e) {
     setStatus('❌ 読込エラー', 'err');
   }
@@ -1028,16 +1150,248 @@ function renderRecordList() {
   `}).join('');
 }
 
+// ===== 展開予想ロジック =====
+// ペース別・脚質別のデフォルト加減点
+const PACE_BONUS_DEFAULTS = {
+  high: { '逃げ': -15, '先行': -10, '差し': +15, '追い込み': +20, '自在': 0 },
+  mid:  { '逃げ':   0, '先行':  +5, '差し':  +5, '追い込み':   0, '自在': +5 },
+  slow: { '逃げ': +20, '先行': +15, '差し':  -5, '追い込み': -15, '自在': +5 }
+};
+
+// ペース別ボーナス（編集可能、localStorage保存）
+let paceBonus = JSON.parse(localStorage.getItem('kp_pace_bonus') || 'null') || JSON.parse(JSON.stringify(PACE_BONUS_DEFAULTS));
+
+function savePaceBonus() {
+  localStorage.setItem('kp_pace_bonus', JSON.stringify(paceBonus));
+}
+
+function initPaceBonusGrid() {
+  const grid = document.getElementById('pace-bonus-grid');
+  if (!grid) return;
+  const types = ['逃げ', '先行', '差し', '追い込み', '自在'];
+  let html = '';
+  types.forEach(t => {
+    html += `<div style="display:grid; grid-template-columns:50px repeat(3,1fr); gap:3px; margin-bottom:4px; align-items:center;">
+      <div style="font-size:9px; font-weight:700; color:#1a1a2e;">${t}</div>
+      <input class="inp" type="number" style="font-size:9px; text-align:center; padding:2px;" value="${paceBonus.high[t]}" 
+        onchange="paceBonus.high['${t}']=parseInt(this.value)||0; savePaceBonus(); renderPaceAnalysis();">
+      <input class="inp" type="number" style="font-size:9px; text-align:center; padding:2px;" value="${paceBonus.mid[t]}" 
+        onchange="paceBonus.mid['${t}']=parseInt(this.value)||0; savePaceBonus(); renderPaceAnalysis();">
+      <input class="inp" type="number" style="font-size:9px; text-align:center; padding:2px;" value="${paceBonus.slow[t]}" 
+        onchange="paceBonus.slow['${t}']=parseInt(this.value)||0; savePaceBonus(); renderPaceAnalysis();">
+    </div>`;
+  });
+  html += `<button class="btn btn-navy" style="width:100%;margin-top:4px;font-size:9px;" onclick="paceBonus=JSON.parse(JSON.stringify(PACE_BONUS_DEFAULTS));savePaceBonus();initPaceBonusGrid();renderPaceAnalysis();">↩ デフォルトに戻す</button>`;
+  grid.innerHTML = html;
+}
+
+function calcPaceFromHorses(horseList) {
+  // 脚質カウント
+  const cnt = { '逃げ': 0, '先行': 0, '差し': 0, '追い込み': 0, '自在': 0 };
+  horseList.forEach(h => { if (cnt[h.kyakushitsu] !== undefined) cnt[h.kyakushitsu]++; });
+
+  const total = horseList.length || 1;
+  const nigeRatio = cnt['逃げ'] / total;
+  const senkouRatio = cnt['先行'] / total;
+  const frontRatio = nigeRatio + senkouRatio;
+
+  // ハイペース: 逃げ2頭以上 or 前残り比率40%超
+  if (cnt['逃げ'] >= 2 || frontRatio > 0.40) return 'high';
+  // スロー: 逃げ0 or 先行も少ない
+  if (cnt['逃げ'] === 0 || (cnt['逃げ'] === 1 && frontRatio < 0.20)) return 'slow';
+  return 'mid';
+}
+
+function getPaceLabel(pace) {
+  return { high: '🔥 ハイペース', mid: '⚡ ミドルペース', slow: '🐢 スローペース' }[pace];
+}
+function getPaceColor(pace) {
+  return { high: '#e94560', mid: '#f39c12', slow: '#27ae60' }[pace];
+}
+function getPaceDesc(pace) {
+  return {
+    high: '逃げ・先行馬が多く前半が激しくなる見込み。差し・追い込みが有利に。',
+    mid:  '標準的なペース。脚質問わず実力が出やすい展開。',
+    slow: '逃げ馬が少なくスローになる見込み。先行・逃げが有利な前残り展開。'
+  }[pace];
+}
+
+function renderPaceAnalysis() {
+  const content = document.getElementById('pace-analysis-content');
+  if (!content) return;
+  if (horses.length === 0) {
+    content.innerHTML = '<div style="padding:20px;text-align:center;color:#aab0c0;">馬を読込してください</div>';
+    return;
+  }
+
+  // ペース判定
+  const override = document.getElementById('pace-override')?.value || 'auto';
+  const autoPace = calcPaceFromHorses(horses);
+  const pace = override === 'auto' ? autoPace : override;
+  const bonusMap = paceBonus[pace];
+
+  // 脚質カウント
+  const cnt = { '逃げ': 0, '先行': 0, '差し': 0, '追い込み': 0, '自在': 0 };
+  horses.forEach(h => { if (cnt[h.kyakushitsu] !== undefined) cnt[h.kyakushitsu]++; });
+
+  // 逃げ馬リスト
+  const nigeHorses = horses.filter(h => h.kyakushitsu === '逃げ');
+  const senkouHorses = horses.filter(h => h.kyakushitsu === '先行');
+
+  // 各馬の展開ボーナス込みスコア
+  const ranked = horses.map(h => {
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0);
+    const chokyoScore = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
+    const commentScore = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const baseTotal = trendScore + chokyoScore + commentScore;
+    const paceAdj = bonusMap[h.kyakushitsu] || 0;
+    const paceTotal = baseTotal + paceAdj;
+    return { ...h, trendScore, chokyoScore, commentScore, baseTotal, paceAdj, paceTotal };
+  }).sort((a,b) => b.paceTotal - a.paceTotal);
+
+  const paceColor = getPaceColor(pace);
+  const paceLabel = getPaceLabel(pace);
+  const paceDesc = getPaceDesc(pace);
+
+  // ===== HTML生成 =====
+  let html = '';
+
+  // --- ペース判定バナー ---
+  html += `
+    <div style="padding:12px;background:${paceColor}18;border-left:5px solid ${paceColor};border-radius:6px;margin-bottom:10px;">
+      <div style="font-size:15px;font-weight:900;color:${paceColor};margin-bottom:4px;">${paceLabel}</div>
+      <div style="font-size:9px;color:#444;margin-bottom:8px;">${paceDesc}</div>
+      ${override==='auto' ? `<div style="font-size:8px;color:#888;">🤖 自動判定（上のセレクトで手動変更可能）</div>` : `<div style="font-size:8px;color:#888;">⚙️ 手動設定中</div>`}
+    </div>`;
+
+  // --- 脚質分布グラフ ---
+  const typeOrder = ['逃げ','先行','差し','追い込み','自在'];
+  const typeColors = {'逃げ':'#e94560','先行':'#f39c12','差し':'#2563eb','追い込み':'#27ae60','自在':'#9b59b6'};
+  const maxCnt = Math.max(...Object.values(cnt), 1);
+  html += `<div style="background:#fff;border:1px solid #e0e6f0;border-radius:6px;padding:8px;margin-bottom:10px;">
+    <div style="font-weight:700;font-size:11px;margin-bottom:8px;color:#1a1a2e;">📊 脚質分布</div>`;
+  typeOrder.forEach(t => {
+    const c = cnt[t]; const bar = Math.round(c/maxCnt*100);
+    const bonus = bonusMap[t]; const bonusStr = bonus>0?`+${bonus}`:bonus<0?`${bonus}`:'±0';
+    const bonusColor = bonus>0?'#27ae60':bonus<0?'#e94560':'#888';
+    html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+      <div style="width:42px;font-size:9px;font-weight:700;color:${typeColors[t]};">${t}</div>
+      <div style="flex:1;background:#f0f0f0;border-radius:3px;height:14px;position:relative;">
+        <div style="width:${bar}%;background:${typeColors[t]};height:100%;border-radius:3px;"></div>
+        <div style="position:absolute;left:4px;top:0;line-height:14px;font-size:8px;color:#fff;font-weight:700;">${c}頭</div>
+      </div>
+      <div style="width:38px;font-size:9px;font-weight:700;color:${bonusColor};text-align:right;">${bonusStr}点</div>
+    </div>`;
+  });
+  html += '</div>';
+
+  // --- 逃げ馬警告 ---
+  if (nigeHorses.length >= 2) {
+    html += `<div style="padding:8px;background:#fff0f0;border:1px solid #e94560;border-radius:6px;margin-bottom:10px;font-size:9px;">
+      ⚠️ <strong style="color:#e94560;">逃げ馬競合！</strong> ${nigeHorses.map(h=>`${h.banum}番 ${h.name}`).join(' / ')} — ハイペース確率大。差し・追い込みが浮上しやすい展開。
+    </div>`;
+  } else if (nigeHorses.length === 0 && senkouHorses.length <= 2) {
+    html += `<div style="padding:8px;background:#f0fff4;border:1px solid #27ae60;border-radius:6px;margin-bottom:10px;font-size:9px;">
+      🐢 <strong style="color:#27ae60;">逃げ馬不在！</strong> 超スローの前残り展開が濃厚。先行勢 (${senkouHorses.map(h=>`${h.banum}番`).join('・')}) が有利。
+    </div>`;
+  }
+
+  // --- 展開ボーナス込みランキング ---
+  html += `<div style="font-weight:700;font-size:11px;margin-bottom:6px;color:#1a1a2e;">🏇 展開補正後ランキング</div>`;
+  html += `<div style="overflow-x:auto;"><table class="table" style="margin-bottom:12px;min-width:500px;">
+    <thead style="background:linear-gradient(135deg,#0f3460,#1a3a52);color:#FFD700;">
+      <tr><th>順</th><th>№</th><th>馬名</th><th>脚質</th><th>ベース</th><th>展開±</th><th>合計</th><th>有利不利</th></tr>
+    </thead><tbody>`;
+  ranked.forEach((h,i) => {
+    const bg = i<3?['#fffde6','#fff8f0','#f0fff4'][i]:'#fff';
+    const adjColor = h.paceAdj>0?'#27ae60':h.paceAdj<0?'#e94560':'#888';
+    const adjStr = h.paceAdj>0?`+${h.paceAdj}`:h.paceAdj<0?`${h.paceAdj}`:'±0';
+    const merit = getMeritLabel(pace, h.kyakushitsu);
+    html += `<tr style="background:${bg};">
+      <td style="font-weight:900;color:#e94560;">${i+1}</td>
+      <td>${h.banum}</td>
+      <td><strong>${h.name}</strong></td>
+      <td style="color:${typeColors[h.kyakushitsu]};font-weight:700;">${h.kyakushitsu}</td>
+      <td style="color:#2563eb;">${h.baseTotal}</td>
+      <td style="color:${adjColor};font-weight:700;">${adjStr}</td>
+      <td style="color:#e94560;font-weight:900;">${h.paceTotal}</td>
+      <td style="font-size:8px;">${merit}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  // --- 展開シナリオ別おすすめ馬 ---
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">`;
+  ['high','mid','slow'].forEach(p => {
+    const bmap = paceBonus[p];
+    const scenarioRanked = [...horses].map(h => {
+      const base = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0);
+      const adj = bmap[h.kyakushitsu]||0;
+      return { ...h, paceTotal: base+adj+({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0)+({'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0) };
+    }).sort((a,b)=>b.paceTotal-a.paceTotal);
+    const top3 = scenarioRanked.slice(0,3);
+    const pc = getPaceColor(p); const pl = getPaceLabel(p);
+    html += `<div style="background:${pc}12;border:1px solid ${pc};border-radius:6px;padding:6px;">
+      <div style="font-size:9px;font-weight:900;color:${pc};margin-bottom:4px;">${pl}</div>
+      ${top3.map((h,i)=>`<div style="font-size:8px;margin-bottom:2px;">${['🥇','🥈','🥉'][i]} ${h.banum}番 <strong>${h.name}</strong><span style="color:#888;"> (${h.paceTotal})</span></div>`).join('')}
+    </div>`;
+  });
+  html += '</div>';
+
+  // --- 展開有利馬サマリー ---
+  const benefited = ranked.filter(h => h.paceAdj > 0).slice(0,4);
+  const hurt = ranked.filter(h => h.paceAdj < 0).sort((a,b)=>a.paceAdj-b.paceAdj).slice(0,4);
+  if (benefited.length > 0 || hurt.length > 0) {
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">`;
+    if (benefited.length > 0) {
+      html += `<div style="background:#f0fff4;border:1px solid #27ae60;border-radius:6px;padding:8px;">
+        <div style="font-weight:700;font-size:10px;color:#27ae60;margin-bottom:6px;">✅ 展開恩恵馬</div>
+        ${benefited.map(h=>`<div style="font-size:9px;margin-bottom:3px;">${h.banum}番 <strong>${h.name}</strong> <span style="color:#27ae60;font-weight:700;">+${h.paceAdj}点</span><br><span style="color:#888;font-size:8px;">${h.kyakushitsu}</span></div>`).join('')}
+      </div>`;
+    }
+    if (hurt.length > 0) {
+      html += `<div style="background:#fff0f0;border:1px solid #e94560;border-radius:6px;padding:8px;">
+        <div style="font-weight:700;font-size:10px;color:#e94560;margin-bottom:6px;">❌ 展開不向き馬</div>
+        ${hurt.map(h=>`<div style="font-size:9px;margin-bottom:3px;">${h.banum}番 <strong>${h.name}</strong> <span style="color:#e94560;font-weight:700;">${h.paceAdj}点</span><br><span style="color:#888;font-size:8px;">${h.kyakushitsu}</span></div>`).join('')}
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  content.innerHTML = html;
+}
+
+function getMeritLabel(pace, kyakushitsu) {
+  const map = {
+    high: {'逃げ':'❌ 厳しい','先行':'⚠️ やや苦','差し':'✅ 恩恵','追い込み':'🔥 大恩恵','自在':'➖ 中立'},
+    mid:  {'逃げ':'➖ 中立','先行':'✅ やや有利','差し':'✅ やや有利','追い込み':'➖ 中立','自在':'✅ やや有利'},
+    slow: {'逃げ':'🔥 大恩恵','先行':'✅ 恩恵','差し':'⚠️ やや苦','追い込み':'❌ 厳しい','自在':'✅ やや有利'}
+  };
+  return map[pace]?.[kyakushitsu] || '➖';
+}
+
+// ===== ここまで展開予想ロジック =====
+
 function renderAnalysis() {
   const content = document.getElementById('analysis-content');
   if (horses.length === 0) { content.innerHTML = '<div style="padding: 20px; text-align: center; color: #aab0c0;">馬を読込してください</div>'; return; }
-  
+
+  // 展開ペース取得（展開予想タブの設定を参照）
+  const overrideEl = document.getElementById('pace-override');
+  const override = overrideEl ? overrideEl.value : 'auto';
+  const autoPace = calcPaceFromHorses(horses);
+  const pace = (override === 'auto') ? autoPace : override;
+  const bonusMap = paceBonus[pace];
+  const paceColor = getPaceColor(pace);
+  const paceLabel = getPaceLabel(pace);
+
   const ranked = horses.map(h => {
     const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0);
     const chokyoScore = ({'A': 10, 'B': 0, 'C': -15}[h.chokyoFinal] || 0) + ({'A': 10, 'B': 0, 'C': -15}[h.chokyoPrev] || 0);
     const commentScore = {'◎': 10, '◯': 5, '△': -5, '×': -15}[h.comment] || 0;
-    const totalScore = trendScore + chokyoScore + commentScore;
-    return {...h, trendScore, chokyoScore, commentScore, totalScore};
+    const paceAdj = bonusMap[h.kyakushitsu] || 0;
+    const totalScore = trendScore + chokyoScore + commentScore + paceAdj;
+    return {...h, trendScore, chokyoScore, commentScore, paceAdj, totalScore};
   }).sort((a, b) => b.totalScore - a.totalScore);
 
   // 偏差値計算
@@ -1113,12 +1467,42 @@ function renderAnalysis() {
     recommendation = '🚫 見送り推奨';
   }
 
-  let html = '<table class="table" style="margin-bottom: 12px;"><thead style="background: #0f3460; color: #FFD700;"><tr><th>順</th><th>№</th><th>馬名</th><th>傾向</th><th>調</th><th>厩</th><th>計</th><th>ODD</th></tr></thead><tbody>';
+  // ペースバナー
+  let html = `
+    <div style="padding:8px 12px;background:${paceColor}18;border-left:4px solid ${paceColor};border-radius:6px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <span style="font-weight:900;color:${paceColor};font-size:12px;">${paceLabel}</span>
+        <span style="font-size:9px;color:#666;margin-left:8px;">展開補正込みスコア</span>
+      </div>
+      <span style="font-size:8px;color:#888;cursor:pointer;" onclick="switchTo('pace');document.querySelectorAll('.tab-btn').forEach((b,i)=>{if(b.textContent.includes('展開'))b.classList.add('active');else b.classList.remove('active')});">⚙️ 変更</span>
+    </div>`;
+
+  // スコア表（展開補正列追加）
+  html += '<div style="overflow-x:auto;"><table class="table" style="margin-bottom: 12px;min-width:520px;"><thead style="background: #0f3460; color: #FFD700;"><tr><th>順</th><th>印</th><th>№</th><th>馬名</th><th>脚質</th><th>傾向</th><th>調厩</th><th>展開</th><th style="color:#FFD700;">総合</th><th>ODD</th></tr></thead><tbody>';
+  const jirushiList = UMAJIRUSHI;
+  const jirushiColors = UMAJIRUSHI_COLOR;
   ranked.forEach((h, i) => {
     const bg = i < 3 ? ['#fffde6', '#fff8f0', '#f0fff4'][i] : '#fff';
-    html += `<tr style="background: ${bg};"><td style="font-weight: 900; color: #e94560;">${i+1}</td><td>${h.banum}</td><td><strong>${h.name}</strong></td><td style="color: #2563eb; font-weight: 700;">${Math.round(h.trendScore)}</td><td style="color: #27ae60;">+${h.chokyoScore}</td><td style="color: #2563eb;">+${h.commentScore}</td><td style="color: #e94560; font-weight: 900;">${h.totalScore}</td><td>${h.odds.toFixed(1)}</td></tr>`;
+    const adjColor = h.paceAdj > 0 ? '#27ae60' : h.paceAdj < 0 ? '#e94560' : '#888';
+    const adjStr = h.paceAdj > 0 ? `+${h.paceAdj}` : h.paceAdj < 0 ? `${h.paceAdj}` : '±0';
+    const subScore = h.chokyoScore + h.commentScore;
+    const subStr = subScore >= 0 ? `+${subScore}` : `${subScore}`;
+    const ji = i < jirushiList.length ? jirushiList[i] : '';
+    const jiColor = i < jirushiColors.length ? jirushiColors[i] : '#aaa';
+    html += `<tr style="background: ${bg};">
+      <td style="font-weight: 900; color: #e94560;">${i+1}</td>
+      <td style="font-size:18px;font-weight:900;color:${jiColor};text-align:center;line-height:1;font-family:'Noto Sans JP',sans-serif;">${ji}</td>
+      <td>${h.banum}</td>
+      <td><strong>${h.name}</strong></td>
+      <td style="font-size:8px;color:#9b59b6;">${h.kyakushitsu}</td>
+      <td style="color: #2563eb; font-weight: 700;">${Math.round(h.trendScore)}</td>
+      <td style="color: #27ae60;font-size:9px;">${subStr}</td>
+      <td style="color:${adjColor};font-weight:700;">${adjStr}</td>
+      <td style="color: #e94560; font-weight: 900;">${h.totalScore}</td>
+      <td>${h.odds.toFixed(1)}</td>
+    </tr>`;
   });
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
   
   html += `
     <div style="padding: 12px; background: #fff8e6; border-radius: 6px; border-left: 4px solid #f39c12; margin-bottom: 10px; font-size: 11px; line-height: 1.6;">
@@ -1155,7 +1539,7 @@ function renderAnalysis() {
       <strong style="font-size: 12px; color: #2563eb;">🎯 1位馬データ</strong><br>
       <small style="color: #6080a0;">
         ${ranked[0].banum}番 <strong>${ranked[0].name}</strong> | 
-        スコア: ${ranked[0].totalScore}点 | 
+        総合スコア: ${ranked[0].totalScore}点（展開補正${ranked[0].paceAdj >= 0 ? '+' : ''}${ranked[0].paceAdj}点込）| 
         オッズ: ${ranked[0].odds.toFixed(1)}
       </small>
     </div>
@@ -1436,6 +1820,7 @@ window.addEventListener('load', () => {
   try { const saved = localStorage.getItem('kp_db'); if (saved) db = JSON.parse(saved); } catch (e) {}
   try { const saved = localStorage.getItem('kp_records'); if (saved) records = JSON.parse(saved); renderRecordList(); } catch (e) {}
   try { const saved = localStorage.getItem('kp_saved_jsons'); if (saved) savedJsons = JSON.parse(saved); renderSavedJsonList(); } catch (e) {}
+  try { const saved = localStorage.getItem('kp_pace_bonus'); if (saved) paceBonus = JSON.parse(saved); } catch (e) {}
   setStatus('🏇 準備完了！', 'ok');
 });
 </script>
