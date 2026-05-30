@@ -1472,49 +1472,87 @@ function renderAnalysis() {
   }
   
   // 陣形判定＆推奨買い目
-  const marukuHorses = ranked.filter(h => h.comment === '◎').map(h => `${h.banum}番`).join('・');
-  const waideHorses = ranked.filter(h => h.comment === '△').map(h => `${h.banum}番`).join('・');
-  const boxHorses = ranked.filter(h => ['◎', '◯', '△'].includes(h.comment)).map(h => `${h.banum}番`).join('・');
-  
+  // 成績データから最も的中率が高い買い目を取得
+  function getBestPurchase() {
+    if (!records || records.length < 3) return null;
+    const stats = {};
+    records.forEach(r => {
+      if (!r.purchase || r.purchase === '購入なし') return;
+      if (!stats[r.purchase]) stats[r.purchase] = {hit:0, total:0};
+      stats[r.purchase].total++;
+      if (r.return > r.invest) stats[r.purchase].hit++;
+    });
+    let best = null, bestRate = 0;
+    Object.entries(stats).forEach(([p, s]) => {
+      if (s.total < 2) return;
+      const rate = s.hit / s.total;
+      if (rate > bestRate) { bestRate = rate; best = p; }
+    });
+    return best ? { name: best, rate: (bestRate * 100).toFixed(0) } : null;
+  }
+  const bestPurchase = getBestPurchase();
+
+  // 買い目は常にスコア上位3頭に絞る
+  const top3 = ranked.slice(0, 3).map(h => `${h.banum}番`);
+  const top1Horse = top3[0] || '';
+  const top2Horse = top3[1] || '';
+  const top3Horse = top3[2] || '';
+
+  // 成績データの最良買い目を優先表示
+  function buildBuyStyle(styleType) {
+    let lines = [];
+    if (styleType === 'tansho_wide') {
+      lines.push(`《単勝 ${top1Horse}》`);
+      lines.push(`《ワイド ${top1Horse} - ${top2Horse}》`);
+      if (top3Horse) lines.push(`《ワイド ${top1Horse} - ${top3Horse}》`);
+    } else if (styleType === 'box') {
+      lines.push(`《馬連BOX ${top3.join('・')}》`);
+    }
+    if (bestPurchase) {
+      lines.push(`\n📊 成績データ最良買い目: ${bestPurchase.name}（的中率${bestPurchase.rate}%）`);
+    }
+    return lines.join('\n');
+  }
+
   let formation = '';
   let recommendation = '';
   let buyStyle = '';
-  
+
   if (top1Score >= 50 && dansoSa >= 10) {
     formation = '【1強・不動陣形】';
-    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${waideHorses}》`;
+    buyStyle = buildBuyStyle('tansho_wide');
     recommendation = '🔥 買い推奨！';
   } else if (top2Score >= 50 && dansoSa >= 5) {
     formation = '【2強・鉄板陣形】';
-    buyStyle = `《馬連BOX ${boxHorses}》`;
+    buyStyle = buildBuyStyle('box');
     recommendation = '🔥 買い推奨！';
   } else if (top1Score >= 50 && dansoSa >= 5) {
     formation = '【1強・不動陣形】';
-    buyStyle = `《馬連BOX ${boxHorses}》`;
+    buyStyle = buildBuyStyle('box');
     recommendation = '🔥 買い推奨！';
   } else if (top1Score < 40 && dansoSa >= 5) {
     formation = '【波乱・包囲陣形】';
-    buyStyle = `《馬連BOX ${boxHorses}》`;
+    buyStyle = buildBuyStyle('box');
     recommendation = '⚠️ 高リスク';
   } else if (dansoSa >= 5) {
     formation = '【通常・標準陣形】';
-    buyStyle = `《馬連BOX ${boxHorses}》`;
+    buyStyle = buildBuyStyle('box');
     recommendation = '💰 通常推奨';
   } else if (top2Score >= 50) {
     formation = '【2強・鉄板陣形（見送り推奨）】';
-    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${waideHorses}》`;
+    buyStyle = buildBuyStyle('tansho_wide');
     recommendation = '🚫 見送り推奨';
   } else if (top1Score >= 50) {
     formation = '【1強・不動陣形（見送り推奨）】';
-    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${waideHorses}》`;
+    buyStyle = buildBuyStyle('tansho_wide');
     recommendation = '🚫 見送り推奨';
   } else if (top1Score < 40) {
     formation = '【波乱・包囲陣形（見送り推奨）】';
-    buyStyle = `《馬連BOX ${boxHorses}》`;
+    buyStyle = buildBuyStyle('box');
     recommendation = '🚫 見送り推奨';
   } else {
     formation = '【通常・標準陣形（見送り推奨）】';
-    buyStyle = `《単勝 ${marukuHorses}》\n《ワイド ${marukuHorses} - ${waideHorses}》`;
+    buyStyle = buildBuyStyle('tansho_wide');
     recommendation = '🚫 見送り推奨';
   }
 
