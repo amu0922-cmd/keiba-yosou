@@ -157,7 +157,6 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
           <thead style="background: linear-gradient(135deg, #0f3460, #1a3a52); color: #FFD700; position: sticky; top: 0; z-index: 10;">
             <tr style="font-weight: 900; font-size: 11px;">
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">馬番</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">枠</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">印</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">馬名</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">年</th>
@@ -773,8 +772,16 @@ function renderTable() {
     
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td style="text-align:center;"><div style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:4px;font-weight:900;font-size:14px;background:#e8ecf4;color:#1a1a2e;">${h.banum}</div></td>
-      <td style="text-align:center;"><input class="waku-inp" id="waku-inp-${idx}" style="${getWakuStyle(h.waku)}" value="${h.waku}" onchange="horses[${idx}].waku=this.value; renderTable();" maxlength="1"></td>
+      <td style="text-align:center;padding:2px;">
+        <div style="position:relative;display:inline-block;width:36px;height:36px;">
+          <div style="${getWakuStyle(h.waku)}width:36px;height:36px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;">
+            ${h.banum}
+          </div>
+          <div style="position:absolute;top:1px;left:2px;font-size:8px;font-weight:900;opacity:0.75;line-height:1;">
+            <input style="width:14px;background:transparent;border:none;font-size:7px;font-weight:900;color:transparent;padding:0;text-align:left;cursor:pointer;" value="${h.waku}" onchange="horses[${idx}].waku=this.value;renderTable();" maxlength="1">
+          </div>
+        </div>
+      </td>
       <td style="font-size:16px;font-weight:900;color:${ji.color};text-align:center;line-height:1;font-family:'Noto Sans JP',sans-serif;">${ji.jirushi}</td>
       <td><strong>${h.name}</strong></td>
       <td><input class="inp" style="width: 30px;" value="${h.age}" onchange="horses[${idx}].age=this.value; renderTable();"></td>
