@@ -48,6 +48,16 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 .record-card { background: #fafbff; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 8px; }
 .record-header { font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
 .record-stat { font-size: 10px; color: #6080a0; }
+.waku-box { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 4px; font-weight: 900; font-size: 14px; line-height: 1; cursor: pointer; }
+.waku-inp { width: 30px; height: 30px; border-radius: 4px; font-weight: 900; font-size: 14px; text-align: center; border: none; cursor: pointer; padding: 0; }
+.waku-1 { background: #ffffff; color: #000; border: 1px solid #ccc; }
+.waku-2 { background: #000000; color: #fff; }
+.waku-3 { background: #cc0000; color: #fff; }
+.waku-4 { background: #0033cc; color: #fff; }
+.waku-5 { background: #ffdd00; color: #000; }
+.waku-6 { background: #009900; color: #fff; }
+.waku-7 { background: #ff6600; color: #fff; }
+.waku-8 { background: #ff69b4; color: #fff; }
 </style>
 </head>
 <body>
@@ -72,80 +82,16 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
   <!-- JSON/プロンプトタブ -->
   <div id="input" class="tab-content active">
     <div class="card">
-      <div class="card-title">🤖 Geminiプロンプト集（編集可能）</div>
-      <div style="margin-bottom: 12px;">
-        <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px;">①出馬表画像をJSON化</div>
-        <textarea id="prompt-horses" spellcheck="false">下記の出馬表画像から、JSON形式で以下の情報を抽出してください。出力はJSONのみ。説明文は一切不要。
-
-【出力形式】
-{"horses": [{"banum": 馬番, "waku": 枠番, "age": 年齢(数値), "name": "馬名", "jockey": "騎手", "sire": "種牡馬", "odds": 単勝オッズ, "kyakushitsu": "脚質", "ninki": 人気(数値1-18), "maeclass": "前走クラス", "maejun": 前走着順(数値), "timdev": "タイム偏差値"}]}
-
-出力はJSONのみ。</textarea>
-        <button class="btn btn-gold" onclick="copyPrompt('prompt-horses')" style="width: 100%; margin-top: 6px;">📋 コピー</button>
+      <div class="card-title">🤖 Geminiプロンプト集</div>
+      <div style="margin-bottom: 10px;">
+        <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px; color: #1a1a2e;">①出馬表画像をJSON化</div>
+        <div style="font-size: 9px; color: #6080a0; background: #f5f6fa; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; line-height: 1.6;">出馬表画像からJSON形式で情報を抽出。枠番・馬番の対応を慎重に確認して紐づけ。</div>
+        <button class="btn btn-gold" id="btn-copy-p1" onclick="copyPromptDirect(1)" style="width: 100%; padding: 10px; font-size: 11px;">📋 ワンタップコピー</button>
       </div>
-
-      <div style="margin-bottom: 12px;">
-        <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px;">②レース傾向PDFをDB化</div>
-        <textarea id="prompt-trend" spellcheck="false">下記のレース傾向PDFを解析し、過去のレース結果に基づいて各項目のスコアを算出してください。
-
-【重要】
-各カテゴリーについて、過去の成績データから以下のスコアを計算してください：
-- 得票数が多い＝高スコア（+20～+25点）
-- 得票数が少ない＝低スコア（-15～-20点）
-- 中程度＝0点～±5点
-
-【出力形式】
-{
-  "jockey": {"騎手1": 20, "騎手2": 15, ...},
-  "sire": {"種牡馬1": 18, "種牡馬2": 12, ...},
-  "age": {"2": -20, "3": -5, "4": 10, "5": 8, ...},
-  "kyakushitsu": {"逃げ": -10, "先行": 5, "差し": 15, "追い込み": 0, "自在": 0},
-  "ninki": {"1": 5, "2": 4, "3": 3, ...},
-  "maejun": {"1": 10, "2": 8, "3": 5, ...},
-  "maeclass": {"GI": 10, "GII": 6, "GIII": 4, "L": 0, "OP": -2, "3勝": -3, "2勝": -5, "1勝": -8},
-  "waku": {"1": 0, "2": 0, "3": 0, "4": 5, "5": 5, "6": 5, "7": 0, "8": -5},
-  "timdev": {"0～": -20, "35～": -15, "40～": -10, "45～": -5, "50～": 0, "55～": 3, "60～": 5, "65～": 10, "70～": 15, "75～": 20}
-}
-
-【各カテゴリーの説明】
-- jockey: 騎手ごとのスコア（ルメール、岩田望、川田など）
-- sire: 種牡馬ごとのスコア（ディープインパクト、キタサンブラックなど）
-- age: 馬の年齢ごと（2歳～8歳）のスコア
-- kyakushitsu: 脚質ごと（逃げ、先行、差し、追い込み、自在）のスコア
-- ninki: 単勝人気ごと（1番人気～18番人気）のスコア
-- maejun: 前走着順ごと（1着～12着）のスコア
-- maeclass: 前走レースクラスごと（GI、GII、GIII、L、OP、3勝、2勝、1勝）のスコア
-- waku: 枠順ごと（1枠～8枠）のスコア
-- timdev: タイム偏差値ごと（0～、35～、40～、45～、50～、55～、60～、65～、70～、75～）のスコア
-
-【出力時の注意】
-各スコアを付与した理由を、データから見えることとして簡潔に説明してください。
-例：
-"jockey": {"ルメール": 25 /* 過去5年の優勝率45%、データセット内での連対率60% */}
-"age": {"3": -5 /* 3歳馬は経験不足で不利、当該レースでの平均着順6.5着 */}
-"maeclass": {"GI": 10 /* GI戦経験馬が優勝している傾向、連対率62% */}
-
-【最終出力】
-JSONとその下に、各配点の根拠をまとめた説明を記載してください。
-説明文は以下の形式で：
-
-《騎手》
-- ルメール: +25点 → 理由
-- 岩田望: +20点 → 理由
-...
-
-《種牡馬》
-- ディープインパクト: +20点 → 理由
-...
-
-【この形式で出力してください】
-{"jockey": {...}, "sire": {...}, ...}
-
-《配点根拠》
-[説明文をここに記載]
-
-PDF:</textarea>
-        <button class="btn btn-blue" onclick="copyPrompt('prompt-trend')" style="width: 100%; margin-top: 6px;">📋 コピー</button>
+      <div style="margin-bottom: 4px;">
+        <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px; color: #1a1a2e;">②レース傾向PDFをDB化</div>
+        <div style="font-size: 9px; color: #6080a0; background: #f5f6fa; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; line-height: 1.6;">レース傾向PDFを解析し、各項目のスコアをJSON形式で出力。根拠説明付き。</div>
+        <button class="btn btn-blue" id="btn-copy-p2" onclick="copyPromptDirect(2)" style="width: 100%; padding: 10px; font-size: 11px;">📋 ワンタップコピー</button>
       </div>
 
       <div class="card-title">📥 JSON読込</div>
@@ -205,7 +151,7 @@ PDF:</textarea>
         <table class="table" id="main-table" style="min-width: 1200px;">
           <thead style="background: linear-gradient(135deg, #0f3460, #1a3a52); color: #FFD700; position: sticky; top: 0; z-index: 10;">
             <tr style="font-weight: 900; font-size: 11px;">
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">№</th>
+              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">馬番</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">枠</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">印</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">馬名</th>
@@ -478,6 +424,97 @@ function switchTo(tab) {
   if (tab === 'pace') { initPaceBonusGrid(); renderPaceAnalysis(); }
 }
 
+const PROMPTS = {
+  1: `出馬表画像から、JSON形式で以下の情報を抽出してください。枠番（waku）と馬番（banum）の対応関係にズレが生じないよう、左端の枠・馬番の色や数値を慎重に確認して紐づけてください。出力はJSONのみ。説明文は一切不要。もし分からない事があれば嘘はつかずに教えて
+
+【出力形式】
+{"horses": [{"banum": 馬番, "waku": 枠番, "age": 年齢(数値), "name": "馬名", "jockey": "騎手", "sire": "種牡馬", "odds": 単勝オッズ, "kyakushitsu": "脚質", "ninki": 人気(数値1-18), "maeclass": "前走クラス", "maejun": 前走着順(数値), "timdev": "タイム偏差値"}]}
+
+出力はJSONのみ。`,
+  2: `下記のレース傾向PDFを解析し、過去のレース結果に基づいて各項目のスコアを算出してください。
+
+【重要】
+各カテゴリーについて、過去の成績データから以下のスコアを計算してください：
+- 得票数が多い＝高スコア（+20～+25点）
+- 得票数が少ない＝低スコア（-15～-20点）
+- 中程度＝0点～±5点
+
+【出力形式】
+{
+  "jockey": {"騎手1": 20, "騎手2": 15, ...},
+  "sire": {"種牡馬1": 18, "種牡馬2": 12, ...},
+  "age": {"2": -20, "3": -5, "4": 10, "5": 8, ...},
+  "kyakushitsu": {"逃げ": -10, "先行": 5, "差し": 15, "追い込み": 0, "自在": 0},
+  "ninki": {"1": 5, "2": 4, "3": 3, ...},
+  "maejun": {"1": 10, "2": 8, "3": 5, ...},
+  "maeclass": {"GI": 10, "GII": 6, "GIII": 4, "L": 0, "OP": -2, "3勝": -3, "2勝": -5, "1勝": -8},
+  "waku": {"1": 0, "2": 0, "3": 0, "4": 5, "5": 5, "6": 5, "7": 0, "8": -5},
+  "timdev": {"0～": -20, "35～": -15, "40～": -10, "45～": -5, "50～": 0, "55～": 3, "60～": 5, "65～": 10, "70～": 15, "75～": 20}
+}
+
+【各カテゴリーの説明】
+- jockey: 騎手ごとのスコア（ルメール、岩田望、川田など**必ず個人名で配点**すること。また、**「その他の騎手: 0点」のような項目はJSONにも説明文にも一切出力・表示しない**こと）
+- sire: 種牡馬ごとのスコア（ディープインパクト、キタサンブラックなど）
+- age: 馬の年齢ごと（2歳～8歳）のスコア
+- kyakushitsu: 脚質ごと（逃げ、先行、差し、追い込み、自在）のスコア
+- ninki: 単勝人気ごと（1番人気～18番人気）のスコア
+- maejun: 前走着順ごと（1着～12着）のスコア
+- maeclass: 前走レースクラスごと（GI、GII、GIII、L、OP、3勝、2勝、1勝）のスコア
+- waku: 枠順ごと（1枠～8枠）のスコア
+- timdev: タイム偏差値ごと（0～、35～、40～、45～、50～、55～、60～、65～、70～、75～）のスコア
+
+【出力時の注意】
+提供されたデータ内に該当項目が無い場合はネット上を探して補完する。その際に出展元を最後の説明に追加する。
+
+各スコアを付与した理由を、データから見えることとして簡潔に説明してください。
+例：
+"jockey": {"ルメール": 25 /* 過去5年の優勝率45%、データセット内での連対率60% */}
+"age": {"3": -5 /* 3歳馬は経験不足で不利、当該レースでの平均着順6.5着 */}
+"maeclass": {"GI": 10 /* GI戦経験馬が優勝している傾向、連対率62% */}
+
+【最終出力】
+JSONと、その下に各配点の根拠をまとめた説明を記載してください。
+説明文は以下の形式で：
+
+《騎手》
+- ルメール: +25点 → 理由
+- 岩田望: +20点 → 理由
+...
+
+《種牡馬》
+- ディープインパクト: +20点 → 理由
+...
+
+【この形式で出力してください】
+※非常に重要※
+JSONデータのみをワンタップでコピーできるように、**JSON部分だけを独立したマークダウン形式のコードブロック（\`\`\`json ～ \`\`\`）で囲んで出力**してください。
+配点根拠の説明文は、コードブロックの外に通常のテキストとして出力してください。
+
+\`\`\`json
+{"jockey": {...}, "sire": {...}, ...}
+\`\`\``
+};
+
+function copyPromptDirect(num) {
+  const text = PROMPTS[num];
+  const btnId = 'btn-copy-p' + num;
+  const btn = document.getElementById(btnId);
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ コピーしました！';
+    btn.style.background = '#27ae60';
+    setTimeout(() => {
+      btn.textContent = '📋 ワンタップコピー';
+      btn.style.background = '';
+    }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = '✅ コピーしました！';
+    setTimeout(() => { btn.textContent = '📋 ワンタップコピー'; }, 2000);
+  });
+}
+
 function copyPrompt(id) {
   const text = document.getElementById(id).value;
   navigator.clipboard.writeText(text).then(() => setStatus('✅ コピー完了', 'ok')).catch(() => {
@@ -651,6 +688,20 @@ function getJirushiMap() {
   return map;
 }
 
+function getWakuStyle(waku) {
+  const styles = {
+    '1': 'background:#ffffff;color:#000000;border:1px solid #ccc;',
+    '2': 'background:#000000;color:#ffffff;border:none;',
+    '3': 'background:#cc0000;color:#ffffff;border:none;',
+    '4': 'background:#0033cc;color:#ffffff;border:none;',
+    '5': 'background:#ffdd00;color:#000000;border:none;',
+    '6': 'background:#009900;color:#ffffff;border:none;',
+    '7': 'background:#ff6600;color:#ffffff;border:none;',
+    '8': 'background:#ff69b4;color:#ffffff;border:none;'
+  };
+  return (styles[String(waku)] || 'background:#e0e6f0;color:#1a1a2e;border:1px solid #ccc;') + 'width:30px;height:30px;border-radius:4px;font-weight:900;font-size:14px;text-align:center;cursor:pointer;padding:0;';
+}
+
 function renderTable() {
   const tbody = document.getElementById('table-body');
   tbody.innerHTML = '';
@@ -671,8 +722,8 @@ function renderTable() {
     
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td>${h.banum}</td>
-      <td><input class="inp" style="width: 30px;" value="${h.waku}" onchange="horses[${idx}].waku=this.value; renderTable();"></td>
+      <td style="text-align:center;"><div style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:4px;font-weight:900;font-size:14px;background:#e8ecf4;color:#1a1a2e;">${h.banum}</div></td>
+      <td style="text-align:center;"><input class="waku-inp" id="waku-inp-${idx}" style="${getWakuStyle(h.waku)}" value="${h.waku}" onchange="horses[${idx}].waku=this.value; renderTable();" maxlength="1"></td>
       <td style="font-size:16px;font-weight:900;color:${ji.color};text-align:center;line-height:1;font-family:'Noto Sans JP',sans-serif;">${ji.jirushi}</td>
       <td><strong>${h.name}</strong></td>
       <td><input class="inp" style="width: 30px;" value="${h.age}" onchange="horses[${idx}].age=this.value; renderTable();"></td>
@@ -1309,7 +1360,7 @@ function renderPaceAnalysis() {
     const merit = getMeritLabel(pace, h.kyakushitsu);
     html += `<tr style="background:${bg};">
       <td style="font-weight:900;color:#e94560;">${i+1}</td>
-      <td>${h.banum}</td>
+      <td style="text-align:center;"><div style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:4px;font-weight:900;font-size:14px;background:#e8ecf4;color:#1a1a2e;">${h.banum}</div></td>
       <td><strong>${h.name}</strong></td>
       <td style="color:${typeColors[h.kyakushitsu]};font-weight:700;">${h.kyakushitsu}</td>
       <td style="color:#2563eb;">${h.baseTotal}</td>
@@ -1492,7 +1543,7 @@ function renderAnalysis() {
     html += `<tr style="background: ${bg};">
       <td style="font-weight: 900; color: #e94560;">${i+1}</td>
       <td style="font-size:18px;font-weight:900;color:${jiColor};text-align:center;line-height:1;font-family:'Noto Sans JP',sans-serif;">${ji}</td>
-      <td>${h.banum}</td>
+      <td style="text-align:center;"><div style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:4px;font-weight:900;font-size:14px;background:#e8ecf4;color:#1a1a2e;">${h.banum}</div></td>
       <td><strong>${h.name}</strong></td>
       <td style="font-size:8px;color:#9b59b6;">${h.kyakushitsu}</td>
       <td style="color: #2563eb; font-weight: 700;">${Math.round(h.trendScore)}</td>
