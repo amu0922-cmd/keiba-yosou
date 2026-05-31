@@ -2297,17 +2297,17 @@ function analyzeResult() {
     id: existingIdx >= 0 ? records[existingIdx].id : Date.now(),
     race: currentRaceName || '不明',
     date: new Date().toISOString().split('T')[0],
-    formation: '',
+    formation: scored[0] ? '' : '',
     purchase: '',
     distance: '',
     course: '',
     condition: '',
-    rank: winner ? String(winner.rank) + '着' : '',
+    rank: winner ? winner.rank + '着' : '',
     score: '',
-    invest: existingIdx >= 0 ? records[existingIdx].invest : 0,
+    invest: existingIdx >= 0 ? records[existingIdx].invest : 1,
     return: existingIdx >= 0 ? records[existingIdx].return : 0,
     rate: existingIdx >= 0 ? records[existingIdx].rate : '0.0',
-    memo: '振り返り自動記録 / 予想1位:' + (top1?.name||'?') + '→' + act1 + '着 / 1着:' + (winner?.name||'?') + '(予想' + winnerPredictRank + '位)'
+    memo: '🔍振り返り自動記録 / 予想1位:' + (top1?.name||'?') + '→' + act1 + '着 / 1着:' + (winner?.name||'?') + '(予想' + winnerPredictRank + '位)'
   };
   if (existingIdx >= 0) {
     records[existingIdx] = newRecord;
