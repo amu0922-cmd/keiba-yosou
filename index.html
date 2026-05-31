@@ -1616,7 +1616,7 @@ function renderPaceAnalysis() {
     const merit = getMeritLabel(pace, h.kyakushitsu);
     html += `<tr style="background:${bg};">
       <td style="font-weight:900;color:#e94560;">${i+1}</td>
-      <td style="text-align:center;"><div style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:4px;font-weight:900;font-size:14px;background:#e8ecf4;color:#1a1a2e;">${h.banum}</div></td>
+      <td style="text-align:center;"><div style="${getWakuStyle(h.waku)}display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:4px;font-weight:900;font-size:14px;">${h.banum}</div></td>
       <td><strong>${h.name}</strong></td>
       <td style="color:${typeColors[h.kyakushitsu]};font-weight:700;">${h.kyakushitsu}</td>
       <td style="color:#2563eb;">${h.baseTotal}</td>
@@ -1837,7 +1837,7 @@ function renderAnalysis() {
     html += `<tr style="background: ${bg};">
       <td style="font-weight: 900; color: #e94560;">${i+1}</td>
       <td style="font-size:18px;font-weight:900;color:${jiColor};text-align:center;line-height:1;font-family:'Noto Sans JP',sans-serif;">${ji}</td>
-      <td style="text-align:center;"><div style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:4px;font-weight:900;font-size:14px;background:#e8ecf4;color:#1a1a2e;">${h.banum}</div></td>
+      <td style="text-align:center;"><div style="${getWakuStyle(h.waku)}display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:4px;font-weight:900;font-size:14px;">${h.banum}</div></td>
       <td><strong>${h.name}</strong></td>
       <td style="font-size:8px;color:#9b59b6;">${h.kyakushitsu}</td>
       <td style="color: #2563eb; font-weight: 700;">${Math.round(h.trendScore)}</td>
