@@ -2407,7 +2407,7 @@ async function saveToSupabase() {
 let autoSaveTimer = null;
 function scheduleAutoSave() {
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(async () => { await saveToSupabase(); setStatus("☁️ 自動保存完了", "ok"); }, 3000);
+  autoSaveTimer = setTimeout(async () => { await saveToSupabase(); }, 30000);
 }
 
 async function manualSave() {
