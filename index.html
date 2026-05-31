@@ -1607,7 +1607,7 @@ function renderPaceAnalysis() {
   html += `<div style="font-weight:700;font-size:11px;margin-bottom:6px;color:#1a1a2e;">🏇 展開補正後ランキング</div>`;
   html += `<div style="overflow-x:auto;"><table class="table" style="margin-bottom:12px;min-width:500px;">
     <thead style="background:linear-gradient(135deg,#0f3460,#1a3a52);color:#FFD700;">
-      <tr><th>順</th><th>№</th><th>馬名</th><th>脚質</th><th>ベース</th><th>展開±</th><th>合計</th><th>有利不利</th></tr>
+      <tr><th>順</th><th>馬番</th><th>馬名</th><th>脚質</th><th>ベース</th><th>展開±</th><th>合計</th><th>有利不利</th></tr>
     </thead><tbody>`;
   ranked.forEach((h,i) => {
     const bg = i<3?['#fffde6','#fff8f0','#f0fff4'][i]:'#fff';
@@ -1823,7 +1823,7 @@ function renderAnalysis() {
     </div>`;
 
   // スコア表（展開補正列追加）
-  html += '<div style="overflow-x:auto;"><table class="table" style="margin-bottom: 12px;min-width:520px;"><thead style="background: #0f3460; color: #FFD700;"><tr><th>順</th><th>印</th><th>№</th><th>馬名</th><th>脚質</th><th>傾向</th><th>調厩</th><th>展開</th><th style="color:#FFD700;">総合</th><th>ODD</th></tr></thead><tbody>';
+  html += '<div style="overflow-x:auto;"><table class="table" style="margin-bottom: 12px;min-width:520px;"><thead style="background: #0f3460; color: #FFD700;"><tr><th>順</th><th>印</th><th>馬番</th><th>馬名</th><th>脚質</th><th>傾向</th><th>調厩</th><th>展開</th><th style="color:#FFD700;">総合</th><th>ODD</th></tr></thead><tbody>';
   const jirushiList = UMAJIRUSHI;
   const jirushiColors = UMAJIRUSHI_COLOR;
   ranked.forEach((h, i) => {
