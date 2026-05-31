@@ -19,10 +19,10 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { font-family: 'Noto Sans JP', sans-serif; background: #f5f6fa; color: #1a1a2e; font-size: 12px; }
-#hdr { border-bottom: 3px solid #e94560; padding: 15px 10px 15px 20px; min-height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; background-size: cover !important; background-position: center 30% !important; background-repeat: no-repeat !important; }
-#app-title { font-size: 20px; font-weight: 900; color: #FFD700; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); }
-#app-sub { font-size: 10px; color: #a0b0d0; margin-top: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
-.container { max-width: 1400px; margin: 0 auto; padding: 10px; }
+#hdr { border-bottom: 3px solid #e94560; min-height: 150px; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; background-size: cover !important; background-position: center top !important; background-repeat: no-repeat !important; padding: 0; }
+#app-title { font-size: 16px; font-weight: 900; color: #FFD700; text-shadow: 1px 1px 4px rgba(0,0,0,0.9); letter-spacing: 0.05em; }
+#app-sub { font-size: 9px; color: #c0d0f0; margin-top: 2px; text-shadow: 1px 1px 3px rgba(0,0,0,0.9); letter-spacing: 0.08em; }
+.container { max-width: 1400px; margin: 0 auto; padding: 0; }
 .card { background: #fff; border: 1px solid #e0e6f0; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
 .card-title { font-size: 12px; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; border-bottom: 2px solid #e94560; padding-bottom: 6px; }
 .btn { border: none; border-radius: 5px; padding: 6px 10px; font-size: 10px; font-weight: 700; cursor: pointer; }
@@ -34,11 +34,64 @@ html, body { font-family: 'Noto Sans JP', sans-serif; background: #f5f6fa; color
 #status { padding: 6px 10px; border-radius: 5px; margin-bottom: 10px; display: none; font-size: 10px; }
 #status.ok { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
 #status.err { background: #fdedec; color: #c0392b; border: 1px solid #f1948a; }
-.tabs { display: flex; gap: 6px; margin-bottom: 12px; border-bottom: 2px solid #e0e6f0; overflow-x: auto; }
-.tab-btn { padding: 6px 10px; background: none; border: none; color: #8090b0; font-weight: 700; cursor: pointer; font-size: 11px; border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap; }
-.tab-btn.active { color: #e94560; border-bottom-color: #e94560; }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 0;
+  overflow-x: auto;
+  padding: 12px 8px 0;
+  background: #f0f2f8;
+  border-bottom: 3px solid #e94560;
+  align-items: flex-end;
+}
+.tab-btn {
+  padding: 8px 10px 7px;
+  background: #d8dce8;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  color: #6070a0;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 9px;
+  white-space: nowrap;
+  position: relative;
+  top: 0;
+  transition: all 0.15s;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.08);
+  border: 1px solid #c8ccd8;
+  border-bottom: none;
+  min-width: 44px;
+  text-align: center;
+  flex: 1;
+}
+.tab-btn:hover:not(.active) {
+  background: #e4e8f4;
+  color: #4050a0;
+  top: -2px;
+}
+.tab-btn.active {
+  font-weight: 900;
+  top: -4px;
+  box-shadow: 0 -3px 8px rgba(0,0,0,0.15);
+  z-index: 1;
+  padding-bottom: 10px;
+}
+/* 非アクティブ時の色 */
+.tab-json { background: #fde8ec; color: #c0394e; border-color: #f5b8c4; }
+.tab-main { background: #e8f4fd; color: #1a6fb5; border-color: #b8d8f5; }
+.tab-db   { background: #fdf3e8; color: #b5661a; border-color: #f5d8b8; }
+.tab-record { background: #e8fdf0; color: #1a9e50; border-color: #b8f5cc; }
+.tab-analysis { background: #f3e8fd; color: #7a1ab5; border-color: #d8b8f5; }
+.tab-pace { background: #fdfde8; color: #8b8b00; border-color: #f0f0a0; }
+/* アクティブ時は明るく */
+.tab-json.active  { background: #fff0f3; color: #e94560; border-color: #f5b8c4; }
+.tab-main.active  { background: #f0f8ff; color: #1a6fb5; border-color: #b8d8f5; }
+.tab-db.active    { background: #fff8f0; color: #b5661a; border-color: #f5d8b8; }
+.tab-record.active { background: #f0fff6; color: #1a9e50; border-color: #b8f5cc; }
+.tab-analysis.active { background: #faf0ff; color: #7a1ab5; border-color: #d8b8f5; }
+.tab-pace.active  { background: #ffffe8; color: #8b8b00; border-color: #f0f0a0; }
+.tab-content { display: none; padding: 10px; }
+.tab-content.active { display: block; padding: 10px; }
 .table { width: 100%; border-collapse: collapse; font-size: 9px; }
 .table th { background: #1a1a2e; color: #e0e8ff; padding: 3px 1px; border: 1px solid #2a3a5a; font-weight: 700; }
 .table td { border: 1px solid #e8ecf4; padding: 2px 1px; }
@@ -59,24 +112,24 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 .waku-7 { background: #ff6600; color: #fff; }
 .waku-8 { background: #ff69b4; color: #fff; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
-<div id="hdr" style="background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.4)), url('./9198.webp?v=9');">
-  <div id="app-title">🏇 競馬予想ツール FINAL</div>
-  <div id="app-sub">出馬表とDB設定が完全統一・全項目反映版</div>
+<div id="hdr" id="hdr">
+  <div id="title-bar" style="width:100%;padding:10px 16px 12px;background:linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%);"><div id="app-title">⚡ RACE PREDICT PRO</div><div id="app-sub">Race Prediction &amp; Score Analysis System</div></div>
 </div>
 
 <div id="status"></div>
 
 <div class="container">
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTo('input')">📥 JSON/プロンプト</button>
-    <button class="tab-btn" onclick="switchTo('main')">🏇 出馬表</button>
-    <button class="tab-btn" onclick="switchTo('db')">⚙️ DB設定</button>
-    <button class="tab-btn" onclick="switchTo('record')">📚 成績表</button>
-    <button class="tab-btn" onclick="switchTo('analysis')">📊 予想分析</button>
-    <button class="tab-btn" onclick="switchTo('pace')">🏃 展開予想</button>
+  <div class="tabs" style="margin:0;">
+    <button class="tab-btn tab-json active" onclick="switchTo('input')">📥 JSON</button>
+    <button class="tab-btn tab-main" onclick="switchTo('main')">🏇 出馬</button>
+    <button class="tab-btn tab-db" onclick="switchTo('db')">⚙️ DB</button>
+    <button class="tab-btn tab-record" onclick="switchTo('record')">📚 成績</button>
+    <button class="tab-btn tab-analysis" onclick="switchTo('analysis')">📊 予想</button>
+    <button class="tab-btn tab-pace" onclick="switchTo('pace')">🏃 展開</button>
   </div>
 
   <!-- JSON/プロンプトタブ -->
@@ -151,7 +204,12 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
   <!-- 出馬表タブ -->
   <div id="main" class="tab-content">
     <div class="card">
-      <div class="card-title">🏇 出馬表（<span id="count-badge">0</span>頭）<span id="race-name-badge" style="margin-left:8px;font-size:13px;font-weight:900;color:#e94560;"></span></div>
+      <div class="card-title" style="position:relative;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span>🏇 出馬表（<span id="count-badge">0</span>頭）</span>
+        <button class="btn" onclick="saveTableAsImage()" style="margin-left:auto;padding:4px 10px;font-size:9px;background:linear-gradient(135deg,#1a6fb5,#1a3a8a);color:#fff;border-radius:5px;">📸 画像保存</button>
+        <span id="race-name-badge" style="display:flex;align-items:center;justify-content:center;margin-top:6px;padding:4px 14px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;font-size:14px;font-weight:900;border-radius:20px;letter-spacing:0.05em;position:relative;"></span>
+
+      </div>
       <div style="overflow-x: auto; overflow-y: auto; max-height: 650px;">
         <table class="table" id="main-table" style="min-width: 1200px;">
           <thead style="background: linear-gradient(135deg, #0f3460, #1a3a52); color: #FFD700; position: sticky; top: 0; z-index: 10;">
@@ -175,6 +233,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #2563eb;">傾向</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #27ae60;">補正</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #e94560;">総合</th>
+              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #f39c12;">期待値</th>
             </tr>
           </thead>
           <tbody id="table-body"></tbody>
@@ -187,15 +246,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
   <div id="db" class="tab-content">
     <div class="card">
       <div class="card-title">⚙️ DB設定（傾向スコア）</div>
-      <div style="margin-bottom: 12px;">
-        <button class="btn btn-green" onclick="loadDBPreset()">📂 プリセット読込</button>
-        <button class="btn btn-blue" onclick="saveDB()">💾 保存</button>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px;">
-          <button class="btn" onclick="downloadDBBackup()" style="background: #9c27b0; color: white;">💾 DLバックアップ</button>
-          <input type="file" id="db-backup-file" accept=".json" style="display: none;" onchange="uploadDBBackup()">
-          <button class="btn" onclick="document.getElementById('db-backup-file').click()" style="background: #7b1fa2; color: white;">📂 復元</button>
-        </div>
-      </div>
+
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow-x: hidden;">
         <!-- 騎手 -->
@@ -264,7 +315,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
   <!-- 成績表タブ -->
   <div id="record" class="tab-content">
     <div class="card">
-      <div class="card-title">📚 成績表</div>
+      <div class="card-title">📚 成績</div>
       
       <div style="display: grid; grid-template-columns: 1fr; gap: 6px; margin-bottom: 8px;">
         <input type="text" id="record-race" class="inp" placeholder="レース名" style="font-size: 10px;">
@@ -393,12 +444,14 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
   <!-- 予想分析タブ -->
   <div id="analysis" class="tab-content">
     <div class="card">
-      <div class="card-title">📊 予想分析</div>
+      <div class="card-title">📊 予想</div>
       <div id="analysis-content" style="padding: 20px; text-align: center; color: #aab0c0;">
         馬を読込すると予想が表示されます
       </div>
     </div>
   </div>
+
+
 </div>
 
 <script>
@@ -411,7 +464,43 @@ let currentRaceName = '';
 function setRaceName(name) {
   currentRaceName = name || '';
   const el = document.getElementById('race-name-badge');
-  if (el) el.textContent = name ? `【${name}】` : '';
+  if (!el) return;
+  if (name) {
+    const key = 'kp_race_url_' + name;
+    const saved = localStorage.getItem(key);
+    const editBtn = document.getElementById('race-edit-btn');
+    if (saved) {
+      // バッジ内右端に編集ボタン
+      el.innerHTML = '<span style="flex:1;text-align:center;">' + name + '</span>'
+        + '<span id="race-url-edit" style="font-size:13px;background:rgba(255,255,255,0.25);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">✏️</span>';
+      el.style.cursor = 'pointer';
+      el.onclick = (e) => {
+        if (e.target.closest('#race-url-edit')) {
+          const url = prompt('URLを編集（空欄でクリア）:', saved);
+          if (url === null) return;
+          if (url.trim()) { localStorage.setItem(key, url.trim()); setStatus('✅ URL更新', 'ok'); }
+          else { localStorage.removeItem(key); setStatus('🗑 URLクリア', 'ok'); }
+          setRaceName(name);
+        } else {
+          window.open(saved, '_blank');
+        }
+      };
+    } else {
+      el.innerHTML = '<span style="flex:1;text-align:center;">' + name + '</span>'
+        + '<span style="font-size:13px;background:rgba(255,255,255,0.25);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">🔗</span>';
+      el.style.cursor = 'pointer';
+      el.onclick = () => {
+        const url = prompt('ネットケイバのURLを入力:', '');
+        if (!url || !url.trim()) return;
+        localStorage.setItem(key, url.trim());
+        setStatus('✅ URLを登録しました', 'ok');
+        setRaceName(name);
+      };
+    }
+  } else {
+    el.innerHTML = '';
+    el.onclick = null;
+  }
 }
 
 function setStatus(msg, type = 'info') {
@@ -538,6 +627,11 @@ function copyPrompt(id) {
     document.body.removeChild(ta);
     setStatus('✅ コピー完了', 'ok');
   });
+}
+
+function clearLastHorses() {
+  localStorage.removeItem('kp_last_horses');
+  localStorage.removeItem('kp_last_race');
 }
 
 function importJSON() {
@@ -752,7 +846,15 @@ function getWakuStyle(waku) {
   return (styles[String(waku)] || 'background:#e0e6f0;color:#1a1a2e;border:1px solid #ccc;') + 'width:30px;height:30px;border-radius:4px;font-weight:900;font-size:14px;text-align:center;cursor:pointer;padding:0;';
 }
 
+function autoSaveHorses() {
+  if (horses.length > 0) {
+    localStorage.setItem('kp_last_horses', JSON.stringify(horses));
+    localStorage.setItem('kp_last_race', currentRaceName);
+  }
+}
+
 function renderTable() {
+  autoSaveHorses();
   const tbody = document.getElementById('table-body');
   tbody.innerHTML = '';
   // 展開ペース取得
@@ -762,6 +864,26 @@ function renderTable() {
   const _bonusMap = paceBonus[_pace];
   // 全馬スコア計算→印マップ生成
   const jirushiMap = getJirushiMap();
+  // 期待値計算用に全馬スコアを先に計算
+  const allScoresForEV = horses.map(h => {
+    const ts = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
+    const cs = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
+    const ms = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const pa = _bonusMap[h.kyakushitsu]||0;
+    return ts+cs+ms+pa;
+  });
+  const evMax = Math.max(...allScoresForEV);
+  const evMin = Math.min(...allScoresForEV);
+  const evRange = evMax - evMin || 1;
+  // 期待値 = スコアが上位かつオッズが高い馬を評価
+  // スコアを0〜1に正規化し、オッズと掛け合わせる
+  function calcEV(totalScore, odds) {
+    const scoreRatio = (totalScore - evMin) / evRange; // 0〜1
+    return scoreRatio * odds; // スコアが低い馬はoddsが高くても低くなる
+  }
+  const evValues = allScoresForEV.map((s,i) => calcEV(s, horses[i].odds));
+  const evMedian = [...evValues].sort((a,b)=>a-b)[Math.floor(evValues.length/2)];
+
   horses.forEach((h, idx) => {
     const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0) + (db.baju?.[h.baju] || 0);
     const chokyoScore = ({'A': 10, 'B': 0, 'C': -15}[h.chokyoFinal] || 0) + ({'A': 10, 'B': 0, 'C': -15}[h.chokyoPrev] || 0);
@@ -769,8 +891,32 @@ function renderTable() {
     const paceAdj = _bonusMap[h.kyakushitsu] || 0;
     const totalScore = trendScore + chokyoScore + commentScore + paceAdj;
     const ji = jirushiMap[h.id] || { jirushi: '', color: '#aaa' };
-    
+
+    // 期待値計算
+    const ev = evValues[idx];
+    const evRatio = evMax > evMin ? (ev - evMin) / (evMax - evMin) : 0.5;
+    // 期待値1.0以上=プラス期待値、以下=マイナス
+    // スコア上位かつオッズ高め＝期待値高
+    // 中央値より高い=注目、低い=注意
+    const scoreRank = allScoresForEV.filter(s => s <= totalScore).length / allScoresForEV.length; // 0〜1
+    const isHighScore = scoreRank >= 0.7; // スコア上位30%
+    const isMidScore = scoreRank >= 0.4;  // スコア上位60%
+    const isLowScore = scoreRank < 0.3;   // スコア下位30%
+    const isHighOdds = h.odds >= 10.0;
+    const isLowOdds = h.odds < 5.0;
+
+    // 🔥 スコア上位＋高オッズ（お宝馬）
+    // ✅ スコア上位（実力馬）
+    // ❌ スコア下位（消し候補）
+    const evLabel = (isHighScore && isHighOdds) ? '🔥' : isHighScore ? '✅' : isLowScore ? '❌' : '➖';
+    const evDisplay = ev.toFixed(2);
+    const evTextColor = (isHighScore && isHighOdds) ? '#1b5e20' : isHighScore ? '#2e7d32' : isLowScore ? '#c62828' : '#888';
+    // 🔥=金色背景・太字、✅=薄緑、❌=薄赤
+    const nameBg = (isHighScore && isHighOdds) ? 'background:#fff3cd;' : isHighScore ? 'background:#f0fff0;' : isLowScore ? 'background:#fff0f0;' : '';
+    const nameColor = (isHighScore && isHighOdds) ? 'color:#856404;font-weight:900;' : isHighScore ? 'color:#2e7d32;' : isLowScore ? 'color:#c62828;' : '';
+
     const row = document.createElement('tr');
+    row.style.cssText = nameBg ? nameBg.replace('background:', 'background-color:').replace(';','') : '';
     row.innerHTML = `
       <td style="text-align:center;padding:2px;">
         <div style="position:relative;display:inline-block;width:36px;height:36px;">
@@ -783,9 +929,9 @@ function renderTable() {
         </div>
       </td>
       <td style="font-size:16px;font-weight:900;color:${ji.color};text-align:center;line-height:1;font-family:'Noto Sans JP',sans-serif;">${ji.jirushi}</td>
-      <td><strong>${h.name}</strong></td>
+      <td style="font-weight:900;${nameColor}padding:3px 4px;">${h.name}</td>
       <td><input class="inp" style="width: 30px;" value="${h.age}" onchange="horses[${idx}].age=this.value; renderTable();"></td>
-      <td style="font-size: 8px;">${h.jockey}</td>
+      <td style="font-size: 8px;"><input class="inp" style="width:60px;font-size:8px;" value="${h.jockey}" onchange="horses[${idx}].jockey=this.value; renderTable();"></td>
       <td style="font-size: 8px;">${h.sire}</td>
       <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].kyakushitsu=this.value; renderTable();"><option>-</option><option ${h.kyakushitsu==='逃げ'?'selected':''}>逃げ</option><option ${h.kyakushitsu==='先行'?'selected':''}>先行</option><option ${h.kyakushitsu==='差し'?'selected':''}>差し</option><option ${h.kyakushitsu==='追い込み'?'selected':''}>追い込み</option><option ${h.kyakushitsu==='自在'?'selected':''}>自在</option></select></td>
       <td><input class="inp" style="width: 30px;" value="${h.ninki}" onchange="horses[${idx}].ninki=this.value; renderTable();"></td>
@@ -800,6 +946,7 @@ function renderTable() {
       <td style="font-weight: 900; color: #2563eb;">${Math.round(trendScore)}</td>
       <td style="font-weight: 700; color: #27ae60; font-size:8px;">調${chokyoScore>=0?'+':''}${chokyoScore} 厩${commentScore>=0?'+':''}${commentScore} 展${paceAdj>=0?'+':''}${paceAdj}</td>
       <td style="font-weight: 900; color: #e94560;">${totalScore}</td>
+      <td style="font-weight:900;color:${evTextColor};font-size:10px;">${evLabel}</td>
     `;
     tbody.appendChild(row);
   });
@@ -1969,12 +2116,96 @@ function uploadBackup() {
   reader.readAsText(file);
 }
 
+
+
+async function saveTableAsImage() {
+  if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
+  setStatus('📸 画像生成中...', 'ok');
+
+  // 一時的に全幅テーブルを作成
+  const original = document.getElementById('main-table');
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;background:#fff;padding:12px;font-family:sans-serif;';
+
+  // タイトル行
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:15px;font-weight:900;color:#1a1a2e;margin-bottom:6px;padding-bottom:6px;border-bottom:2px solid #e94560;';
+  title.textContent = '🏇 ' + (currentRaceName || '出馬表') + '　' + horses.length + '頭';
+  wrapper.appendChild(title);
+
+  // テーブルをクローン（スクロール外も含めて全行）
+  const clone = original.cloneNode(true);
+  clone.style.cssText = 'width:auto;min-width:auto;border-collapse:collapse;font-size:9px;';
+  // input/selectの値をtextに変換
+  const inputs = clone.querySelectorAll('input, select');
+  inputs.forEach(el => {
+    const span = document.createElement('span');
+    span.textContent = el.value;
+    span.style.cssText = el.style.cssText + 'display:inline-block;';
+    el.parentNode.replaceChild(span, el);
+  });
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+
+  try {
+    const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: '#fff', useCORS: true });
+    const link = document.createElement('a');
+    const raceName = currentRaceName ? currentRaceName.replace(/[\/\:*?"<>|]/g, '_') : '出馬表';
+    link.download = raceName + '_' + new Date().toISOString().split('T')[0] + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    setStatus('✅ 画像を保存しました', 'ok');
+  } catch(e) {
+    setStatus('❌ 画像生成エラー: ' + e.message.substring(0,30), 'err');
+  }
+  document.body.removeChild(wrapper);
+}
+
 window.addEventListener('load', () => {
+  // ヘッダー画像をランダムで設定
+  const bgImages = ['./9198.webp', './9198b.webp', './9198c.webp'];
+  // シャッフルして順番に試す（ランダムで1枚選び、なければ次を試す）
+  // Fisher-Yatesシャッフルで確実にランダム化
+  for (let i = bgImages.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [bgImages[i], bgImages[j]] = [bgImages[j], bgImages[i]];
+  }
+  function tryLoadBg(idx) {
+    if (idx >= bgImages.length) return;
+    const img = new Image();
+    img.onload = () => {
+      const hdr = document.getElementById('hdr');
+      hdr.style.background = 'linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.1)), url(' + bgImages[idx] + ')';
+      hdr.style.backgroundSize = 'cover';
+      hdr.style.backgroundPosition = 'right top';
+      hdr.style.backgroundRepeat = 'no-repeat';
+    };
+    img.onerror = () => tryLoadBg(idx + 1);
+    img.src = bgImages[idx];
+  }
+  tryLoadBg(0);
+
   try { const saved = localStorage.getItem('kp_db'); if (saved) db = JSON.parse(saved); } catch (e) {}
   try { const saved = localStorage.getItem('kp_records'); if (saved) records = JSON.parse(saved); renderRecordList(); } catch (e) {}
   try { const saved = localStorage.getItem('kp_saved_jsons'); if (saved) savedJsons = JSON.parse(saved); renderSavedJsonList(); } catch (e) {}
   try { const saved = localStorage.getItem('kp_pace_bonus'); if (saved) paceBonus = JSON.parse(saved); } catch (e) {}
-  setStatus('🏇 準備完了！', 'ok');
+  // 出馬表の自動復元
+  try {
+    const savedHorses = localStorage.getItem('kp_last_horses');
+    const savedRace = localStorage.getItem('kp_last_race');
+    if (savedHorses) {
+      horses = JSON.parse(savedHorses);
+      if (savedRace) setRaceName(savedRace);
+      document.getElementById('count-badge').textContent = horses.length;
+      renderTable();
+      setStatus('🏇 前回の出馬表（' + horses.length + '頭）を自動復元しました', 'ok');
+    } else {
+      setStatus('🏇 準備完了！', 'ok');
+    }
+  } catch(e) {
+    setStatus('🏇 準備完了！', 'ok');
+  }
+
 });
 </script>
 
