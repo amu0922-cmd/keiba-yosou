@@ -2290,7 +2290,33 @@ function analyzeResult() {
   </div>`;
 
   document.getElementById('review-content').innerHTML = html;
-  setStatus('✅ 振り返り分析完了', 'ok');
+
+  // 成績表に自動記録（投資・回収は後から編集可）
+  const existingIdx = records.findIndex(r => r.race === (currentRaceName||'不明') && r.memo && r.memo.includes('振り返り自動記録'));
+  const newRecord = {
+    id: existingIdx >= 0 ? records[existingIdx].id : Date.now(),
+    race: currentRaceName || '不明',
+    date: new Date().toISOString().split('T')[0],
+    formation: '',
+    purchase: '',
+    distance: '',
+    course: '',
+    condition: '',
+    rank: winner ? String(winner.rank) + '着' : '',
+    score: '',
+    invest: existingIdx >= 0 ? records[existingIdx].invest : 0,
+    return: existingIdx >= 0 ? records[existingIdx].return : 0,
+    rate: existingIdx >= 0 ? records[existingIdx].rate : '0.0',
+    memo: '振り返り自動記録 / 予想1位:' + (top1?.name||'?') + '→' + act1 + '着 / 1着:' + (winner?.name||'?') + '(予想' + winnerPredictRank + '位)'
+  };
+  if (existingIdx >= 0) {
+    records[existingIdx] = newRecord;
+    setStatus('✅ 振り返り分析完了・成績表を更新しました', 'ok');
+  } else {
+    records.push(newRecord);
+    setStatus('✅ 振り返り分析完了・成績表に自動記録しました', 'ok');
+  }
+  localStorage.setItem('kp_records', JSON.stringify(records));
 }
 
 async function saveTableAsImage() {
