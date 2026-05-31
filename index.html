@@ -116,6 +116,21 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 </head>
 <body>
 
+<!-- パスワード画面 -->
+<div id="pw-screen" style="position:fixed;inset:0;background:linear-gradient(135deg,#0a0a14,#1a0a0a);display:flex;align-items:center;justify-content:center;z-index:9999;">
+  <div style="background:#12121f;border:1px solid #2a2540;border-radius:12px;padding:30px 24px;width:88%;max-width:340px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:8px;">🏇</div>
+    <div style="font-size:18px;font-weight:900;color:#c9a84c;margin-bottom:4px;letter-spacing:0.05em;">RACE PREDICT PRO</div>
+    <div style="font-size:9px;color:#6a6070;margin-bottom:24px;letter-spacing:0.08em;">Race Prediction System</div>
+    <input type="password" id="pw-input" placeholder="パスワードを入力"
+      style="width:100%;padding:10px 14px;border-radius:6px;border:1px solid #3a3560;background:#0f0f1e;color:#e8e0cc;font-size:14px;margin-bottom:10px;text-align:center;"
+      onkeydown="if(event.key==='Enter')checkPassword()">
+    <button onclick="checkPassword()" style="width:100%;padding:10px;background:linear-gradient(135deg,#c9a84c,#a07830);border:none;border-radius:6px;color:#0a0a14;font-size:13px;font-weight:900;cursor:pointer;margin-bottom:8px;">🔓 ログイン</button>
+    <div id="pw-error" style="color:#f87171;font-size:10px;display:none;">パスワードが違います</div>
+    <div id="pw-loading" style="color:#6a6070;font-size:10px;display:none;">☁️ データを読み込み中...</div>
+  </div>
+</div>
+
 <div id="hdr" id="hdr">
   <div id="title-bar" style="width:100%;padding:10px 16px 12px;background:linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%);"><div id="app-title">⚡ RACE PREDICT PRO</div><div id="app-sub">Race Prediction &amp; Score Analysis System</div></div>
 </div>
@@ -877,6 +892,7 @@ function autoSaveHorses() {
 
 function renderTable() {
   autoSaveHorses();
+  scheduleAutoSave();
   const tbody = document.getElementById('table-body');
   tbody.innerHTML = '';
   // 展開ペース取得
@@ -1356,6 +1372,7 @@ function updateRecord(idx) {
   
   localStorage.setItem('kp_records', JSON.stringify(records));
   renderRecordList();
+  scheduleAutoSave();
   resetRecordForm();
   
   const btn = document.querySelector('button[onclick*="addRecord"]');
@@ -2317,6 +2334,94 @@ function analyzeResult() {
     setStatus('✅ 振り返り分析完了・成績表に自動記録しました', 'ok');
   }
   localStorage.setItem('kp_records', JSON.stringify(records));
+}
+
+// ===== Supabase設定 =====
+const SB_URL = 'https://lttrqfbwhyktypddgtpn.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0dHJxZmJ3aHlrdHlwZGRndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMjY1MDMsImV4cCI6MjA5NTgwMjUwM30.SKn7Okr9UGR5jKapPmD3IAoVW_NThZL4FoXl09wkgCU';
+const APP_PASSWORD = 'keiba2024';
+
+async function sbFetch(method, body) {
+  const res = await fetch(SB_URL + '/rest/v1/race_data?id=eq.main', {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Prefer': method === 'POST' ? 'resolution=merge-duplicates' : ''
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  return res;
+}
+
+async function loadFromSupabase() {
+  try {
+    const res = await sbFetch('GET');
+    if (!res.ok) return false;
+    const rows = await res.json();
+    if (!rows || rows.length === 0) return false;
+    const data = rows[0].data;
+    if (data.horses && data.horses.length > 0) {
+      horses = data.horses;
+      document.getElementById('count-badge').textContent = horses.length;
+      setRaceName(data.raceName || '');
+      renderTable();
+    }
+    if (data.db && Object.keys(data.db).length > 0) {
+      db = data.db;
+    }
+    if (data.records && data.records.length > 0) {
+      records = data.records;
+      renderRecordList();
+    }
+    if (data.paceBonus) paceBonus = data.paceBonus;
+    if (data.savedJsons) { savedJsons = data.savedJsons; renderSavedJsonList(); }
+    return true;
+  } catch(e) {
+    console.error('Supabase読込エラー:', e);
+    return false;
+  }
+}
+
+async function saveToSupabase() {
+  try {
+    const data = {
+      horses, db, records, paceBonus, savedJsons,
+      raceName: currentRaceName,
+      savedAt: new Date().toISOString()
+    };
+    await sbFetch('POST', [{ id: 'main', data, updated_at: new Date().toISOString() }]);
+  } catch(e) {
+    console.error('Supabase保存エラー:', e);
+  }
+}
+
+// 自動保存タイマー（30秒ごと）
+let autoSaveTimer = null;
+function scheduleAutoSave() {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => { saveToSupabase(); }, 30000);
+}
+
+function checkPassword() {
+  const input = document.getElementById('pw-input').value;
+  if (input === APP_PASSWORD) {
+    document.getElementById('pw-error').style.display = 'none';
+    document.getElementById('pw-loading').style.display = 'block';
+    loadFromSupabase().then(loaded => {
+      document.getElementById('pw-screen').style.display = 'none';
+      document.getElementById('pw-loading').style.display = 'none';
+      if (loaded) {
+        setStatus('☁️ クラウドデータを復元しました', 'ok');
+      } else {
+        setStatus('🏇 準備完了！', 'ok');
+      }
+    });
+  } else {
+    document.getElementById('pw-error').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+  }
 }
 
 async function saveTableAsImage() {
