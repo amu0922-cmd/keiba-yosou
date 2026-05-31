@@ -1285,7 +1285,19 @@ function renderSavedJsonList() {
 
   // ソート（savedAtで並び替え）
   let entries = Object.entries(savedJsons);
+  // レース名の先頭から日付を抽出してソート（例：5/31、6/1、12/25など）
+  function extractDateFromName(name) {
+    const m = name.match(/^(\d{1,2})\/(\d{1,2})/);
+    if (m) return parseInt(m[1]) * 100 + parseInt(m[2]); // 月*100+日
+    return -1; // 日付なしは末尾
+  }
   entries.sort((a, b) => {
+    const dA = extractDateFromName(a[0]);
+    const dB = extractDateFromName(b[0]);
+    // 日付あり同士はレース名で比較、日付なしは保存日時で比較
+    if (dA >= 0 && dB >= 0) return savedListSortOrder === 'desc' ? dB - dA : dA - dB;
+    if (dA >= 0) return savedListSortOrder === 'desc' ? -1 : 1;
+    if (dB >= 0) return savedListSortOrder === 'desc' ? 1 : -1;
     const dateA = new Date(a[1].savedAt);
     const dateB = new Date(b[1].savedAt);
     return savedListSortOrder === 'desc' ? dateB - dateA : dateA - dateB;
