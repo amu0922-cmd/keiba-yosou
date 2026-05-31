@@ -141,10 +141,15 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <div style="font-size: 9px; color: #6080a0; background: #f5f6fa; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; line-height: 1.6;">出馬表画像からJSON形式で情報を抽出。枠番・馬番の対応を慎重に確認して紐づけ。</div>
         <button class="btn btn-gold" id="btn-copy-p1" onclick="copyPromptDirect(1)" style="width: 100%; padding: 10px; font-size: 11px;">📋 ワンタップコピー</button>
       </div>
-      <div style="margin-bottom: 4px;">
+      <div style="margin-bottom: 10px;">
         <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px; color: #1a1a2e;">②レース傾向PDFをDB化</div>
         <div style="font-size: 9px; color: #6080a0; background: #f5f6fa; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; line-height: 1.6;">レース傾向PDFを解析し、各項目のスコアをJSON形式で出力。根拠説明付き。</div>
         <button class="btn btn-blue" id="btn-copy-p2" onclick="copyPromptDirect(2)" style="width: 100%; padding: 10px; font-size: 11px;">📋 ワンタップコピー</button>
+      </div>
+      <div style="margin-bottom: 4px;">
+        <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px; color: #1a1a2e;">③レース結果を着順JSON化</div>
+        <div style="font-size: 9px; color: #6080a0; background: #f5f6fa; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; line-height: 1.6;">レース結果画像から着順JSONを抽出。予想の振り返り分析に使用。</div>
+        <button class="btn btn-green" id="btn-copy-p3" onclick="copyPromptDirect(3)" style="width: 100%; padding: 10px; font-size: 11px;">📋 ワンタップコピー</button>
       </div>
 
       <div class="card-title">📥 JSON読込</div>
@@ -449,6 +454,15 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         馬を読込すると予想が表示されます
       </div>
     </div>
+
+    <!-- 振り返り分析 -->
+    <div class="card" style="border:2px solid #27ae60;">
+      <div class="card-title" style="color:#1a9e50;">🔍 振り返り分析（レース結果照合）</div>
+      <div style="font-size:9px;color:#6080a0;margin-bottom:8px;">Geminiで着順JSONを作成→貼り付けて分析</div>
+      <textarea id="result-json-input" spellcheck="false" placeholder='{"results": [{"rank": 1, "banum": 17, "name": "ロブチェン", ...}]}'></textarea>
+      <button class="btn btn-green" onclick="analyzeResult()" style="width:100%;margin-top:8px;padding:10px;font-size:11px;">🔍 振り返り分析を実行</button>
+      <div id="review-content" style="margin-top:10px;"></div>
+    </div>
   </div>
 
 
@@ -593,7 +607,15 @@ JSONデータのみをワンタップでコピーできるように、**JSON部�
 
 \`\`\`json
 {"jockey": {...}, "sire": {...}, ...}
-\`\`\``
+\`\`\``,
+  3: `下記のレース結果画像から、着順JSONを抽出してください。出力はJSONのみ。説明文不要。
+
+【出力形式】
+{"results": [{"rank": 着順(数値), "banum": 馬番(数値), "name": "馬名", "time": "タイム", "odds": 単勝オッズ, "ninki": 人気(数値)}]}
+
+着順順（1着から）に並べてください。出力はJSONのみ。
+
+また、このJSONをワンタップでコピー出来るようにしてください。`
 };
 
 function copyPromptDirect(num) {
@@ -2117,6 +2139,159 @@ function uploadBackup() {
 }
 
 
+
+function analyzeResult() {
+  const raw = document.getElementById('result-json-input').value.trim();
+  if (!raw) { setStatus('❌ 着順JSONを貼り付けてください', 'err'); return; }
+  if (horses.length === 0) { setStatus('❌ 出馬表を読込してください', 'err'); return; }
+
+  let results;
+  try {
+    const jsonStart = raw.indexOf('{'); const jsonEnd = raw.lastIndexOf('}');
+    const parsed = JSON.parse(raw.substring(jsonStart, jsonEnd+1));
+    results = parsed.results || parsed;
+    if (!Array.isArray(results)) throw new Error('results配列なし');
+  } catch(e) { setStatus('❌ JSON形式エラー: ' + e.message.substring(0,20), 'err'); return; }
+
+  // 展開設定取得
+  const overrideEl = document.getElementById('pace-override');
+  const override = overrideEl ? overrideEl.value : 'auto';
+  const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
+  const bonusMap = paceBonus[pace];
+
+  // 予想スコアを計算
+  const scored = horses.map(h => {
+    const ts = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
+    const cs = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
+    const ms = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const pa = bonusMap[h.kyakushitsu]||0;
+    const total = ts+cs+ms+pa;
+    return {...h, totalScore: total};
+  }).sort((a,b)=>b.totalScore-a.totalScore);
+
+  // 着順と予想スコアを照合
+  const rankMap = {};
+  results.forEach(r => { rankMap[r.banum] = r; });
+
+  // 予想◎○の実際の着順
+  const scoreRanked = scored.map((h,i) => ({...h, predictRank: i+1, actualRank: rankMap[h.banum]?.rank || '-'}));
+
+  // 的中シミュレーション
+  const top3banum = scored.slice(0,3).map(h=>h.banum);
+  const top1 = scored[0]; const top2 = scored[1]; const top3 = scored[2];
+  const act1 = rankMap[top1?.banum]?.rank; const act2 = rankMap[top2?.banum]?.rank; const act3 = rankMap[top3?.banum]?.rank;
+
+  // 実際の1着馬
+  const winner = results.find(r=>r.rank===1);
+  const winner2 = results.find(r=>r.rank===2);
+  const winner3 = results.find(r=>r.rank===3);
+  const winnerScore = scored.find(h=>h.banum===winner?.banum);
+  const winnerPredictRank = winnerScore ? scored.indexOf(winnerScore)+1 : '-';
+
+  // DB項目別の正解率を分析
+  const top5actual = results.slice(0,5).map(r=>r.banum);
+  const categories = ['jockey','sire','kyakushitsu','age','maeclass'];
+  const dbAnalysis = [];
+  categories.forEach(cat => {
+    if (!db[cat] || Object.keys(db[cat]).length===0) return;
+    let hitScore=0, missScore=0, hitCount=0, missCount=0;
+    horses.forEach(h => {
+      const score = db[cat]?.[h[cat]]||0;
+      if (top5actual.includes(h.banum)) { hitScore+=score; hitCount++; }
+      else { missScore+=score; missCount++; }
+    });
+    const avgHit = hitCount>0 ? (hitScore/hitCount).toFixed(1) : 0;
+    const avgMiss = missCount>0 ? (missScore/missCount).toFixed(1) : 0;
+    dbAnalysis.push({cat, avgHit: parseFloat(avgHit), avgMiss: parseFloat(avgMiss), diff: parseFloat(avgHit)-parseFloat(avgMiss)});
+  });
+  dbAnalysis.sort((a,b)=>b.diff-a.diff);
+
+  // 最適買い目の逆算
+  const actualTop3banum = [winner?.banum, winner2?.banum, winner3?.banum].filter(Boolean);
+  const tanshoHit = actualTop3banum[0] === top1?.banum;
+  const wideHit12 = actualTop3banum.slice(0,3).includes(top1?.banum) && actualTop3banum.slice(0,3).includes(top2?.banum);
+  const rentan = top3banum.filter(b=>actualTop3banum.slice(0,2).includes(b)).length>=2;
+  const sanrenpuku = top3banum.filter(b=>actualTop3banum.slice(0,3).includes(b)).length>=3;
+
+  let html = '';
+
+  // 1着馬の予想順位
+  const winnerColor = winnerPredictRank <= 3 ? '#27ae60' : winnerPredictRank <= 6 ? '#f39c12' : '#e94560';
+  html += `<div style="background:#f8fff8;border:1px solid #b8f5cc;border-radius:8px;padding:10px;margin-bottom:10px;">
+    <div style="font-weight:900;color:#1a9e50;font-size:11px;margin-bottom:8px;">🏆 結果照合サマリー</div>
+    <div style="font-size:10px;margin-bottom:5px;">
+      🥇 実際の1着：<strong>${winner?.name||'?'}（${winner?.banum||'?'}番）</strong>
+      → 予想<span style="color:${winnerColor};font-weight:900;">${winnerPredictRank}位</span>にランクイン
+    </div>
+    <div style="font-size:9px;color:#6080a0;margin-bottom:8px;">
+      予想1位:${top1?.name} → 実際${act1}着　
+      予想2位:${top2?.name} → 実際${act2}着　
+      予想3位:${top3?.name} → 実際${act3}着
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;">
+      <div style="padding:5px;background:${tanshoHit?'#e8f5e9':'#fdecea'};border-radius:4px;">単勝(◎): ${tanshoHit?'✅ 的中':'❌ 外れ'}</div>
+      <div style="padding:5px;background:${wideHit12?'#e8f5e9':'#fdecea'};border-radius:4px;">ワイド(◎○): ${wideHit12?'✅ 的中':'❌ 外れ'}</div>
+      <div style="padding:5px;background:${rentan?'#e8f5e9':'#fdecea'};border-radius:4px;">馬連(上位3): ${rentan?'✅ 的中':'❌ 外れ'}</div>
+      <div style="padding:5px;background:${sanrenpuku?'#e8f5e9':'#fdecea'};border-radius:4px;">三連複(上位3): ${sanrenpuku?'✅ 的中':'❌ 外れ'}</div>
+    </div>
+  </div>`;
+
+  // スコアvs実際着順テーブル
+  html += `<div style="font-weight:700;font-size:10px;color:#1a1a2e;margin-bottom:6px;">📋 予想スコアvs実際着順</div>
+  <div style="overflow-x:auto;margin-bottom:10px;">
+  <table style="width:100%;border-collapse:collapse;font-size:9px;">
+    <thead><tr style="background:#1a1a2e;color:#FFD700;">
+      <th style="padding:4px 3px;border:1px solid #2a3a5a;">予想順</th>
+      <th style="padding:4px 3px;border:1px solid #2a3a5a;">馬番</th>
+      <th style="padding:4px 3px;border:1px solid #2a3a5a;">馬名</th>
+      <th style="padding:4px 3px;border:1px solid #2a3a5a;">スコア</th>
+      <th style="padding:4px 3px;border:1px solid #2a3a5a;">実際着順</th>
+    </tr></thead><tbody>`;
+  scoreRanked.forEach((h,i) => {
+    const actual = h.actualRank;
+    const diff = actual !== '-' ? Math.abs(i+1 - actual) : 99;
+    const rowColor = actual===1?'#e8f5e9':actual<=3?'#f0f8f0':diff<=2?'#fffde7':'';
+    html += `<tr style="background:${rowColor};">
+      <td style="padding:3px;border:1px solid #e8ecf4;text-align:center;font-weight:700;">${i+1}</td>
+      <td style="padding:3px;border:1px solid #e8ecf4;text-align:center;">${h.banum}</td>
+      <td style="padding:3px;border:1px solid #e8ecf4;">${h.name}</td>
+      <td style="padding:3px;border:1px solid #e8ecf4;text-align:center;color:#e94560;font-weight:700;">${h.totalScore}</td>
+      <td style="padding:3px;border:1px solid #e8ecf4;text-align:center;font-weight:${actual<=3?'900':'400'};color:${actual===1?'#1a9e50':actual<=3?'#1a6fb5':'#666'};">${actual}着</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  // DB項目分析
+  html += `<div style="font-weight:700;font-size:10px;color:#1a1a2e;margin-bottom:6px;">⚙️ DB項目の有効性（上位5着馬 vs それ以外）</div>`;
+  dbAnalysis.forEach(d => {
+    const catLabel = {jockey:'騎手',sire:'種牡馬',kyakushitsu:'脚質',age:'年齢',maeclass:'前クラス'}[d.cat]||d.cat;
+    const isGood = d.diff > 0;
+    const barW = Math.min(100, Math.abs(d.diff)*3);
+    html += `<div style="margin-bottom:6px;">
+      <div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px;">
+        <span style="font-weight:700;">${catLabel}</span>
+        <span style="color:${isGood?'#27ae60':'#e94560'};">${isGood?'✅ 有効':'⚠️ 要見直し'} (差:${d.diff>0?'+':''}${d.diff.toFixed(1)})</span>
+      </div>
+      <div style="background:#f0f0f0;border-radius:3px;height:8px;overflow:hidden;">
+        <div style="height:100%;width:${barW}%;background:${isGood?'#27ae60':'#e94560'};border-radius:3px;"></div>
+      </div>
+      <div style="font-size:8px;color:#999;">上位5着平均:${d.avgHit}点 / それ以外:${d.avgMiss}点</div>
+    </div>`;
+  });
+
+  // 次回への提言
+  const poorCats = dbAnalysis.filter(d=>d.diff<0).map(d=>({jockey:'騎手',sire:'種牡馬',kyakushitsu:'脚質',age:'年齢',maeclass:'前クラス'}[d.cat]||d.cat));
+  const goodCats = dbAnalysis.filter(d=>d.diff>2).map(d=>({jockey:'騎手',sire:'種牡馬',kyakushitsu:'脚質',age:'年齢',maeclass:'前クラス'}[d.cat]||d.cat));
+  html += `<div style="background:#f0f8ff;border:1px solid #b8d8f5;border-radius:8px;padding:10px;margin-top:8px;">
+    <div style="font-weight:900;color:#1a6fb5;font-size:10px;margin-bottom:6px;">💡 次回への提言</div>
+    ${goodCats.length>0?`<div style="font-size:9px;margin-bottom:4px;">✅ <strong>${goodCats.join('・')}</strong>の配点は有効でした。継続推奨。</div>`:''}
+    ${poorCats.length>0?`<div style="font-size:9px;margin-bottom:4px;">⚠️ <strong>${poorCats.join('・')}</strong>の配点は逆効果でした。次回は減点幅を見直すか、このコース・条件での重みを下げることを検討。</div>`:''}
+    <div style="font-size:9px;color:#6080a0;">※DB設定タブで各項目のスコアを調整してください。</div>
+  </div>`;
+
+  document.getElementById('review-content').innerHTML = html;
+  setStatus('✅ 振り返り分析完了', 'ok');
+}
 
 async function saveTableAsImage() {
   if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
