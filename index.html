@@ -2792,7 +2792,8 @@ async function saveXPostImage() {
   if (!card) { setStatus('❌ 先に画像生成してください', 'err'); return; }
   setStatus('📸 保存中...', 'ok');
   try {
-    const canvas = await html2canvas(card, {scale:3, width:480, backgroundColor:null, useCORS:true, logging:false});
+    const rect = card.getBoundingClientRect();
+    const canvas = await html2canvas(card, {scale:3, width:rect.width, height:rect.height, backgroundColor:null, useCORS:true, logging:false, scrollX:0, scrollY:0});
     const link = document.createElement('a');
     link.download = `xpost_${(currentRaceName||'yoso').replace(/[\/\:*?"<>|]/g,'_')}_${new Date().toISOString().split('T')[0]}.png`;
     link.href = canvas.toDataURL('image/png');
@@ -2927,7 +2928,8 @@ async function saveBuyImage() {
   if (!card) { setStatus('❌ 先に推奨買い目を生成してください', 'err'); return; }
   setStatus('📸 保存中...', 'ok');
   try {
-    const canvas = await html2canvas(card, {scale:3, width:480, backgroundColor:null, useCORS:true, logging:false});
+    const rect = card.getBoundingClientRect();
+    const canvas = await html2canvas(card, {scale:3, width:rect.width, height:rect.height, backgroundColor:null, useCORS:true, logging:false, scrollX:0, scrollY:0});
     const link = document.createElement('a');
     link.download = `buy_${(currentRaceName||'kaimoku').replace(/[\/\:*?"<>|]/g,'_')}_${new Date().toISOString().split('T')[0]}.png`;
     link.href = canvas.toDataURL('image/png');
