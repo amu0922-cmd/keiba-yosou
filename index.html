@@ -83,6 +83,7 @@ html, body { font-family: 'Noto Sans JP', sans-serif; background: #f5f6fa; color
 .tab-record { background: #e8fdf0; color: #1a9e50; border-color: #b8f5cc; }
 .tab-analysis { background: #f3e8fd; color: #7a1ab5; border-color: #d8b8f5; }
 .tab-pace { background: #fdfde8; color: #8b8b00; border-color: #f0f0a0; }
+.tab-xpost { background: #e8f0ff; color: #1a55cc; border-color: #aac0f0; }
 /* アクティブ時は明るく */
 .tab-json.active  { background: #fff0f3; color: #e94560; border-color: #f5b8c4; }
 .tab-main.active  { background: #f0f8ff; color: #1a6fb5; border-color: #b8d8f5; }
@@ -90,6 +91,7 @@ html, body { font-family: 'Noto Sans JP', sans-serif; background: #f5f6fa; color
 .tab-record.active { background: #f0fff6; color: #1a9e50; border-color: #b8f5cc; }
 .tab-analysis.active { background: #faf0ff; color: #7a1ab5; border-color: #d8b8f5; }
 .tab-pace.active  { background: #ffffe8; color: #8b8b00; border-color: #f0f0a0; }
+.tab-xpost.active { background: #eef4ff; color: #1a55cc; border-color: #aac0f0; }
 .tab-content { display: none; padding: 10px; }
 .tab-content.active { display: block; padding: 10px; }
 .table { width: 100%; border-collapse: collapse; font-size: 9px; }
@@ -117,22 +119,17 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 <body>
 
 <!-- パスワード画面 -->
-<div id="pw-screen" style="position:fixed;inset:0;z-index:9999;overflow:hidden;">
-  <!-- 背景画像 -->
-  <img src="./pw_bg.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;background:#1a1208;">
-  <!-- 上部フェード（タイトル） -->
-  <div style="position:absolute;top:0;left:0;right:0;height:35%;background:linear-gradient(to bottom,rgba(0,0,0,0.75) 0%,rgba(0,0,0,0) 100%);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:96px;">
-    <div style="font-size:24px;font-weight:900;color:#f0d080;letter-spacing:0.06em;text-shadow:0 2px 12px rgba(0,0,0,0.9);">⚡ RACE PREDICT PRO</div>
-    <div style="font-size:10px;color:#c8d4e8;margin-top:5px;letter-spacing:0.1em;text-shadow:0 1px 6px rgba(0,0,0,0.9);">Race Prediction System</div>
-  </div>
-  <!-- 下部フェード（入力欄） -->
-  <div style="position:absolute;bottom:0;left:0;right:0;height:52%;background:linear-gradient(to top,rgba(0,0,0,0.82) 0%,rgba(0,0,0,0) 100%);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:80px;padding-left:28px;padding-right:28px;">
+<div id="pw-screen" style="position:fixed;inset:0;background:linear-gradient(135deg,#f5f0e8,#ede5d8);display:flex;align-items:center;justify-content:center;z-index:9999;">
+  <div style="background:#fff;border:none;border-radius:16px;padding:32px 24px;width:88%;max-width:340px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.12);">
+    <img src="./9957.webp" style="width:100px;height:100px;border-radius:50%;object-fit:cover;margin-bottom:12px;box-shadow:0 4px 16px rgba(201,168,76,0.3);">
+    <div style="font-size:20px;font-weight:900;color:#c9a84c;margin-bottom:4px;letter-spacing:0.05em;">RACE PREDICT PRO</div>
+    <div style="font-size:9px;color:#aaa;margin-bottom:28px;letter-spacing:0.08em;">Race Prediction System</div>
     <input type="password" id="pw-input" placeholder="パスワードを入力" autocomplete="current-password"
-      style="width:100%;max-width:320px;padding:13px 16px;border-radius:10px;border:none;background:rgba(255,255,255,0.92);color:#333;font-size:15px;margin-bottom:12px;text-align:center;box-sizing:border-box;box-shadow:0 2px 14px rgba(0,0,0,0.35);"
+      style="width:100%;padding:12px 14px;border-radius:8px;border:1px solid #e0d8cc;background:#faf8f5;color:#333;font-size:15px;margin-bottom:12px;text-align:center;box-sizing:border-box;"
       onkeydown="if(event.key==='Enter')checkPassword()">
-    <button onclick="checkPassword()" style="width:100%;max-width:320px;padding:13px;background:linear-gradient(135deg,#c9a84c,#a07830);border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:900;cursor:pointer;margin-bottom:10px;box-shadow:0 3px 14px rgba(201,168,76,0.5);">🔓 ログイン</button>
-    <div id="pw-error" style="color:#ff8080;font-size:11px;display:none;">パスワードが違います</div>
-    <div id="pw-loading" style="color:#c0c8d8;font-size:11px;display:none;">☁️ データを読み込み中...</div>
+    <button onclick="checkPassword()" style="width:100%;padding:12px;background:linear-gradient(135deg,#c9a84c,#a07830);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:900;cursor:pointer;margin-bottom:10px;box-shadow:0 3px 10px rgba(201,168,76,0.4);">🔓 ログイン</button>
+    <div id="pw-error" style="color:#e94560;font-size:10px;display:none;">パスワードが違います</div>
+    <div id="pw-loading" style="color:#999;font-size:10px;display:none;">☁️ データを読み込み中...</div>
   </div>
 </div>
 
@@ -156,6 +153,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     <button class="tab-btn tab-record" onclick="switchTo('record')">📚 成績</button>
     <button class="tab-btn tab-analysis" onclick="switchTo('analysis')">📊 予想</button>
     <button class="tab-btn tab-pace" onclick="switchTo('pace')">🏃 展開</button>
+    <button class="tab-btn tab-xpost" onclick="switchTo('xpost')">🐦 投稿</button>
   </div>
 
   <!-- JSON/プロンプトタブ -->
@@ -475,6 +473,40 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     </div>
   </div>
 
+  <!-- X投稿タブ -->
+  <div id="xpost" class="tab-content">
+    <div class="card">
+      <div class="card-title">🐦 X投稿用画像生成</div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">✏️ コメント（任意）</label>
+        <input type="text" id="xpost-comment" class="inp" style="width:100%;" placeholder="例: 展開は差し有利！注目の一戦">
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:6px;">🎨 デザインテーマ</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <button onclick="setXTheme('dark')" id="theme-dark" style="padding:8px;border-radius:6px;border:2px solid #e94560;background:linear-gradient(135deg,#1a1a2e,#0f3460);color:#FFD700;font-size:9px;font-weight:900;cursor:pointer;">🌑 ダーク（おすすめ）</button>
+          <button onclick="setXTheme('gold')" id="theme-gold" style="padding:8px;border-radius:6px;border:2px solid #ccc;background:linear-gradient(135deg,#fffbe6,#fff3cc);color:#a07830;font-size:9px;font-weight:900;cursor:pointer;">✨ ゴールド</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="btn btn-gold" onclick="generateXPostImage()" style="padding:10px;font-size:11px;">🖼 画像生成</button>
+        <button class="btn btn-blue" onclick="copyXPostText()" style="padding:10px;font-size:11px;">📋 テキストコピー</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">👁 プレビュー</div>
+      <div id="xpost-preview-area" style="text-align:center;color:#aab0c0;padding:20px;">「画像生成」ボタンを押してください</div>
+      <div id="xpost-save-btn-area" style="display:none;margin-top:10px;">
+        <button class="btn btn-gold" onclick="saveXPostImage()" style="width:100%;padding:10px;font-size:11px;">💾 画像を保存</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📝 投稿テキスト</div>
+      <textarea id="xpost-text-area" spellcheck="false" style="min-height:120px;font-size:11px;line-height:1.7;" readonly></textarea>
+      <button class="btn btn-blue" onclick="copyXPostText()" style="width:100%;margin-top:6px;padding:8px;">📋 コピー</button>
+    </div>
+  </div>
+
   <!-- 予想分析タブ -->
   <div id="analysis" class="tab-content">
     <div class="card">
@@ -566,6 +598,7 @@ function switchTo(tab) {
   if (tab === 'record') renderRecordList();
   if (tab === 'analysis') renderAnalysis();
   if (tab === 'pace') { initPaceBonusGrid(); renderPaceAnalysis(); }
+  if (tab === 'xpost') { /* ready */ }
 }
 
 const PROMPTS = {
@@ -2516,17 +2549,10 @@ function checkPassword() {
   const input = document.getElementById('pw-input').value;
   if (input === APP_PASSWORD) {
     localStorage.setItem('kp_pw_saved', '1');
-    document.getElementById('pw-error').style.display = 'none';
-    document.getElementById('pw-loading').style.display = 'block';
+    document.getElementById('pw-screen').style.display = 'none'; // 即座に消す
     loadFromSupabase().then(loaded => {
-      document.getElementById('pw-screen').style.display = 'none';
-      document.getElementById('pw-loading').style.display = 'none';
-      if (loaded) {
-        setStatus('☁️ クラウドデータを復元しました', 'ok');
-      } else {
-        setStatus('🏇 準備完了！', 'ok');
-      }
-    });
+      setStatus(loaded ? '☁️ クラウドデータを復元しました' : '🏇 準備完了！', 'ok');
+    }).catch(() => setStatus('🏇 準備完了！', 'ok'));
   } else {
     localStorage.removeItem('kp_pw_saved');
     document.getElementById('pw-error').style.display = 'block';
@@ -2577,7 +2603,156 @@ async function saveTableAsImage() {
   document.body.removeChild(wrapper);
 }
 
+// ===== X投稿タブ =====
+let xTheme = 'dark';
+
+function setXTheme(theme) {
+  xTheme = theme;
+  document.getElementById('theme-dark').style.borderColor = theme === 'dark' ? '#e94560' : '#ccc';
+  document.getElementById('theme-gold').style.borderColor = theme === 'gold' ? '#e94560' : '#ccc';
+}
+
+function generateXPostImage() {
+  if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
+
+  // スコア計算
+  const overrideEl = document.getElementById('pace-override');
+  const override = overrideEl ? overrideEl.value : 'auto';
+  const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
+  const bonusMap = paceBonus[pace];
+  const ranked = horses.map(h => {
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
+    const chokyoScore = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
+    const commentScore = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const paceAdj = bonusMap?.[h.kyakushitsu]||0;
+    const totalScore = trendScore+chokyoScore+commentScore+paceAdj;
+    return {...h, paceAdj, totalScore};
+  }).sort((a,b)=>b.totalScore-a.totalScore);
+
+  const scores = ranked.map(h=>h.totalScore);
+  const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
+  const stdev = Math.sqrt(scores.reduce((a,b)=>a+Math.pow(b-avg,2),0)/scores.length);
+  const top1h = stdev===0 ? 50 : Math.round((ranked[0].totalScore-avg)/stdev*10+50);
+  const topLabel = top1h>=65 ? '🔥 鉄板' : top1h>=60 ? '✨ 有力' : '⚠️ 混戦';
+  const paceLabel = getPaceLabel(pace);
+  const raceName = currentRaceName || 'レース';
+  const userComment = document.getElementById('xpost-comment').value || '';
+
+  const isDark = xTheme === 'dark';
+  const bg          = isDark ? 'linear-gradient(160deg,#0f0c29,#1a1a3e,#0f3460)' : 'linear-gradient(160deg,#fffbe6,#fff3cc,#ffe8a0)';
+  const textMain    = isDark ? '#ffffff' : '#1a1206';
+  const textSub     = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(80,60,10,0.65)';
+  const accentColor = isDark ? '#FFD700' : '#c9a84c';
+  const divider     = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(201,168,76,0.25)';
+  const headerBg    = isDark ? 'linear-gradient(90deg,#e94560,#c0293a)' : 'linear-gradient(90deg,#c9a84c,#a07830)';
+  const footerBg    = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(201,168,76,0.08)';
+  const logoColor   = isDark ? '#FFD700' : '#a07830';
+
+  function wakuStyle(waku) {
+    const m = {'1':'background:#fff;color:#000;border:1.5px solid #bbb;','2':'background:#222;color:#fff;','3':'background:#cc2200;color:#fff;','4':'background:#003ecc;color:#fff;','5':'background:#e6c800;color:#222;','6':'background:#009900;color:#fff;','7':'background:#ff6600;color:#fff;','8':'background:#ff5faa;color:#fff;'};
+    return m[String(waku)] || 'background:#888;color:#fff;';
+  }
+
+  const jirushi  = ['◎','○','▲','△','✕'];
+  const jColors  = ['#ff2d55','#007aff','#34c759','#ff9500','#8e8e93'];
+  let rows = '';
+  ranked.slice(0,5).forEach((h,i) => {
+    const isTop = i===0;
+    const rowBg = isTop ? (isDark?'rgba(255,215,0,0.08)':'rgba(201,168,76,0.12)') : 'transparent';
+    const topBorder = isTop ? `border:1px solid ${accentColor}44;` : '';
+    const adjStr = h.paceAdj>0?`+${h.paceAdj}`:h.paceAdj<0?`${h.paceAdj}`:'±0';
+    const adjColor = h.paceAdj>0?'#34c759':h.paceAdj<0?'#ff453a':textSub;
+    rows += `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:${rowBg};margin-bottom:4px;${topBorder}">
+      <div style="font-size:${isTop?'22':'18'}px;font-weight:900;color:${jColors[i]};width:26px;text-align:center;line-height:1;">${jirushi[i]}</div>
+      <div style="width:28px;height:28px;border-radius:6px;${wakuStyle(h.waku)}display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0;">${h.banum}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:${isTop?'14':'12'}px;font-weight:${isTop?'900':'700'};color:${textMain};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${h.name}</div>
+        <div style="font-size:9px;color:${textSub};">${h.kyakushitsu}${h.jockey?' | '+h.jockey:''}${h.odds?' | '+h.odds.toFixed(1)+'倍':''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:${isTop?'16':'13'}px;font-weight:900;color:${isTop?accentColor:textMain};">${h.totalScore}<span style="font-size:9px;font-weight:400;color:${textSub};">pt</span></div>
+        <div style="font-size:9px;font-weight:700;color:${adjColor};">${adjStr}</div>
+      </div>
+    </div>`;
+  });
+
+  const commentBlock = userComment
+    ? `<div style="margin:0 12px 12px;padding:9px 12px;background:${isDark?'rgba(255,255,255,0.05)':'rgba(201,168,76,0.08)'};border-radius:10px;border-left:3px solid ${accentColor};"><div style="font-size:10px;color:${textMain};line-height:1.6;">💬 ${userComment}</div></div>`
+    : '';
+
+  document.getElementById('xpost-preview-area').style.cssText = 'padding:10px 0;';
+  document.getElementById('xpost-preview-area').innerHTML = `
+  <div id="xpost-card" style="width:100%;max-width:480px;background:${bg};border-radius:18px;overflow:hidden;font-family:'Noto Sans JP',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:block;text-align:left;">
+    <div style="background:${headerBg};padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.75);letter-spacing:0.12em;">RACE PREDICT PRO</div>
+        <div style="font-size:13px;font-weight:900;color:#fff;margin-top:1px;">${raceName}</div>
+      </div>
+      <div style="font-size:24px;">🏇</div>
+    </div>
+    <div style="background:${isDark?'rgba(255,215,0,0.12)':'rgba(201,168,76,0.15)'};border-bottom:1px solid ${divider};padding:7px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:10px;font-weight:700;color:${accentColor};">⚡ ${paceLabel}</div>
+      <div style="font-size:10px;font-weight:900;color:${isDark?'#ff9f0a':'#c9781a'};">${topLabel}（偏差値 ${top1h}）</div>
+    </div>
+    <div style="padding:14px 12px;">
+      <div style="font-size:10px;font-weight:700;color:${textSub};margin-bottom:8px;padding-left:4px;">📊 スコアランキング（展開補正込）</div>
+      ${rows}
+    </div>
+    ${commentBlock}
+    <div style="padding:8px 16px;border-top:1px solid ${divider};display:flex;align-items:center;justify-content:space-between;background:${footerBg};">
+      <div style="font-size:8px;color:${textSub};">※予想はエンタメ目的です。投票は自己責任で。</div>
+      <div style="font-size:8px;font-weight:900;color:${logoColor};">⚡ RACE PREDICT PRO</div>
+    </div>
+  </div>`;
+  document.getElementById('xpost-save-btn-area').style.display = 'block';
+
+  // テキスト生成
+  let text = `🏇【${raceName}】予想\n\n`;
+  ranked.slice(0,3).forEach((h,i) => { text += `${'◎○▲'[i]} ${h.banum}番 ${h.name}（${h.odds.toFixed(1)}倍）\n`; });
+  text += `\n⚡ ペース：${paceLabel}\n📊 判定：${topLabel}（偏差値${top1h}）\n`;
+  if (userComment) text += `\n💬 ${userComment}\n`;
+  text += `\n#競馬予想 #${raceName.replace(/[\s()（）]/g,'')} #競馬`;
+  document.getElementById('xpost-text-area').value = text;
+
+  setStatus('✅ 画像生成完了！', 'ok');
+}
+
+async function saveXPostImage() {
+  const card = document.getElementById('xpost-card');
+  if (!card) { setStatus('❌ 先に画像生成してください', 'err'); return; }
+  setStatus('📸 保存中...', 'ok');
+  try {
+    const canvas = await html2canvas(card, {scale:3, width:480, backgroundColor:null, useCORS:true, logging:false});
+    const link = document.createElement('a');
+    link.download = `xpost_${(currentRaceName||'yoso').replace(/[\/\:*?"<>|]/g,'_')}_${new Date().toISOString().split('T')[0]}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    setStatus('✅ 保存完了！', 'ok');
+  } catch(e) { setStatus('❌ 保存エラー', 'err'); }
+}
+
+function copyXPostText() {
+  const text = document.getElementById('xpost-text-area').value;
+  if (!text) { generateXPostImage(); return; }
+  navigator.clipboard.writeText(text)
+    .then(() => setStatus('✅ コピー完了！', 'ok'))
+    .catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      setStatus('✅ コピー完了', 'ok');
+    });
+}
+// ===== X投稿タブここまで =====
+
 window.addEventListener('load', () => {
+  // 前回ログイン済みなら即スキップ
+  if (localStorage.getItem('kp_pw_saved') === '1') {
+    document.getElementById('pw-screen').style.display = 'none';
+    loadFromSupabase().then(loaded => {
+      setStatus(loaded ? '☁️ クラウドデータを復元しました' : '🏇 準備完了！', 'ok');
+    }).catch(() => setStatus('🏇 準備完了！', 'ok'));
+  }
   // ヘッダー画像をランダムで設定
   const bgImages = ['./9198.webp', './9198b.webp', './9198c.webp'];
   // シャッフルして順番に試す（ランダムで1枚選び、なければ次を試す）
