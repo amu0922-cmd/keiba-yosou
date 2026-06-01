@@ -1916,7 +1916,7 @@ function renderAnalysis() {
   // DB騎手スコアが高い馬（上位3頭、軸馬を除く、3番人気以下限定）
   const dbJockeyScored = ranked
     .filter(h => !jiku.find(j=>j.banum===h.banum))
-    .filter(h => !h.ninki || h.ninki >= 3)
+    .filter(h => { const n=Number(h.ninki); return !h.ninki||isNaN(n)||n>=3; })
     .map(h => ({...h, jockeyScore: db.jockey?.[h.jockey]||0}))
     .sort((a,b) => b.jockeyScore - a.jockeyScore)
     .filter(h => h.jockeyScore > 0)
@@ -2799,7 +2799,8 @@ function generateBuyImage() {
   const userComment = document.getElementById('xpost-comment').value || '';
 
   const ranked = horses.map(h => {
-    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
+    const nk = String(h.ninki);
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
     const chokyoScore = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
     const commentScore = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
@@ -2819,18 +2820,18 @@ function generateBuyImage() {
 
   const dbJockeyScored = ranked
     .filter(h=>!jiku.find(j=>j.banum===h.banum))
-    .filter(h=>!h.ninki||h.ninki>=3)
+    .filter(h=>{ const n=Number(h.ninki); return !h.ninki||isNaN(n)||n>=3; })
     .map(h=>({...h,jockeyScore:db.jockey?.[h.jockey]||0}))
     .sort((a,b)=>b.jockeyScore-a.jockeyScore)
     .filter(h=>h.jockeyScore>0)
     .slice(0,3);
 
-  const dbTop1Num = dbJockeyScored[0] ? dbJockeyScored[0].banum : null;
+  const dbTop1Num = dbJockeyScored[0] ? Number(dbJockeyScored[0].banum) : null;
   const dbTop1 = dbTop1Num !== null ? String(dbTop1Num) : null;
-  const excludeBanums2 = new Set([...jiku.map(h=>h.banum), dbTop1Num].filter(v=>v!=null));
-  // 数字昇順でソート
-  const scoreTop5 = ranked.filter(h=>!excludeBanums2.has(h.banum)).slice(0,5)
-    .map(h=>h.banum).sort((a,b)=>a-b);
+  const excludeBanums2 = new Set([...jiku.map(h=>Number(h.banum)), dbTop1Num].filter(v=>v!=null));
+  // ランキング順のまま（馬連・ワイドの相手はスコア上位を使う）
+  const scoreTop5 = ranked.filter(h=>!excludeBanums2.has(Number(h.banum))).slice(0,5)
+    .map(h=>Number(h.banum));
 
   const lines = [];
   lines.push(`単勝  ${jikustr}`);
@@ -2838,15 +2839,19 @@ function generateBuyImage() {
     lines.push(`馬連  ${jikustr}-${dbTop1}`);
     lines.push(`ワイド ${jikustr}-${dbTop1}`);
   } else {
+    // DB騎手なしの場合はスコアランキング1位（scoreTop5[0]）を相手に
     lines.push(`馬連  ${jikustr}-${scoreTop5[0]||''}`);
     lines.push(`ワイド ${jikustr}-${scoreTop5[0]||''}`);
   }
   if (dbTop1 && scoreTop5.length > 0) {
-    // 三連複の相手も昇順
-    const sanrenAite = [Number(dbTop1), ...scoreTop5].sort((a,b)=>a-b);
-    lines.push(`三連複 ${jikustr}-${sanrenAite.join('.')}`);
-  } else if (scoreTop5.length >= 2) {
-    lines.push(`三連複 ${jikustr}-${scoreTop5.join('.')}`);
+    // DB騎手あり：軸-DB騎手-残り上位（残りは昇順）
+    const nokori = scoreTop5.sort((a,b)=>a-b);
+    lines.push(`三連複 ${jikustr}-${dbTop1}-${nokori.join('.')}`);
+  } else if (scoreTop5.length >= 1) {
+    // DB騎手なし：軸-スコア1位-残り上位（残りは昇順）
+    const aite1 = scoreTop5[0];
+    const nokori = scoreTop5.slice(1).sort((a,b)=>a-b);
+    lines.push(`三連複 ${jikustr}-${aite1}-${nokori.join('.')}`);
   }
 
   const isDark = xTheme === 'dark';
