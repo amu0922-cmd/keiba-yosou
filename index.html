@@ -117,17 +117,22 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 <body>
 
 <!-- パスワード画面 -->
-<div id="pw-screen" style="position:fixed;inset:0;background:linear-gradient(135deg,#f5f0e8,#ede5d8);display:flex;align-items:center;justify-content:center;z-index:9999;">
-  <div style="background:#fff;border:none;border-radius:16px;padding:32px 24px;width:88%;max-width:340px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.12);">
-    <img src="./9957.webp" style="width:100px;height:100px;border-radius:50%;object-fit:cover;margin-bottom:12px;box-shadow:0 4px 16px rgba(201,168,76,0.3);">
-    <div style="font-size:20px;font-weight:900;color:#c9a84c;margin-bottom:4px;letter-spacing:0.05em;">RACE PREDICT PRO</div>
-    <div style="font-size:9px;color:#aaa;margin-bottom:28px;letter-spacing:0.08em;">Race Prediction System</div>
+<div id="pw-screen" style="position:fixed;inset:0;z-index:9999;overflow:hidden;">
+  <!-- 背景画像 -->
+  <img src="./pw_bg.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;background:#1a1208;">
+  <!-- 上部フェード（タイトル） -->
+  <div style="position:absolute;top:0;left:0;right:0;height:35%;background:linear-gradient(to bottom,rgba(0,0,0,0.75) 0%,rgba(0,0,0,0) 100%);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:96px;">
+    <div style="font-size:24px;font-weight:900;color:#f0d080;letter-spacing:0.06em;text-shadow:0 2px 12px rgba(0,0,0,0.9);">⚡ RACE PREDICT PRO</div>
+    <div style="font-size:10px;color:#c8d4e8;margin-top:5px;letter-spacing:0.1em;text-shadow:0 1px 6px rgba(0,0,0,0.9);">Race Prediction System</div>
+  </div>
+  <!-- 下部フェード（入力欄） -->
+  <div style="position:absolute;bottom:0;left:0;right:0;height:52%;background:linear-gradient(to top,rgba(0,0,0,0.82) 0%,rgba(0,0,0,0) 100%);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:80px;padding-left:28px;padding-right:28px;">
     <input type="password" id="pw-input" placeholder="パスワードを入力" autocomplete="current-password"
-      style="width:100%;padding:12px 14px;border-radius:8px;border:1px solid #e0d8cc;background:#faf8f5;color:#333;font-size:15px;margin-bottom:12px;text-align:center;box-sizing:border-box;"
+      style="width:100%;max-width:320px;padding:13px 16px;border-radius:10px;border:none;background:rgba(255,255,255,0.92);color:#333;font-size:15px;margin-bottom:12px;text-align:center;box-sizing:border-box;box-shadow:0 2px 14px rgba(0,0,0,0.35);"
       onkeydown="if(event.key==='Enter')checkPassword()">
-    <button onclick="checkPassword()" style="width:100%;padding:12px;background:linear-gradient(135deg,#c9a84c,#a07830);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:900;cursor:pointer;margin-bottom:10px;box-shadow:0 3px 10px rgba(201,168,76,0.4);">🔓 ログイン</button>
-    <div id="pw-error" style="color:#e94560;font-size:10px;display:none;">パスワードが違います</div>
-    <div id="pw-loading" style="color:#999;font-size:10px;display:none;">☁️ データを読み込み中...</div>
+    <button onclick="checkPassword()" style="width:100%;max-width:320px;padding:13px;background:linear-gradient(135deg,#c9a84c,#a07830);border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:900;cursor:pointer;margin-bottom:10px;box-shadow:0 3px 14px rgba(201,168,76,0.5);">🔓 ログイン</button>
+    <div id="pw-error" style="color:#ff8080;font-size:11px;display:none;">パスワードが違います</div>
+    <div id="pw-loading" style="color:#c0c8d8;font-size:11px;display:none;">☁️ データを読み込み中...</div>
   </div>
 </div>
 
@@ -1789,27 +1794,72 @@ function renderAnalysis() {
   }
   const bestPurchase = getBestPurchase();
 
-  // 買い目は常にスコア上位3頭に絞る
-  const top3 = ranked.slice(0, 3).map(h => `${h.banum}番`);
-  const top1Horse = top3[0] || '';
-  const top2Horse = top3[1] || '';
-  const top3Horse = top3[2] || '';
+  // ===== 新買い目ロジック =====
+  // 偏差値計算
+  const allScores2 = ranked.map(h => h.totalScore);
+  const avg2 = allScores2.reduce((a,b)=>a+b,0)/allScores2.length;
+  const std2 = Math.sqrt(allScores2.reduce((a,b)=>a+Math.pow(b-avg2,2),0)/allScores2.length)||1;
+  const calcHensaichi2 = s => Math.round((s-avg2)/std2*10+50);
 
-  // 成績データの最良買い目を優先表示
+  // 軸馬：偏差値70以上の馬（複数可）
+  const jikuHorses = ranked.filter(h => calcHensaichi2(h.totalScore) >= 70);
+  // 軸がいない場合は1位を軸に
+  const jiku = jikuHorses.length > 0 ? jikuHorses : [ranked[0]];
+
+  // DB騎手スコアが高い馬（上位3頭、軸馬を除く）
+  const dbJockeyScored = ranked
+    .filter(h => !jiku.find(j=>j.banum===h.banum))
+    .map(h => ({...h, jockeyScore: db.jockey?.[h.jockey]||0}))
+    .sort((a,b) => b.jockeyScore - a.jockeyScore)
+    .filter(h => h.jockeyScore > 0)
+    .slice(0, 3);
+
+  // 総合ランキング上位5頭（軸・DB騎手を除く）
+  const excludeBanums = new Set([...jiku.map(h=>h.banum), ...dbJockeyScored.map(h=>h.banum)]);
+  const rankTop5 = ranked.filter(h => !excludeBanums.has(h.banum)).slice(0, 5);
+
+  // 買い目用文字列
+  const jikustr = jiku.map(h=>`${h.banum}番`).join('・');
+  const dbJockeyStr = dbJockeyScored.map(h=>`${h.banum}番(${h.jockey})`).join('・');
+  const rankTop5Str = rankTop5.map(h=>`${h.banum}番`).join('・');
+
+  // 馬連・ワイド・三連複の相手
+  const aiteForRentan = [...dbJockeyScored, ...rankTop5].slice(0,4).map(h=>`${h.banum}番`);
+  const aiteForSanrenpuku = [...dbJockeyScored, ...rankTop5].slice(0,5).map(h=>`${h.banum}番`);
+
+  // DB騎手最上位1頭（軸除く）
+  const dbTop1 = dbJockeyScored[0] ? `${dbJockeyScored[0].banum}番(${dbJockeyScored[0].jockey})` : null;
+  // スコア上位5頭（軸・DB騎手最上位を除く）
+  const excludeBanums2 = new Set([...jiku.map(h=>h.banum), dbJockeyScored[0]?.banum].filter(Boolean));
+  const scoreTop5 = ranked.filter(h => !excludeBanums2.has(h.banum)).slice(0,5).map(h=>`${h.banum}番`);
+
   function buildBuyStyle(styleType) {
-    let lines = [];
-    if (styleType === 'tansho_wide') {
-      lines.push(`《単勝 ${top1Horse}》`);
-      lines.push(`《ワイド ${top1Horse} - ${top2Horse}》`);
-      if (top3Horse) lines.push(`《ワイド ${top1Horse} - ${top3Horse}》`);
-    } else if (styleType === 'box') {
-      lines.push(`《馬連BOX ${top3.join('・')}》`);
+    const lines = [];
+    // 単勝：軸1頭
+    lines.push(`《単勝 ${jikustr}》`);
+    // 馬連・ワイド：軸 → DB騎手最上位1頭
+    if (dbTop1) {
+      lines.push(`《馬連 ${jikustr} → ${dbTop1}》`);
+      lines.push(`《ワイド ${jikustr} → ${dbTop1}》`);
+    } else {
+      lines.push(`《馬連 ${jikustr} → ${scoreTop5[0]||''}》`);
+      lines.push(`《ワイド ${jikustr} → ${scoreTop5[0]||''}》`);
+    }
+    // 三連複：軸 → DB騎手最上位1頭 → スコア上位5頭
+    if (dbTop1 && scoreTop5.length > 0) {
+      lines.push(`《三連複 ${jikustr} → ${dbTop1} → ${scoreTop5.join('・')}》`);
+    } else if (scoreTop5.length >= 2) {
+      lines.push(`《三連複 ${jikustr} → ${scoreTop5[0]} → ${scoreTop5.slice(1).join('・')}》`);
     }
     if (bestPurchase) {
-      lines.push(`\n📊 成績データ最良買い目: ${bestPurchase.name}（的中率${bestPurchase.rate}%）`);
+      lines.push(`\n📊 成績最良: ${bestPurchase.name}（的中率${bestPurchase.rate}%）`);
     }
     return lines.join('\n');
   }
+
+  // 旧変数も互換のため残す
+  const top3 = ranked.slice(0,3).map(h=>`${h.banum}番`);
+  const top1Horse = top3[0]||'';
 
   let formation = '';
   let recommendation = '';
@@ -1913,7 +1963,12 @@ function renderAnalysis() {
   html += `
     <div style="padding: 12px; background: ${formationBg}; border-radius: 6px; border-left: 4px solid ${formationColor}; margin-bottom: 10px;">
       <div style="font-weight: 900; font-size: 13px; color: ${formationColor}; margin-bottom: 8px;">${formation}</div>
-      <div style="background: #fff; padding: 10px; border-radius: 4px; border: 1px solid ${formationColor}; margin-bottom: 8px; font-weight: 700; color: #1a1a2e; white-space: pre-line; font-size: 11px;">
+      <div style="margin-bottom:6px;font-size:9px;color:#555;line-height:1.7;">
+        🎯 軸馬（偏差値70↑）: <span style="color:#e94560;font-weight:900;">${jikustr}</span><br>
+        👨 DB騎手相手: <span style="color:#2563eb;font-weight:700;">${dbTop1||'なし'}</span><br>
+        📊 三連複相手(スコア上位): <span style="color:#27ae60;font-weight:700;">${scoreTop5.join('・')||'なし'}</span>
+      </div>
+      <div style="background:#fff;padding:10px;border-radius:4px;border:1px solid ${formationColor};margin-bottom:8px;font-weight:700;color:#1a1a2e;white-space:pre-line;font-size:11px;">
         ${buyStyle}
       </div>
       <div style="text-align: center; font-weight: 900; font-size: 12px; color: ${formationColor};">${recommendation}</div>
