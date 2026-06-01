@@ -1913,10 +1913,12 @@ function renderAnalysis() {
   // 軸がいない場合は1位を軸に
   const jiku = jikuHorses.length > 0 ? jikuHorses : [ranked[0]];
 
-  // DB騎手スコアが高い馬（上位3頭、軸馬を除く、3番人気以下限定）
+  // DB騎手スコアが高い馬（上位3頭、軸馬を除く、3番人気以下かつランキング6位以内）
+  const rankedTop6Banums = new Set(ranked.slice(0,6).map(h=>Number(h.banum)));
   const dbJockeyScored = ranked
     .filter(h => !jiku.find(j=>j.banum===h.banum))
     .filter(h => { const n=Number(h.ninki); return !h.ninki||isNaN(n)||n>=3; })
+    .filter(h => rankedTop6Banums.has(Number(h.banum)))
     .map(h => ({...h, jockeyScore: db.jockey?.[h.jockey]||0}))
     .sort((a,b) => b.jockeyScore - a.jockeyScore)
     .filter(h => h.jockeyScore > 0)
@@ -2818,9 +2820,12 @@ function generateBuyImage() {
   // 番なし・数字のみ
   const jikustr = jiku.map(h=>h.banum).join('-');
 
+  // ランキング6位以内のインデックスマップ（印あり判定）
+  const rankedTop6Banums = new Set(ranked.slice(0,6).map(h=>Number(h.banum)));
   const dbJockeyScored = ranked
     .filter(h=>!jiku.find(j=>j.banum===h.banum))
     .filter(h=>{ const n=Number(h.ninki); return !h.ninki||isNaN(n)||n>=3; })
+    .filter(h=>rankedTop6Banums.has(Number(h.banum))) // ランキング6位以内（印あり）
     .map(h=>({...h,jockeyScore:db.jockey?.[h.jockey]||0}))
     .sort((a,b)=>b.jockeyScore-a.jockeyScore)
     .filter(h=>h.jockeyScore>0)
