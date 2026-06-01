@@ -2814,7 +2814,8 @@ function generateBuyImage() {
 
   const jikuHorses = ranked.filter(h=>calcH(h.totalScore)>=70);
   const jiku = jikuHorses.length > 0 ? jikuHorses : [ranked[0]];
-  const jikustr = jiku.map(h=>`${h.banum}番`).join('・');
+  // 番なし・数字のみ
+  const jikustr = jiku.map(h=>h.banum).join('-');
 
   const dbJockeyScored = ranked
     .filter(h=>!jiku.find(j=>j.banum===h.banum))
@@ -2824,23 +2825,28 @@ function generateBuyImage() {
     .filter(h=>h.jockeyScore>0)
     .slice(0,3);
 
-  const dbTop1 = dbJockeyScored[0] ? `${dbJockeyScored[0].banum}番(${dbJockeyScored[0].jockey})` : null;
-  const excludeBanums2 = new Set([...jiku.map(h=>h.banum), dbJockeyScored[0]?.banum].filter(Boolean));
-  const scoreTop5 = ranked.filter(h=>!excludeBanums2.has(h.banum)).slice(0,5).map(h=>`${h.banum}番`);
+  const dbTop1Num = dbJockeyScored[0] ? dbJockeyScored[0].banum : null;
+  const dbTop1 = dbTop1Num !== null ? String(dbTop1Num) : null;
+  const excludeBanums2 = new Set([...jiku.map(h=>h.banum), dbTop1Num].filter(v=>v!=null));
+  // 数字昇順でソート
+  const scoreTop5 = ranked.filter(h=>!excludeBanums2.has(h.banum)).slice(0,5)
+    .map(h=>h.banum).sort((a,b)=>a-b);
 
   const lines = [];
   lines.push(`単勝  ${jikustr}`);
   if (dbTop1) {
-    lines.push(`馬連  ${jikustr} → ${dbTop1}`);
-    lines.push(`ワイド ${jikustr} → ${dbTop1}`);
+    lines.push(`馬連  ${jikustr}-${dbTop1}`);
+    lines.push(`ワイド ${jikustr}-${dbTop1}`);
   } else {
-    lines.push(`馬連  ${jikustr} → ${scoreTop5[0]||''}`);
-    lines.push(`ワイド ${jikustr} → ${scoreTop5[0]||''}`);
+    lines.push(`馬連  ${jikustr}-${scoreTop5[0]||''}`);
+    lines.push(`ワイド ${jikustr}-${scoreTop5[0]||''}`);
   }
   if (dbTop1 && scoreTop5.length > 0) {
-    lines.push(`三連複 ${jikustr} → ${dbTop1} → ${scoreTop5.join('・')}`);
+    // 三連複の相手も昇順
+    const sanrenAite = [Number(dbTop1), ...scoreTop5].sort((a,b)=>a-b);
+    lines.push(`三連複 ${jikustr}-${sanrenAite.join('.')}`);
   } else if (scoreTop5.length >= 2) {
-    lines.push(`三連複 ${jikustr} → ${scoreTop5[0]} → ${scoreTop5.slice(1).join('・')}`);
+    lines.push(`三連複 ${jikustr}-${scoreTop5.join('.')}`);
   }
 
   const isDark = xTheme === 'dark';
@@ -2855,12 +2861,52 @@ function generateBuyImage() {
   const betColors= ['#ff2d55','#007aff','#34c759','#ff9500'];
   const betLabels= ['単勝','馬連','ワイド','三連複'];
 
+  // 枠色マップ
+  const wakuStyleMap = {
+    1:'background:#fff;color:#000;border:1.5px solid #bbb;',
+    2:'background:#222;color:#fff;',
+    3:'background:#cc2200;color:#fff;',
+    4:'background:#003ecc;color:#fff;',
+    5:'background:#e6c800;color:#222;',
+    6:'background:#009900;color:#fff;',
+    7:'background:#ff6600;color:#fff;',
+    8:'background:#ff5faa;color:#fff;'
+  };
+  function getBanuWaku(banum) {
+    const h = horses.find(x=>x.banum===Number(banum));
+    return h ? h.waku : null;
+  }
+  function banuBox(banum) {
+    const waku = getBanuWaku(banum);
+    const ws = waku ? wakuStyleMap[waku] || 'background:#888;color:#fff;' : 'background:#888;color:#fff;';
+    return `<span style="${ws}display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:4px;font-weight:900;font-size:13px;flex-shrink:0;">${banum}</span>`;
+  }
+  function renderBanums(str) {
+    // "17-11" や "17-1.6.11.13" を枠色ボックス+区切りに変換
+    // まず"-"で軸と相手を分割
+    const parts = str.split('-');
+    let html = '';
+    parts.forEach((part, pi) => {
+      if (pi > 0) html += `<span style="color:${textSub};font-size:14px;font-weight:900;margin:0 2px;">-</span>`;
+      // "."で複数馬番
+      const nums = part.split('.');
+      nums.forEach((n, ni) => {
+        if (ni > 0) html += `<span style="color:${textSub};font-size:11px;margin:0 1px;">・</span>`;
+        html += banuBox(n.trim());
+      });
+    });
+    return html;
+  }
+
   let betRows = '';
   lines.forEach((line, i) => {
     const label = betLabels[i] || '';
     const cnt = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
     const col = betColors[i] || accent;
-    betRows += `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;background:${rowBg};margin-bottom:6px;border:1px solid ${divider};"><div style="background:${col};color:#fff;font-size:9px;font-weight:900;padding:3px 7px;border-radius:6px;white-space:nowrap;flex-shrink:0;margin-top:2px;">${label}</div><div style="font-size:13px;font-weight:900;color:${textMain};line-height:1.5;word-break:break-all;">${cnt}</div></div>`;
+    betRows += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:${rowBg};margin-bottom:6px;border:1px solid ${divider};">
+      <div style="background:${col};color:#fff;font-size:9px;font-weight:900;padding:3px 7px;border-radius:6px;white-space:nowrap;flex-shrink:0;">${label}</div>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:3px;">${renderBanums(cnt)}</div>
+    </div>`;
   });
 
   const commentBlock = userComment
