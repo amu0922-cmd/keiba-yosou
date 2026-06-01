@@ -2787,22 +2787,6 @@ function generateXPostImage() {
   setStatus('✅ スコアランキング画像生成完了！', 'ok');
 }
 
-async function saveXPostImage() {
-  const card = document.getElementById('xpost-card');
-  if (!card) { setStatus('❌ 先に画像生成してください', 'err'); return; }
-  setStatus('📸 保存中...', 'ok');
-  try {
-    const rect = card.getBoundingClientRect();
-    const canvas = await html2canvas(card, {scale:3, width:rect.width, height:rect.height, backgroundColor:null, useCORS:true, logging:false, scrollX:0, scrollY:0});
-    const link = document.createElement('a');
-    link.download = `xpost_${(currentRaceName||'yoso').replace(/[\/\:*?"<>|]/g,'_')}_${new Date().toISOString().split('T')[0]}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    setStatus('✅ 保存完了！', 'ok');
-  } catch(e) { setStatus('❌ 保存エラー', 'err'); }
-}
-
-
 function generateBuyImage() {
   if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
 
@@ -2823,18 +2807,15 @@ function generateBuyImage() {
     return {...h, trendScore, chokyoScore, commentScore, paceAdj, totalScore};
   }).sort((a,b)=>b.totalScore-a.totalScore);
 
-  // 偏差値計算
   const scores = ranked.map(h=>h.totalScore);
   const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
   const std = Math.sqrt(scores.reduce((a,b)=>a+Math.pow(b-avg,2),0)/scores.length)||1;
   const calcH = s => Math.round((s-avg)/std*10+50);
 
-  // 軸馬
   const jikuHorses = ranked.filter(h=>calcH(h.totalScore)>=70);
   const jiku = jikuHorses.length > 0 ? jikuHorses : [ranked[0]];
   const jikustr = jiku.map(h=>`${h.banum}番`).join('・');
 
-  // DB騎手（3番人気以下）
   const dbJockeyScored = ranked
     .filter(h=>!jiku.find(j=>j.banum===h.banum))
     .filter(h=>!h.ninki||h.ninki>=3)
@@ -2847,7 +2828,6 @@ function generateBuyImage() {
   const excludeBanums2 = new Set([...jiku.map(h=>h.banum), dbJockeyScored[0]?.banum].filter(Boolean));
   const scoreTop5 = ranked.filter(h=>!excludeBanums2.has(h.banum)).slice(0,5).map(h=>`${h.banum}番`);
 
-  // 買い目テキスト生成
   const lines = [];
   lines.push(`単勝  ${jikustr}`);
   if (dbTop1) {
@@ -2869,23 +2849,18 @@ function generateBuyImage() {
   const textSub  = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(80,60,10,0.65)';
   const accent   = isDark ? '#FFD700' : '#c9a84c';
   const divider  = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(201,168,76,0.25)';
-  const headerBg = isDark ? 'linear-gradient(90deg,#e94560,#c0293a)' : 'linear-gradient(90deg,#c9a84c,#a07830)';
   const footerBg = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(201,168,76,0.08)';
   const logoColor= isDark ? '#FFD700' : '#a07830';
   const rowBg    = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(201,168,76,0.06)';
-  const betColors= ['#ff2d55','#007aff','#34c759','#ff9500','#8e8e93'];
+  const betColors= ['#ff2d55','#007aff','#34c759','#ff9500'];
   const betLabels= ['単勝','馬連','ワイド','三連複'];
 
   let betRows = '';
   lines.forEach((line, i) => {
     const label = betLabels[i] || '';
-    const content = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
+    const cnt = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
     const col = betColors[i] || accent;
-    betRows += `
-    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;background:${rowBg};margin-bottom:6px;border:1px solid ${divider};">
-      <div style="background:${col};color:#fff;font-size:9px;font-weight:900;padding:3px 7px;border-radius:6px;white-space:nowrap;flex-shrink:0;margin-top:2px;">${label}</div>
-      <div style="font-size:13px;font-weight:900;color:${textMain};line-height:1.5;word-break:break-all;">${content}</div>
-    </div>`;
+    betRows += `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;background:${rowBg};margin-bottom:6px;border:1px solid ${divider};"><div style="background:${col};color:#fff;font-size:9px;font-weight:900;padding:3px 7px;border-radius:6px;white-space:nowrap;flex-shrink:0;margin-top:2px;">${label}</div><div style="font-size:13px;font-weight:900;color:${textMain};line-height:1.5;word-break:break-all;">${cnt}</div></div>`;
   });
 
   const commentBlock = userComment
@@ -2923,19 +2898,57 @@ function generateBuyImage() {
   setStatus('✅ 推奨買い目画像生成完了！', 'ok');
 }
 
+async function captureCard(cardId) {
+  const card = document.getElementById(cardId);
+  if (!card) return null;
+  // カードを画面外の固定位置にラップしてキャプチャ
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:fixed;top:0;left:0;z-index:999999;pointer-events:none;';
+  wrapper.style.width = card.offsetWidth + 'px';
+  // innerHTML使って中身をそのままコピー（テンプレートリテラルの結果なのでDOMは静的）
+  wrapper.innerHTML = card.outerHTML;
+  const inner = wrapper.firstElementChild;
+  inner.style.borderRadius = '0';
+  inner.style.boxShadow = 'none';
+  inner.style.margin = '0';
+  document.body.appendChild(wrapper);
+  await new Promise(r => setTimeout(r, 50)); // レンダリング待ち
+  const canvas = await html2canvas(wrapper, {
+    scale: 3,
+    useCORS: true,
+    logging: false,
+    backgroundColor: null
+  });
+  document.body.removeChild(wrapper);
+  return canvas;
+}
+
+async function saveXPostImage() {
+  const card = document.getElementById('xpost-card');
+  if (!card) { setStatus('❌ 先に画像生成してください', 'err'); return; }
+  setStatus('📸 保存中...', 'ok');
+  try {
+    const canvas = await captureCard('xpost-card');
+    const link = document.createElement('a');
+    link.download = `xpost_${(currentRaceName||'yoso').replace(/[/\:*?"<>|]/g,'_')}_${new Date().toISOString().split('T')[0]}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    setStatus('✅ 保存完了！', 'ok');
+  } catch(e) { setStatus('❌ 保存エラー: ' + e.message, 'err'); }
+}
+
 async function saveBuyImage() {
   const card = document.getElementById('buy-card');
   if (!card) { setStatus('❌ 先に推奨買い目を生成してください', 'err'); return; }
   setStatus('📸 保存中...', 'ok');
   try {
-    const rect = card.getBoundingClientRect();
-    const canvas = await html2canvas(card, {scale:3, width:rect.width, height:rect.height, backgroundColor:null, useCORS:true, logging:false, scrollX:0, scrollY:0});
+    const canvas = await captureCard('buy-card');
     const link = document.createElement('a');
-    link.download = `buy_${(currentRaceName||'kaimoku').replace(/[\/\:*?"<>|]/g,'_')}_${new Date().toISOString().split('T')[0]}.png`;
+    link.download = `buy_${(currentRaceName||'kaimoku').replace(/[/\:*?"<>|]/g,'_')}_${new Date().toISOString().split('T')[0]}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
     setStatus('✅ 保存完了！', 'ok');
-  } catch(e) { setStatus('❌ 保存エラー', 'err'); }
+  } catch(e) { setStatus('❌ 保存エラー: ' + e.message, 'err'); }
 }
 // ===== X投稿タブここまで =====
 
