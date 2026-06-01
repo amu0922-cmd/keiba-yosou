@@ -489,21 +489,27 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button class="btn btn-gold" onclick="generateXPostImage()" style="padding:10px;font-size:11px;">🖼 画像生成</button>
-        <button class="btn btn-blue" onclick="copyXPostText()" style="padding:10px;font-size:11px;">📋 テキストコピー</button>
+        <button class="btn btn-gold" onclick="generateXPostImage()" style="padding:10px;font-size:11px;">📊 スコアランキング</button>
+        <button class="btn btn-blue" onclick="generateBuyImage()" style="padding:10px;font-size:11px;">🎯 推奨買い目</button>
       </div>
     </div>
+
+    <!-- スコアランキング画像 -->
     <div class="card">
-      <div class="card-title">👁 プレビュー</div>
-      <div id="xpost-preview-area" style="text-align:center;color:#aab0c0;padding:20px;">「画像生成」ボタンを押してください</div>
+      <div class="card-title">📊 スコアランキング画像</div>
+      <div id="xpost-preview-area" style="text-align:center;color:#aab0c0;padding:20px;">「スコアランキング」ボタンを押してください</div>
       <div id="xpost-save-btn-area" style="display:none;margin-top:10px;">
         <button class="btn btn-gold" onclick="saveXPostImage()" style="width:100%;padding:10px;font-size:11px;">💾 画像を保存</button>
       </div>
     </div>
+
+    <!-- 推奨買い目画像 -->
     <div class="card">
-      <div class="card-title">📝 投稿テキスト</div>
-      <textarea id="xpost-text-area" spellcheck="false" style="min-height:120px;font-size:11px;line-height:1.7;" readonly></textarea>
-      <button class="btn btn-blue" onclick="copyXPostText()" style="width:100%;margin-top:6px;padding:8px;">📋 コピー</button>
+      <div class="card-title">🎯 推奨買い目画像</div>
+      <div id="buy-preview-area" style="text-align:center;color:#aab0c0;padding:20px;">「推奨買い目」ボタンを押してください</div>
+      <div id="buy-save-btn-area" style="display:none;margin-top:10px;">
+        <button class="btn btn-blue" onclick="saveBuyImage()" style="width:100%;padding:10px;font-size:11px;">💾 画像を保存</button>
+      </div>
     </div>
   </div>
 
@@ -610,66 +616,134 @@ const PROMPTS = {
 出力はJSONのみ。`,
   2: `下記のレース傾向PDFを解析し、過去のレース結果に基づいて各項目のスコアを算出してください。
 
+
+
 【重要】
+
 各カテゴリーについて、過去の成績データから以下のスコアを計算してください：
+
 - 得票数が多い＝高スコア（+20～+25点）
+
 - 得票数が少ない＝低スコア（-15～-20点）
+
 - 中程度＝0点～±5点
 
+
+
 【出力形式】
+
 {
+
   "jockey": {"騎手1": 20, "騎手2": 15, ...},
+
   "sire": {"種牡馬1": 18, "種牡馬2": 12, ...},
+
   "age": {"2": -20, "3": -5, "4": 10, "5": 8, ...},
+
   "kyakushitsu": {"逃げ": -10, "先行": 5, "差し": 15, "追い込み": 0, "自在": 0},
+
   "ninki": {"1": 5, "2": 4, "3": 3, ...},
+
   "maejun": {"1": 10, "2": 8, "3": 5, ...},
+
   "maeclass": {"GI": 10, "GII": 6, "GIII": 4, "L": 0, "OP": -2, "3勝": -3, "2勝": -5, "1勝": -8},
+
   "waku": {"1": 0, "2": 0, "3": 0, "4": 5, "5": 5, "6": 5, "7": 0, "8": -5},
+
   "timdev": {"0～": -20, "35～": -15, "40～": -10, "45～": -5, "50～": 0, "55～": 3, "60～": 5, "65～": 10, "70～": 15, "75～": 20},
+
   "baju": {"～419": -10, "420～439": -5, "440～459": 0, "460～479": 5, "480～499": 3, "500～": -5}
+
 }
 
+
+
 【各カテゴリーの説明】
+
 - jockey: 騎手ごとのスコア（ルメール、岩田望、川田など**必ず個人名で配点**すること。また、**「その他の騎手: 0点」のような項目はJSONにも説明文にも一切出力・表示しない**こと）
+
 - sire: 種牡馬ごとのスコア（ディープインパクト、キタサンブラックなど）
+
 - age: 馬の年齢ごと（2歳～8歳）のスコア
+
 - kyakushitsu: 脚質ごと（逃げ、先行、差し、追い込み、自在）のスコア
+
 - ninki: 単勝人気ごと（1番人気～18番人気）のスコア
+
 - maejun: 前走着順ごと（1着～12着）のスコア
+
 - maeclass: 前走レースクラスごと（GI、GII、GIII、L、OP、3勝、2勝、1勝）のスコア
+
 - waku: 枠順ごと（1枠～8枠）のスコア
+
 - timdev: タイム偏差値ごと（0～、35～、40～、45～、50～、55～、60～、65～、70～、75～）のスコア
 
+-baju:馬体重ごとのスコア
+
+
+
 【出力時の注意】
+
 提供されたデータ内に該当項目が無い場合はネット上を探して補完する。その際に出展元を最後の説明に追加する。
 
+騎手のデータは乗り替わりや継続騎乗での加点、減点と同じ開催場所、距離での勝率をネット上を探して補完する。
+
+例:ダービーは武豊が勝率高いけど東京芝2400mの他のレースではルメールが勝率が高い場合2つ合わせて加点、減点する。
+
+
+
 各スコアを付与した理由を、データから見えることとして簡潔に説明してください。
+
 例：
+
 "jockey": {"ルメール": 25 /* 過去5年の優勝率45%、データセット内での連対率60% */}
+
 "age": {"3": -5 /* 3歳馬は経験不足で不利、当該レースでの平均着順6.5着 */}
+
 "maeclass": {"GI": 10 /* GI戦経験馬が優勝している傾向、連対率62% */}
 
+
+
 【最終出力】
+
 JSONと、その下に各配点の根拠をまとめた説明を記載してください。
+
 説明文は以下の形式で：
 
+
+
 《騎手》
+
 - ルメール: +25点 → 理由
+
 - 岩田望: +20点 → 理由
+
 ...
+
+
 
 《種牡馬》
+
 - ディープインパクト: +20点 → 理由
+
 ...
 
+
+
 【この形式で出力してください】
+
 ※非常に重要※
+
 JSONデータのみをワンタップでコピーできるように、**JSON部分だけを独立したマークダウン形式のコードブロック（\`\`\`json ～ \`\`\`）で囲んで出力**してください。
+
 配点根拠の説明文は、コードブロックの外に通常のテキストとして出力してください。
 
+
+
 \`\`\`json
+
 {"jockey": {...}, "sire": {...}, ...}
+
 \`\`\``,
   3: `下記のレース結果画像から、着順JSONを抽出してください。出力はJSONのみ。説明文不要。
 
@@ -1839,9 +1913,10 @@ function renderAnalysis() {
   // 軸がいない場合は1位を軸に
   const jiku = jikuHorses.length > 0 ? jikuHorses : [ranked[0]];
 
-  // DB騎手スコアが高い馬（上位3頭、軸馬を除く）
+  // DB騎手スコアが高い馬（上位3頭、軸馬を除く、3番人気以下限定）
   const dbJockeyScored = ranked
     .filter(h => !jiku.find(j=>j.banum===h.banum))
+    .filter(h => !h.ninki || h.ninki >= 3)
     .map(h => ({...h, jockeyScore: db.jockey?.[h.jockey]||0}))
     .sort((a,b) => b.jockeyScore - a.jockeyScore)
     .filter(h => h.jockeyScore > 0)
@@ -1998,7 +2073,7 @@ function renderAnalysis() {
       <div style="font-weight: 900; font-size: 13px; color: ${formationColor}; margin-bottom: 8px;">${formation}</div>
       <div style="margin-bottom:6px;font-size:9px;color:#555;line-height:1.7;">
         🎯 軸馬（偏差値70↑）: <span style="color:#e94560;font-weight:900;">${jikustr}</span><br>
-        👨 DB騎手相手: <span style="color:#2563eb;font-weight:700;">${dbTop1||'なし'}</span><br>
+        👨 DB騎手相手(3番人気以下): <span style="color:#2563eb;font-weight:700;">${dbTop1||'なし'}</span><br>
         📊 三連複相手(スコア上位): <span style="color:#27ae60;font-weight:700;">${scoreTop5.join('・')||'なし'}</span>
       </div>
       <div style="background:#fff;padding:10px;border-radius:4px;border:1px solid ${formationColor};margin-bottom:8px;font-weight:700;color:#1a1a2e;white-space:pre-line;font-size:11px;">
@@ -2683,12 +2758,16 @@ function generateXPostImage() {
   document.getElementById('xpost-preview-area').style.cssText = 'padding:10px 0;';
   document.getElementById('xpost-preview-area').innerHTML = `
   <div id="xpost-card" style="width:100%;max-width:480px;background:${bg};border-radius:18px;overflow:hidden;font-family:'Noto Sans JP',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:block;text-align:left;">
-    <div style="background:${headerBg};padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.75);letter-spacing:0.12em;">RACE PREDICT PRO</div>
-        <div style="font-size:13px;font-weight:900;color:#fff;margin-top:1px;">${raceName}</div>
+    <div style="position:relative;width:100%;height:110px;overflow:hidden;">
+      <img src="./10308.webp" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block;">
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.55) 100%);"></div>
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:8px 14px;display:flex;align-items:flex-end;justify-content:space-between;">
+        <div>
+          <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.8);letter-spacing:0.12em;">RACE PREDICT PRO</div>
+          <div style="font-size:15px;font-weight:900;color:#fff;margin-top:1px;text-shadow:0 1px 4px rgba(0,0,0,0.6);">${raceName}</div>
+        </div>
+        <div style="font-size:26px;">🏇</div>
       </div>
-      <div style="font-size:24px;">🏇</div>
     </div>
     <div style="background:${isDark?'rgba(255,215,0,0.12)':'rgba(201,168,76,0.15)'};border-bottom:1px solid ${divider};padding:7px 16px;display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:10px;font-weight:700;color:${accentColor};">⚡ ${paceLabel}</div>
@@ -2705,16 +2784,7 @@ function generateXPostImage() {
     </div>
   </div>`;
   document.getElementById('xpost-save-btn-area').style.display = 'block';
-
-  // テキスト生成
-  let text = `🏇【${raceName}】予想\n\n`;
-  ranked.slice(0,3).forEach((h,i) => { text += `${'◎○▲'[i]} ${h.banum}番 ${h.name}（${h.odds.toFixed(1)}倍）\n`; });
-  text += `\n⚡ ペース：${paceLabel}\n📊 判定：${topLabel}（偏差値${top1h}）\n`;
-  if (userComment) text += `\n💬 ${userComment}\n`;
-  text += `\n#競馬予想 #${raceName.replace(/[\s()（）]/g,'')} #競馬`;
-  document.getElementById('xpost-text-area').value = text;
-
-  setStatus('✅ 画像生成完了！', 'ok');
+  setStatus('✅ スコアランキング画像生成完了！', 'ok');
 }
 
 async function saveXPostImage() {
@@ -2731,17 +2801,139 @@ async function saveXPostImage() {
   } catch(e) { setStatus('❌ 保存エラー', 'err'); }
 }
 
-function copyXPostText() {
-  const text = document.getElementById('xpost-text-area').value;
-  if (!text) { generateXPostImage(); return; }
-  navigator.clipboard.writeText(text)
-    .then(() => setStatus('✅ コピー完了！', 'ok'))
-    .catch(() => {
-      const ta = document.createElement('textarea');
-      ta.value = text; document.body.appendChild(ta); ta.select();
-      document.execCommand('copy'); document.body.removeChild(ta);
-      setStatus('✅ コピー完了', 'ok');
-    });
+
+function generateBuyImage() {
+  if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
+
+  const overrideEl = document.getElementById('pace-override');
+  const override = overrideEl ? overrideEl.value : 'auto';
+  const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
+  const bonusMap = paceBonus[pace];
+  const paceLabel = getPaceLabel(pace);
+  const raceName = currentRaceName || 'レース';
+  const userComment = document.getElementById('xpost-comment').value || '';
+
+  const ranked = horses.map(h => {
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
+    const chokyoScore = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
+    const commentScore = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const paceAdj = bonusMap?.[h.kyakushitsu]||0;
+    const totalScore = trendScore+chokyoScore+commentScore+paceAdj;
+    return {...h, trendScore, chokyoScore, commentScore, paceAdj, totalScore};
+  }).sort((a,b)=>b.totalScore-a.totalScore);
+
+  // 偏差値計算
+  const scores = ranked.map(h=>h.totalScore);
+  const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
+  const std = Math.sqrt(scores.reduce((a,b)=>a+Math.pow(b-avg,2),0)/scores.length)||1;
+  const calcH = s => Math.round((s-avg)/std*10+50);
+
+  // 軸馬
+  const jikuHorses = ranked.filter(h=>calcH(h.totalScore)>=70);
+  const jiku = jikuHorses.length > 0 ? jikuHorses : [ranked[0]];
+  const jikustr = jiku.map(h=>`${h.banum}番`).join('・');
+
+  // DB騎手（3番人気以下）
+  const dbJockeyScored = ranked
+    .filter(h=>!jiku.find(j=>j.banum===h.banum))
+    .filter(h=>!h.ninki||h.ninki>=3)
+    .map(h=>({...h,jockeyScore:db.jockey?.[h.jockey]||0}))
+    .sort((a,b)=>b.jockeyScore-a.jockeyScore)
+    .filter(h=>h.jockeyScore>0)
+    .slice(0,3);
+
+  const dbTop1 = dbJockeyScored[0] ? `${dbJockeyScored[0].banum}番(${dbJockeyScored[0].jockey})` : null;
+  const excludeBanums2 = new Set([...jiku.map(h=>h.banum), dbJockeyScored[0]?.banum].filter(Boolean));
+  const scoreTop5 = ranked.filter(h=>!excludeBanums2.has(h.banum)).slice(0,5).map(h=>`${h.banum}番`);
+
+  // 買い目テキスト生成
+  const lines = [];
+  lines.push(`単勝  ${jikustr}`);
+  if (dbTop1) {
+    lines.push(`馬連  ${jikustr} → ${dbTop1}`);
+    lines.push(`ワイド ${jikustr} → ${dbTop1}`);
+  } else {
+    lines.push(`馬連  ${jikustr} → ${scoreTop5[0]||''}`);
+    lines.push(`ワイド ${jikustr} → ${scoreTop5[0]||''}`);
+  }
+  if (dbTop1 && scoreTop5.length > 0) {
+    lines.push(`三連複 ${jikustr} → ${dbTop1} → ${scoreTop5.join('・')}`);
+  } else if (scoreTop5.length >= 2) {
+    lines.push(`三連複 ${jikustr} → ${scoreTop5[0]} → ${scoreTop5.slice(1).join('・')}`);
+  }
+
+  const isDark = xTheme === 'dark';
+  const bg       = isDark ? 'linear-gradient(160deg,#0f0c29,#1a1a3e,#0f3460)' : 'linear-gradient(160deg,#fffbe6,#fff3cc,#ffe8a0)';
+  const textMain = isDark ? '#ffffff' : '#1a1206';
+  const textSub  = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(80,60,10,0.65)';
+  const accent   = isDark ? '#FFD700' : '#c9a84c';
+  const divider  = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(201,168,76,0.25)';
+  const headerBg = isDark ? 'linear-gradient(90deg,#e94560,#c0293a)' : 'linear-gradient(90deg,#c9a84c,#a07830)';
+  const footerBg = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(201,168,76,0.08)';
+  const logoColor= isDark ? '#FFD700' : '#a07830';
+  const rowBg    = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(201,168,76,0.06)';
+  const betColors= ['#ff2d55','#007aff','#34c759','#ff9500','#8e8e93'];
+  const betLabels= ['単勝','馬連','ワイド','三連複'];
+
+  let betRows = '';
+  lines.forEach((line, i) => {
+    const label = betLabels[i] || '';
+    const content = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
+    const col = betColors[i] || accent;
+    betRows += `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;background:${rowBg};margin-bottom:6px;border:1px solid ${divider};">
+      <div style="background:${col};color:#fff;font-size:9px;font-weight:900;padding:3px 7px;border-radius:6px;white-space:nowrap;flex-shrink:0;margin-top:2px;">${label}</div>
+      <div style="font-size:13px;font-weight:900;color:${textMain};line-height:1.5;word-break:break-all;">${content}</div>
+    </div>`;
+  });
+
+  const commentBlock = userComment
+    ? `<div style="margin:0 12px 12px;padding:9px 12px;background:${isDark?'rgba(255,255,255,0.05)':'rgba(201,168,76,0.08)'};border-radius:10px;border-left:3px solid ${accent};"><div style="font-size:10px;color:${textMain};line-height:1.6;">💬 ${userComment}</div></div>`
+    : '';
+
+  document.getElementById('buy-preview-area').style.cssText = 'padding:10px 0;';
+  document.getElementById('buy-preview-area').innerHTML = `
+  <div id="buy-card" style="width:100%;max-width:480px;background:${bg};border-radius:18px;overflow:hidden;font-family:'Noto Sans JP',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:block;text-align:left;">
+    <div style="position:relative;width:100%;height:110px;overflow:hidden;">
+      <img src="./10304.png" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block;">
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.55) 100%);"></div>
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:8px 14px;display:flex;align-items:flex-end;justify-content:space-between;">
+        <div>
+          <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.8);letter-spacing:0.12em;">RACE PREDICT PRO</div>
+          <div style="font-size:15px;font-weight:900;color:#fff;margin-top:1px;text-shadow:0 1px 4px rgba(0,0,0,0.6);">${raceName}</div>
+        </div>
+        <div style="font-size:26px;">🎯</div>
+      </div>
+    </div>
+    <div style="background:${isDark?'rgba(255,215,0,0.12)':'rgba(201,168,76,0.15)'};border-bottom:1px solid ${divider};padding:7px 16px;">
+      <div style="font-size:10px;font-weight:700;color:${accent};">🏇 軸馬: ${jikustr}　⚡ ${paceLabel}</div>
+    </div>
+    <div style="padding:14px 12px;">
+      <div style="font-size:10px;font-weight:700;color:${textSub};margin-bottom:8px;padding-left:4px;">🎯 推奨買い目</div>
+      ${betRows}
+    </div>
+    ${commentBlock}
+    <div style="padding:8px 16px;border-top:1px solid ${divider};display:flex;align-items:center;justify-content:space-between;background:${footerBg};">
+      <div style="font-size:8px;color:${textSub};">※予想はエンタメ目的です。投票は自己責任で。</div>
+      <div style="font-size:8px;font-weight:900;color:${logoColor};">⚡ RACE PREDICT PRO</div>
+    </div>
+  </div>`;
+  document.getElementById('buy-save-btn-area').style.display = 'block';
+  setStatus('✅ 推奨買い目画像生成完了！', 'ok');
+}
+
+async function saveBuyImage() {
+  const card = document.getElementById('buy-card');
+  if (!card) { setStatus('❌ 先に推奨買い目を生成してください', 'err'); return; }
+  setStatus('📸 保存中...', 'ok');
+  try {
+    const canvas = await html2canvas(card, {scale:3, width:480, backgroundColor:null, useCORS:true, logging:false});
+    const link = document.createElement('a');
+    link.download = `buy_${(currentRaceName||'kaimoku').replace(/[\/\:*?"<>|]/g,'_')}_${new Date().toISOString().split('T')[0]}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    setStatus('✅ 保存完了！', 'ok');
+  } catch(e) { setStatus('❌ 保存エラー', 'err'); }
 }
 // ===== X投稿タブここまで =====
 
