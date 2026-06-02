@@ -135,7 +135,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 </div>
 
 <!-- 競馬場天気バー -->
-<div id="weather-bar" style="background:#f8f9ff;border-bottom:1px solid #e0e6f0;padding:7px 12px;overflow-x:auto;white-space:nowrap;">
+<div id="weather-bar" style="background:#f8f9ff;border-bottom:3px solid #e94560;padding:7px 12px;overflow-x:auto;white-space:nowrap;">
   <div id="weather-content" style="display:inline-flex;gap:10px;align-items:center;">
     <span style="font-size:9px;color:#aaa;">🌤 読込中...</span>
   </div>
@@ -147,7 +147,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     <div id="app-title">⚡ RACE PREDICT PRO</div>
     <div id="app-sub">Race Prediction &amp; Score Analysis System</div>
   </div>
-  <button onclick="manualSave()" style="padding:5px 10px;background:rgba(201,168,76,0.85);border:none;border-radius:5px;color:#0a0a14;font-size:9px;font-weight:900;cursor:pointer;white-space:nowrap;">☁️ 保存</button>
+
 </div>
 </div>
 
@@ -3720,6 +3720,11 @@ window.addEventListener('load', () => {
 
 });
 </script>
+
+<!-- フローティング保存ボタン -->
+<button onclick="manualSave()" style="position:fixed;bottom:24px;right:16px;z-index:9000;width:88px;height:88px;border-radius:50%;background:none;border:none;padding:0;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+  <img src="./10518.png" style="width:88px;height:88px;border-radius:50%;object-fit:cover;display:block;">
+</button>
 
 </body>
 </html>
