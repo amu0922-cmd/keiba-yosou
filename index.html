@@ -522,6 +522,52 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
       </div>
     </div>
 
+    <!-- 次回予告カード -->
+    <div class="card" style="border:2px solid #2563eb;">
+      <div class="card-title">📣 次回予告画像</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+        <div>
+          <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">📅 日付</label>
+          <input type="text" id="next-date" class="inp" style="width:100%;" placeholder="例: 6/7">
+        </div>
+        <div>
+          <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">🏟 場所</label>
+          <input type="text" id="next-place" class="inp" style="width:100%;" placeholder="例: 東京">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div>
+          <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">🌿 芝/ダート・距離</label>
+          <input type="text" id="next-dist" class="inp" style="width:100%;" placeholder="例: 芝1600m">
+        </div>
+        <div>
+          <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">🏆 レース名</label>
+          <input type="text" id="next-race" class="inp" style="width:100%;" placeholder="例: 安田記念">
+        </div>
+      </div>
+      <button class="btn btn-blue" onclick="generateNextImage()" style="width:100%;padding:10px;font-size:11px;">📣 次回予告画像を生成</button>
+    </div>
+
+    <!-- ハッシュタグ生成カード -->
+    <div class="card" style="border:2px solid #1da1f2;">
+      <div class="card-title">🏷️ X用ハッシュタグ生成</div>
+      <div style="font-size:9px;color:#6080a0;margin-bottom:8px;">現在のレース情報から自動生成。次回予告欄の入力も反映されます。</div>
+      <button class="btn" onclick="generateHashtags()" style="width:100%;padding:10px;font-size:11px;background:linear-gradient(135deg,#1da1f2,#0d8bd9);color:#fff;margin-bottom:8px;">🏷️ ハッシュタグを生成</button>
+      <div id="hashtag-area" style="display:none;">
+        <div id="hashtag-text" style="background:#f0f8ff;border:1px solid #1da1f2;border-radius:8px;padding:10px 12px;font-size:12px;font-weight:700;color:#0d3a5c;line-height:1.9;word-break:break-all;"></div>
+        <button class="btn" onclick="copyHashtags()" style="width:100%;padding:8px;font-size:11px;background:#1da1f2;color:#fff;margin-top:6px;">📋 ワンタップコピー</button>
+      </div>
+    </div>
+
+    <!-- 次回予告プレビュー -->
+    <div class="card">
+      <div class="card-title">📣 次回予告プレビュー</div>
+      <div id="next-preview-area" style="text-align:center;color:#aab0c0;padding:20px;">「次回予告画像を生成」ボタンを押してください</div>
+      <div id="next-save-btn-area" style="display:none;margin-top:10px;">
+        <button class="btn btn-blue" onclick="saveNextImage()" style="width:100%;padding:10px;font-size:11px;">💾 画像を保存</button>
+      </div>
+    </div>
+
     <!-- スコアランキング画像 -->
     <div class="card">
       <div class="card-title">📊 スコアランキング画像</div>
@@ -3160,6 +3206,132 @@ async function saveResultImage() {
     link.click();
     setStatus('✅ 保存完了！', 'ok');
   } catch(e) { setStatus('❌ 保存エラー: ' + e.message, 'err'); }
+}
+
+
+function generateNextImage() {
+  const date  = document.getElementById('next-date').value.trim();
+  const place = document.getElementById('next-place').value.trim();
+  const dist  = document.getElementById('next-dist').value.trim();
+  const race  = document.getElementById('next-race').value.trim();
+  if (!race) { setStatus('❌ レース名を入力してください', 'err'); return; }
+
+  const isDark = xTheme === 'dark';
+  const bg       = isDark ? 'linear-gradient(160deg,#0f0c29,#1a1a3e,#0f3460)' : 'linear-gradient(160deg,#fffbe6,#fff3cc,#ffe8a0)';
+  const textMain = isDark ? '#ffffff' : '#1a1206';
+  const textSub  = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(80,60,10,0.65)';
+  const accent   = isDark ? '#FFD700' : '#c9a84c';
+  const divider  = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(201,168,76,0.25)';
+  const footerBg = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(201,168,76,0.08)';
+  const logoColor= isDark ? '#FFD700' : '#a07830';
+
+  const infoStr = [date, place, dist].filter(Boolean).join(' ');
+  const tagline = `${infoStr ? infoStr + ' ' : ''}${race}で勝負だ！`;
+
+  document.getElementById('next-preview-area').style.cssText = 'padding:10px 0;';
+  document.getElementById('next-preview-area').innerHTML = `
+  <div id="next-card" style="width:100%;max-width:480px;background:${bg};border-radius:18px;overflow:hidden;font-family:'Noto Sans JP',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:block;text-align:left;">
+    <div style="position:relative;width:100%;height:110px;overflow:hidden;">
+      <img src="./10449.webp" style="width:100%;height:100%;object-fit:cover;object-position:center 30%;display:block;">
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.0) 0%,rgba(0,0,0,0.6) 100%);"></div>
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:8px 14px;display:flex;align-items:flex-end;justify-content:space-between;">
+        <div>
+          <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.8);letter-spacing:0.12em;">RACE PREDICT PRO</div>
+          <div style="font-size:13px;font-weight:900;color:#fff;margin-top:1px;text-shadow:0 1px 4px rgba(0,0,0,0.6);">📣 次回予告</div>
+        </div>
+        <div style="font-size:26px;">⚡</div>
+      </div>
+    </div>
+    <div style="padding:20px 18px 16px;">
+      <div style="font-size:11px;font-weight:700;color:${textSub};margin-bottom:8px;letter-spacing:0.08em;">NEXT RACE</div>
+      ${infoStr ? `<div style="font-size:12px;font-weight:700;color:${textSub};margin-bottom:6px;">${infoStr}</div>` : ''}
+      <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;justify-content:center;text-align:center;">
+        <div style="font-size:26px;font-weight:900;color:${accent};line-height:1.3;">${race}</div>
+        <div style="font-size:20px;font-weight:900;color:${textMain};line-height:1.3;">でいざ勝負‼️</div>
+      </div>
+    </div>
+    <div style="padding:8px 16px;border-top:1px solid ${divider};display:flex;align-items:center;justify-content:space-between;background:${footerBg};">
+      <div style="font-size:8px;color:${textSub};">※予想はエンタメ目的です。投票は自己責任で。</div>
+      <div style="font-size:8px;font-weight:900;color:${logoColor};">⚡ RACE PREDICT PRO</div>
+    </div>
+  </div>`;
+  document.getElementById('next-save-btn-area').style.display = 'block';
+  setStatus('✅ 次回予告画像生成完了！', 'ok');
+}
+
+async function saveNextImage() {
+  const card = document.getElementById('next-card');
+  if (!card) { setStatus('❌ 先に次回予告を生成してください', 'err'); return; }
+  setStatus('📸 保存中...', 'ok');
+  try {
+    const canvas = await captureCard('next-card');
+    const link = document.createElement('a');
+    link.download = `next_${(document.getElementById('next-race').value||'race').replace(/[/\\:*?"<>|]/g,'_')}_${new Date().toISOString().split('T')[0]}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    setStatus('✅ 保存完了！', 'ok');
+  } catch(e) { setStatus('❌ 保存エラー: ' + e.message, 'err'); }
+}
+
+
+function generateHashtags() {
+  // レース情報取得（現在のレース or 次回予告欄）
+  const raceName = currentRaceName || '';
+  const nextRace  = document.getElementById('next-race')?.value.trim() || '';
+  const nextPlace = document.getElementById('next-place')?.value.trim() || '';
+  const nextDist  = document.getElementById('next-dist')?.value.trim() || '';
+
+  const race  = nextRace  || raceName.replace(/\(.*?\)/g,'').replace(/[0-9]+\/[0-9]+/,'').trim();
+  const place = nextPlace || '';
+  const dist  = nextDist  || '';
+
+  // 距離帯判定
+  const distNum = parseInt(dist.replace(/[^0-9]/g,'')) || 0;
+  let distTag = '';
+  if (distNum > 0) {
+    if (distNum <= 1400) distTag = '#短距離';
+    else if (distNum <= 1800) distTag = '#マイル';
+    else if (distNum <= 2200) distTag = '#中距離';
+    else distTag = '#長距離';
+  }
+
+  // 芝/ダート判定
+  const isTurf = dist.includes('芝');
+  const isDirt = dist.includes('ダ');
+  const surfaceTag = isTurf ? '#芝' : isDirt ? '#ダート' : '';
+
+  // GI判定
+  const isGI = raceName.includes('GI') || raceName.includes('ＧＩ') ||
+    ['ダービー','皐月賞','菊花賞','有馬記念','天皇賞','安田記念','宝塚記念','ジャパンC','秋華賞','桜花賞','ヴィクトリアマイル','スプリンターズ','マイルCS','チャンピオンズC','フェブラリー','高松宮'].some(g=>raceName.includes(g)||race.includes(g));
+
+  const tags = [];
+  tags.push('#競馬予想');
+  tags.push('#競馬');
+  if (race) tags.push(`#${race}`);
+  if (place) tags.push(`#${place}競馬`);
+  if (surfaceTag) tags.push(surfaceTag);
+  if (distTag) tags.push(distTag);
+  if (isGI) tags.push('#GI');
+  tags.push('#競馬好きと繋がりたい');
+  tags.push('#競馬予想無料');
+
+  const text = tags.join(' ');
+  document.getElementById('hashtag-text').textContent = text;
+  document.getElementById('hashtag-area').style.display = 'block';
+  setStatus('✅ ハッシュタグ生成完了！', 'ok');
+}
+
+function copyHashtags() {
+  const text = document.getElementById('hashtag-text').textContent;
+  if (!text) return;
+  navigator.clipboard.writeText(text)
+    .then(() => setStatus('✅ コピー完了！', 'ok'))
+    .catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      setStatus('✅ コピー完了！', 'ok');
+    });
 }
 
 async function captureCard(cardId) {
