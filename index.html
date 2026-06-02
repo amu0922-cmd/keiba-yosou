@@ -2253,21 +2253,32 @@ function renderAnalysis() {
 
   function buildBuyStyle(styleType) {
     const lines = [];
-    // 単勝：軸1頭
-    lines.push(`《単勝 ${jikustr}》`);
-    // 馬連・ワイド：軸 → DB騎手最上位1頭
+    const jikuNum = jiku.map(h=>h.banum).join('-');
+    // 単勝：軸
+    lines.push(`《単勝 ${jikuNum}》`);
+    // 馬連・ワイド：軸-相手1.相手2（DB騎手あり→DB騎手+スコア1位、なし→スコア上位2頭）
     if (dbTop1) {
-      lines.push(`《馬連 ${jikustr} → ${dbTop1}》`);
-      lines.push(`《ワイド ${jikustr} → ${dbTop1}》`);
+      const dbNum = dbJockeyScored[0].banum;
+      const aite2 = scoreTop5[0] ? scoreTop5[0].replace('番','') : '';
+      const aiteStr = aite2 ? `${dbNum}.${aite2}` : `${dbNum}`;
+      lines.push(`《馬連 ${jikuNum}-${aiteStr}》`);
+      lines.push(`《ワイド ${jikuNum}-${aiteStr}》`);
     } else {
-      lines.push(`《馬連 ${jikustr} → ${scoreTop5[0]||''}》`);
-      lines.push(`《ワイド ${jikustr} → ${scoreTop5[0]||''}》`);
+      const a1 = scoreTop5[0] ? scoreTop5[0].replace('番','') : '';
+      const a2 = scoreTop5[1] ? scoreTop5[1].replace('番','') : '';
+      const aiteStr = a2 ? `${a1}.${a2}` : a1;
+      lines.push(`《馬連 ${jikuNum}-${aiteStr}》`);
+      lines.push(`《ワイド ${jikuNum}-${aiteStr}》`);
     }
-    // 三連複：軸 → DB騎手最上位1頭 → スコア上位5頭
+    // 三連複：軸-DB騎手-スコア上位
     if (dbTop1 && scoreTop5.length > 0) {
-      lines.push(`《三連複 ${jikustr} → ${dbTop1} → ${scoreTop5.join('・')}》`);
+      const dbNum = dbJockeyScored[0].banum;
+      const nokori = scoreTop5.map(s=>s.replace('番','')).sort((a,b)=>a-b).join('・');
+      lines.push(`《三連複 ${jikuNum}-${dbNum}-${nokori}》`);
     } else if (scoreTop5.length >= 2) {
-      lines.push(`《三連複 ${jikustr} → ${scoreTop5[0]} → ${scoreTop5.slice(1).join('・')}》`);
+      const a1 = scoreTop5[0].replace('番','');
+      const nokori = scoreTop5.slice(1).map(s=>s.replace('番','')).sort((a,b)=>a-b).join('・');
+      lines.push(`《三連複 ${jikuNum}-${a1}-${nokori}》`);
     }
     if (bestPurchase) {
       lines.push(`\n📊 成績最良: ${bestPurchase.name}（的中率${bestPurchase.rate}%）`);
@@ -3151,22 +3162,22 @@ function generateBuyImage() {
   const lines = [];
   lines.push(`単勝  ${jikustr}`);
   if (dbTop1) {
-    lines.push(`馬連  ${jikustr}-${dbTop1}`);
-    lines.push(`ワイド ${jikustr}-${dbTop1}`);
-  } else {
-    // DB騎手なしの場合はスコアランキング1位（scoreTop5[0]）を相手に
-    lines.push(`馬連  ${jikustr}-${scoreTop5[0]||''}`);
-    lines.push(`ワイド ${jikustr}-${scoreTop5[0]||''}`);
-  }
-  if (dbTop1 && scoreTop5.length > 0) {
-    // DB騎手あり：軸-DB騎手-残り上位（残りは昇順）
+    // DB騎手あり：軸-DB騎手.スコア1位
+    const aite2 = scoreTop5[0] ? `.${scoreTop5[0]}` : '';
+    lines.push(`馬連  ${jikustr}-${dbTop1}${aite2}`);
+    lines.push(`ワイド ${jikustr}-${dbTop1}${aite2}`);
+    // 三連複：軸-DB騎手-残り上位（昇順）
     const nokori = scoreTop5.sort((a,b)=>a-b);
     lines.push(`三連複 ${jikustr}-${dbTop1}-${nokori.join('.')}`);
-  } else if (scoreTop5.length >= 1) {
-    // DB騎手なし：軸-スコア1位-残り上位（残りは昇順）
-    const aite1 = scoreTop5[0];
+  } else {
+    // DB騎手なし：軸-スコア1位.スコア2位
+    const a1 = scoreTop5[0] || '';
+    const a2 = scoreTop5[1] ? `.${scoreTop5[1]}` : '';
+    lines.push(`馬連  ${jikustr}-${a1}${a2}`);
+    lines.push(`ワイド ${jikustr}-${a1}${a2}`);
+    // 三連複：軸-スコア1位-残り上位（昇順）
     const nokori = scoreTop5.slice(1).sort((a,b)=>a-b);
-    lines.push(`三連複 ${jikustr}-${aite1}-${nokori.join('.')}`);
+    lines.push(`三連複 ${jikustr}-${a1}-${nokori.join('.')}`);
   }
 
   const isDark = xTheme === 'dark';
@@ -3311,12 +3322,17 @@ function generateResultImage(isHit) {
 
   const lines = [];
   lines.push(`単勝  ${jikustr}`);
-  if (dbTop1) { lines.push(`馬連  ${jikustr}-${dbTop1}`); lines.push(`ワイド ${jikustr}-${dbTop1}`); }
-  else { lines.push(`馬連  ${jikustr}-${scoreTop5[0]||''}`); lines.push(`ワイド ${jikustr}-${scoreTop5[0]||''}`); }
-  if (dbTop1 && scoreTop5.length > 0) {
+  if (dbTop1) {
+    const aite2 = scoreTop5[0] ? `.${scoreTop5[0]}` : '';
+    lines.push(`馬連  ${jikustr}-${dbTop1}${aite2}`);
+    lines.push(`ワイド ${jikustr}-${dbTop1}${aite2}`);
     lines.push(`三連複 ${jikustr}-${dbTop1}-${scoreTop5.sort((a,b)=>a-b).join('.')}`);
-  } else if (scoreTop5.length >= 1) {
-    lines.push(`三連複 ${jikustr}-${scoreTop5[0]}-${scoreTop5.slice(1).sort((a,b)=>a-b).join('.')}`);
+  } else {
+    const a1 = scoreTop5[0] || '';
+    const a2 = scoreTop5[1] ? `.${scoreTop5[1]}` : '';
+    lines.push(`馬連  ${jikustr}-${a1}${a2}`);
+    lines.push(`ワイド ${jikustr}-${a1}${a2}`);
+    lines.push(`三連複 ${jikustr}-${a1}-${scoreTop5.slice(1).sort((a,b)=>a-b).join('.')}`);
   }
 
   // テーマ設定
