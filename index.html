@@ -115,6 +115,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 .waku-8 { background: #ff69b4; color: #fff; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -133,6 +134,13 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
   </div>
 </div>
 
+<!-- 競馬場天気バー -->
+<div id="weather-bar" style="background:#f8f9ff;border-bottom:1px solid #e0e6f0;padding:7px 12px;overflow-x:auto;white-space:nowrap;">
+  <div id="weather-content" style="display:inline-flex;gap:10px;align-items:center;">
+    <span style="font-size:9px;color:#aaa;">🌤 読込中...</span>
+  </div>
+</div>
+
 <div id="hdr" id="hdr">
   <div id="title-bar" style="width:100%;padding:10px 16px 12px;background:linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%);display:flex;align-items:flex-end;justify-content:space-between;">
   <div>
@@ -144,6 +152,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 </div>
 
 <div id="status"></div>
+
 
 <div class="container">
   <div class="tabs" style="margin:0;">
@@ -307,10 +316,10 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
           <div id="db-age-list" style="max-height: 180px; overflow-y: auto; font-size: 9px;"></div>
         </div>
 
-        <!-- 人気 -->
+        <!-- 人気（固定） -->
         <div style="border: 1px solid #f39c12; border-radius: 6px; padding: 8px; background: #fffaf0; min-width: 0;">
-          <div style="font-weight: 900; font-size: 11px; margin-bottom: 6px; color: #f39c12; border-bottom: 2px solid #f39c12; padding-bottom: 4px;">📊 人気</div>
-          <div id="db-ninki-list" style="max-height: 180px; overflow-y: auto; font-size: 9px;"></div>
+          <div style="font-weight: 900; font-size: 11px; margin-bottom: 6px; color: #f39c12; border-bottom: 2px solid #f39c12; padding-bottom: 4px;">📊 人気 <span style="font-size:8px;color:#aaa;font-weight:400;">（固定）</span></div>
+          <div style="font-size:9px;color:#888;line-height:1.8;">1番人気: +25<br>2番人気: +20<br>3番人気: +15<br>4番人気: +10<br>5番人気: +5<br>6番人気: 0<br>7番人気以下: -5〜-15</div>
         </div>
 
         <!-- 前走着順 -->
@@ -436,6 +445,41 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
       </div>
       <div id="learning-result" style="margin-top: 12px;"></div>
       <div id="record-list" style="max-height: 400px; overflow-y: auto; margin-top: 12px;"></div>
+    </div>
+
+    <!-- 成績グラフ -->
+    <div class="card">
+      <div class="card-title">📈 成績グラフ</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+        <div style="background:#f0f4ff;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:9px;color:#6080a0;margin-bottom:2px;">総回収率</div>
+          <div id="graph-total-rate" style="font-size:20px;font-weight:900;color:#1a1a2e;">-</div>
+        </div>
+        <div style="background:#f0fff4;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:9px;color:#6080a0;margin-bottom:2px;">的中率</div>
+          <div id="graph-hit-rate" style="font-size:20px;font-weight:900;color:#1a1a2e;">-</div>
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:700;color:#1a1a2e;margin-bottom:6px;">📊 投資・回収推移</div>
+        <div style="position:relative;height:160px;"><canvas id="graph-bar"></canvas></div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:700;color:#1a1a2e;margin-bottom:6px;">📈 累計回収率推移</div>
+        <div style="position:relative;height:140px;"><canvas id="graph-line"></canvas></div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:700;color:#1a1a2e;margin-bottom:6px;">🎯 馬券種別 回収率</div>
+        <div style="position:relative;height:120px;"><canvas id="graph-type"></canvas></div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:700;color:#1a1a2e;margin-bottom:6px;">📐 陣形別 回収率</div>
+        <div style="position:relative;height:120px;"><canvas id="graph-formation-rate"></canvas></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#1a1a2e;margin-bottom:6px;">🎯 陣形別 的中率</div>
+        <div style="position:relative;height:120px;"><canvas id="graph-formation-hit"></canvas></div>
+      </div>
     </div>
   </div>
 
@@ -716,7 +760,6 @@ const PROMPTS = {
 
   "kyakushitsu": {"逃げ": -10, "先行": 5, "差し": 15, "追い込み": 0, "自在": 0},
 
-  "ninki": {"1": 5, "2": 4, "3": 3, ...},
 
   "maejun": {"1": 10, "2": 8, "3": 5, ...},
 
@@ -742,7 +785,6 @@ const PROMPTS = {
 
 - kyakushitsu: 脚質ごと（逃げ、先行、差し、追い込み、自在）のスコア
 
-- ninki: 単勝人気ごと（1番人気～18番人気）のスコア
 
 - maejun: 前走着順ごと（1着～12着）のスコア
 
@@ -1035,8 +1077,8 @@ function calcAllScores() {
   const _bonusMap = paceBonus[_pace];
   return horses.map((h, idx) => {
     const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
-    const chokyoScore = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
-    const commentScore = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
+    const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = _bonusMap[h.kyakushitsu]||0;
     const negAdj = h.negAdj||0;
     const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
@@ -1102,8 +1144,8 @@ function renderTable() {
   // 期待値計算用に全馬スコアを先に計算
   const allScoresForEV = horses.map(h => {
     const ts = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
-    const cs = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
-    const ms = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const cs = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
+    const ms = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const pa = _bonusMap[h.kyakushitsu]||0;
     return ts+cs+ms+pa;
   });
@@ -1121,8 +1163,8 @@ function renderTable() {
 
   horses.forEach((h, idx) => {
     const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0) + (db.baju?.[h.baju] || 0);
-    const chokyoScore = ({'A': 10, 'B': 0, 'C': -15}[h.chokyoFinal] || 0) + ({'A': 10, 'B': 0, 'C': -15}[h.chokyoPrev] || 0);
-    const commentScore = {'◎': 10, '◯': 5, '△': -5, '×': -15}[h.comment] || 0;
+    const chokyoScore = ({'A': 20, 'B': 0, 'C': -20}[h.chokyoFinal] || 0) + ({'A': 20, 'B': 0, 'C': -20}[h.chokyoPrev] || 0);
+    const commentScore = {'◎': 20, '◯': 0, '△': -20, '×': -20}[h.comment] || 0;
     const paceAdj = _bonusMap[h.kyakushitsu] || 0;
     const negAdj = h.negAdj||0;
     const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj;
@@ -1178,7 +1220,7 @@ function renderTable() {
       <td><input class="inp" style="width: 42px; text-align:center;" value="${h.baju || ''}" placeholder="460" onchange="horses[${idx}].baju=getBajuBand(this.value); renderTable();"></td>
       <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].chokyoFinal=this.value; renderTable();"><option ${h.chokyoFinal==='A'?'selected':''}>A</option><option ${h.chokyoFinal==='B'?'selected':''}>B</option><option ${h.chokyoFinal==='C'?'selected':''}>C</option></select></td>
       <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].chokyoPrev=this.value; renderTable();"><option ${h.chokyoPrev==='A'?'selected':''}>A</option><option ${h.chokyoPrev==='B'?'selected':''}>B</option><option ${h.chokyoPrev==='C'?'selected':''}>C</option></select></td>
-      <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].comment=this.value; renderTable();"><option ${h.comment==='◎'?'selected':''}>◎</option><option ${h.comment==='◯'?'selected':''}>◯</option><option ${h.comment==='△'?'selected':''}>△</option><option ${h.comment==='×'?'selected':''}>×</option></select></td>
+      <td><button onclick="(function(){const vals=['◎','◯','△','×'];const cur=horses[${idx}].comment||'◯';const next=vals[(vals.indexOf(cur)+1)%vals.length];horses[${idx}].comment=next;renderTable();})()" style="width:34px;height:30px;font-size:18px;font-weight:900;border:1px solid #ccc;border-radius:4px;background:${h.comment==='◎'?'#ffe0e0':h.comment==='△'?'#fff3cd':h.comment==='×'?'#e0e0e0':'#fff'};cursor:pointer;padding:0;line-height:1;">${h.comment||'◯'}</button></td>
       <td style="font-weight: 900; color: #2563eb;">${Math.round(trendScore)}</td>
       <td style="font-weight: 700; color: #27ae60; font-size:8px;">調${chokyoScore>=0?'+':''}${chokyoScore} 厩${commentScore>=0?'+':''}${commentScore} 展${paceAdj>=0?'+':''}${paceAdj}</td>
       <td>
@@ -1198,7 +1240,7 @@ function renderTable() {
 }
 
 function loadDBPreset() {
-  db = {"jockey": {"ルメール": 25, "岩田望": 20}, "sire": {"ディープインパクト": 20}, "age": {"4": 10}, "kyakushitsu": {"差し": 15}, "ninki": {"1": 5}, "maejun": {"1": 10}, "maeclass": {"GI": 10}, "waku": {"4": 5}, "timdev": {"75～": 20}};
+  db = {"jockey": {"ルメール": 25, "岩田望": 20}, "sire": {"ディープインパクト": 20}, "age": {"4": 10}, "kyakushitsu": {"差し": 15}, "maejun": {"1": 10}, "maeclass": {"GI": 10}, "waku": {"4": 5}, "timdev": {"75～": 20}};
   renderDBSection();
   setStatus('✅ プリセット読込', 'ok');
 }
@@ -1218,14 +1260,10 @@ function renderDBSection() {
     `).join('');
   };
   
-  db.ninki = db.ninki || {};
+  // 人気は常に固定値（1番人気=25点から5点刻み）
+  db.ninki = {"1":25,"2":20,"3":15,"4":10,"5":5,"6":0,"7":-5,"8":-10,"9":-15,"10":-15,"11":-15,"12":-15,"13":-15,"14":-15,"15":-15,"16":-15,"17":-15,"18":-15};
   db.timdev = db.timdev || {};
   db.baju = db.baju || {};
-
-  // 人気と偏差値をプリセット値で初期化
-  if (Object.keys(db.ninki).length === 0) {
-    db.ninki = {"1": 5, "2": 4, "3": 3, "4": 2, "5": 1, "6": 0, "7": -1, "8": -2};
-  }
   if (Object.keys(db.timdev).length === 0) {
     db.timdev = {"0～": -20, "35～": -15, "40～": -10, "45～": -5, "50～": 0, "55～": 3, "60～": 5, "65～": 10, "70～": 15, "75～": 20};
   }
@@ -1237,7 +1275,7 @@ function renderDBSection() {
   document.getElementById('db-sire-list').innerHTML = renderKeyValues('sire');
   document.getElementById('db-kyakushitsu-list').innerHTML = renderKeyValues('kyakushitsu');
   document.getElementById('db-age-list').innerHTML = renderKeyValues('age');
-  document.getElementById('db-ninki-list').innerHTML = renderKeyValues('ninki');
+  // db-ninki-list は固定表示のため更新不要
   document.getElementById('db-maejun-list').innerHTML = renderKeyValues('maejun');
   document.getElementById('db-maeclass-list').innerHTML = renderKeyValues('maeclass');
   document.getElementById('db-waku-list').innerHTML = renderKeyValues('waku');
@@ -1693,6 +1731,190 @@ function renderRecordList() {
       </div>
     </div>
   `}).join('');
+  setTimeout(renderRecordGraphs, 50);
+}
+
+
+// ===== 成績グラフ =====
+let barChart = null, lineChart = null, typeChart = null;
+
+function renderRecordGraphs() {
+  if (typeof Chart === 'undefined') return;
+  if (!records || records.length === 0) {
+    document.getElementById('graph-total-rate').textContent = '-';
+    document.getElementById('graph-hit-rate').textContent = '-';
+    return;
+  }
+
+  const sorted = [...records].sort((a,b) => new Date(a.date)-new Date(b.date));
+
+  // サマリー計算
+  const totalInvest = sorted.reduce((s,r)=>s+Number(r.invest||0),0);
+  const totalReturn = sorted.reduce((s,r)=>s+Number(r.return||0),0);
+  const hitCount = sorted.filter(r=>Number(r.return||0)>0).length;
+  const totalRate = totalInvest > 0 ? ((totalReturn/totalInvest)*100).toFixed(1) : '-';
+  const hitRate = sorted.length > 0 ? ((hitCount/sorted.length)*100).toFixed(1) : '-';
+  document.getElementById('graph-total-rate').textContent = totalRate !== '-' ? totalRate+'%' : '-';
+  document.getElementById('graph-total-rate').style.color = Number(totalRate) >= 100 ? '#16a34a' : '#e94560';
+  document.getElementById('graph-hit-rate').textContent = hitRate !== '-' ? hitRate+'%' : '-';
+
+  const labels = sorted.map(r => r.race ? r.race.slice(0,6) : r.date);
+
+  // ① 投資・回収棒グラフ
+  const barCtx = document.getElementById('graph-bar').getContext('2d');
+  if (barChart) barChart.destroy();
+  barChart = new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '投資', data: sorted.map(r=>Number(r.invest||0)), backgroundColor: 'rgba(37,99,235,0.6)', borderRadius: 3 },
+        { label: '回収', data: sorted.map(r=>Number(r.return||0)), backgroundColor: sorted.map(r=>Number(r.return||0)>=Number(r.invest||0)?'rgba(22,163,74,0.7)':'rgba(233,69,96,0.6)'), borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 9 } } } },
+      scales: {
+        x: { ticks: { font: { size: 8 }, maxRotation: 45 } },
+        y: { ticks: { font: { size: 8 }, callback: v => '¥'+v.toLocaleString() } }
+      }
+    }
+  });
+
+  // ② 累計回収率推移折れ線
+  let cumInvest = 0, cumReturn = 0;
+  const rateData = sorted.map(r => {
+    cumInvest += Number(r.invest||0);
+    cumReturn += Number(r.return||0);
+    return cumInvest > 0 ? Math.round((cumReturn/cumInvest)*100) : 0;
+  });
+  const lineCtx = document.getElementById('graph-line').getContext('2d');
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(lineCtx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '累計回収率(%)',
+        data: rateData,
+        borderColor: '#2563eb',
+        backgroundColor: 'rgba(37,99,235,0.08)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+        pointBackgroundColor: rateData.map(v => v >= 100 ? '#16a34a' : '#e94560')
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 9 } } } },
+      scales: {
+        x: { ticks: { font: { size: 8 }, maxRotation: 45 } },
+        y: { ticks: { font: { size: 8 }, callback: v => v+'%' },
+             grid: { color: ctx => ctx.tick.value === 100 ? 'rgba(22,163,74,0.5)' : 'rgba(0,0,0,0.06)' } }
+      }
+    }
+  });
+
+  // ③ 馬券種別回収率横棒グラフ
+  const typeMap = {};
+  sorted.forEach(r => {
+    const t = r.purchase || 'その他';
+    if (!typeMap[t]) typeMap[t] = { invest:0, return:0 };
+    typeMap[t].invest += Number(r.invest||0);
+    typeMap[t].return += Number(r.return||0);
+  });
+  const typeLabels = Object.keys(typeMap);
+  const typeRates = typeLabels.map(t => typeMap[t].invest > 0 ? Math.round((typeMap[t].return/typeMap[t].invest)*100) : 0);
+  const typeCtx = document.getElementById('graph-type').getContext('2d');
+  if (typeChart) typeChart.destroy();
+  typeChart = new Chart(typeCtx, {
+    type: 'bar',
+    data: {
+      labels: typeLabels,
+      datasets: [{
+        label: '回収率(%)',
+        data: typeRates,
+        backgroundColor: typeRates.map(v => v >= 100 ? 'rgba(22,163,74,0.7)' : 'rgba(233,69,96,0.6)'),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 8 }, callback: v => v+'%' },
+             grid: { color: ctx => ctx.tick.value === 100 ? 'rgba(22,163,74,0.5)' : 'rgba(0,0,0,0.06)' } },
+        y: { ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+
+  // ④ 陣形別回収率
+  const formMap = {};
+  sorted.forEach(r => {
+    const f = r.formation || 'その他';
+    if (!formMap[f]) formMap[f] = { invest:0, return:0, count:0, hit:0 };
+    formMap[f].invest += Number(r.invest||0);
+    formMap[f].return += Number(r.return||0);
+    formMap[f].count++;
+    if (Number(r.return||0) > 0) formMap[f].hit++;
+  });
+  const formLabels = Object.keys(formMap);
+  const formRates = formLabels.map(f => formMap[f].invest > 0 ? Math.round((formMap[f].return/formMap[f].invest)*100) : 0);
+  const formHits  = formLabels.map(f => formMap[f].count > 0 ? Math.round((formMap[f].hit/formMap[f].count)*100) : 0);
+
+  const formRateCtx = document.getElementById('graph-formation-rate').getContext('2d');
+  if (window._formRateChart) window._formRateChart.destroy();
+  window._formRateChart = new Chart(formRateCtx, {
+    type: 'bar',
+    data: {
+      labels: formLabels,
+      datasets: [{
+        label: '回収率(%)',
+        data: formRates,
+        backgroundColor: formRates.map(v => v >= 100 ? 'rgba(22,163,74,0.7)' : 'rgba(233,69,96,0.6)'),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 8 }, callback: v => v+'%' },
+             grid: { color: ctx => ctx.tick.value === 100 ? 'rgba(22,163,74,0.5)' : 'rgba(0,0,0,0.06)' } },
+        y: { ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+
+  // ⑤ 陣形別的中率
+  const formHitCtx = document.getElementById('graph-formation-hit').getContext('2d');
+  if (window._formHitChart) window._formHitChart.destroy();
+  window._formHitChart = new Chart(formHitCtx, {
+    type: 'bar',
+    data: {
+      labels: formLabels,
+      datasets: [{
+        label: '的中率(%)',
+        data: formHits,
+        backgroundColor: formHits.map(v => v >= 50 ? 'rgba(37,99,235,0.7)' : 'rgba(245,158,11,0.7)'),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 8 }, callback: v => v+'%' }, max: 100 },
+        y: { ticks: { font: { size: 9 } } }
+      }
+    }
+  });
 }
 
 // ===== 展開予想ロジック =====
@@ -1786,8 +2008,8 @@ function renderPaceAnalysis() {
   // 各馬の展開ボーナス込みスコア
   const ranked = horses.map(h => {
     const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
-    const chokyoScore = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
-    const commentScore = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
+    const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const baseTotal = trendScore + chokyoScore + commentScore;
     const paceAdj = bonusMap[h.kyakushitsu] || 0;
     const paceTotal = baseTotal + paceAdj;
@@ -1872,7 +2094,7 @@ function renderPaceAnalysis() {
     const scenarioRanked = [...horses].map(h => {
       const base = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
       const adj = bmap[h.kyakushitsu]||0;
-      return { ...h, paceTotal: base+adj+({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0)+({'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0) };
+      return { ...h, paceTotal: base+adj+({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0)+({'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0) };
     }).sort((a,b)=>b.paceTotal-a.paceTotal);
     const top3 = scenarioRanked.slice(0,3);
     const pc = getPaceColor(p); const pl = getPaceLabel(p);
@@ -1932,8 +2154,8 @@ function renderAnalysis() {
 
   const ranked = horses.map(h => {
     const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0) + (db.baju?.[h.baju] || 0);
-    const chokyoScore = ({'A': 10, 'B': 0, 'C': -15}[h.chokyoFinal] || 0) + ({'A': 10, 'B': 0, 'C': -15}[h.chokyoPrev] || 0);
-    const commentScore = {'◎': 10, '◯': 5, '△': -5, '×': -15}[h.comment] || 0;
+    const chokyoScore = ({'A': 20, 'B': 0, 'C': -20}[h.chokyoFinal] || 0) + ({'A': 20, 'B': 0, 'C': -20}[h.chokyoPrev] || 0);
+    const commentScore = {'◎': 20, '◯': 0, '△': -20, '×': -20}[h.comment] || 0;
     const paceAdj = bonusMap[h.kyakushitsu] || 0;
     const negAdj = h.negAdj||0;
     const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj;
@@ -2477,8 +2699,8 @@ function analyzeResult() {
   // 予想スコアを計算
   const scored = horses.map(h => {
     const ts = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
-    const cs = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
-    const ms = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const cs = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
+    const ms = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const pa = bonusMap[h.kyakushitsu]||0;
     const total = ts+cs+ms+pa;
     return {...h, totalScore: total};
@@ -2785,8 +3007,8 @@ function generateXPostImage() {
   const bonusMap = paceBonus[pace];
   const ranked = horses.map(h => {
     const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
-    const chokyoScore = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
-    const commentScore = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
+    const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
     const negAdj = h.negAdj||0;
     const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
@@ -2890,8 +3112,8 @@ function generateBuyImage() {
   const ranked = horses.map(h => {
     const nk = String(h.ninki);
     const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
-    const chokyoScore = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
-    const commentScore = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
+    const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
     const negAdj = h.negAdj||0;
     const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
@@ -3059,8 +3281,8 @@ function generateResultImage(isHit) {
   const ranked = horses.map(h => {
     const nk = String(h.ninki);
     const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
-    const chokyoScore = ({'A':10,'B':0,'C':-15}[h.chokyoFinal]||0)+({'A':10,'B':0,'C':-15}[h.chokyoPrev]||0);
-    const commentScore = {'◎':10,'◯':5,'△':-5,'×':-15}[h.comment]||0;
+    const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
+    const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
     const negAdj = h.negAdj||0;
     const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
@@ -3388,7 +3610,63 @@ async function saveBuyImage() {
 }
 // ===== X投稿タブここまで =====
 
+
+// ===== 競馬場天気 =====
+const RACECOURSES = [
+  { name: '東京',   lat: 35.7414, lon: 139.4794 },
+  { name: '中山',   lat: 35.7771, lon: 139.9291 },
+  { name: '京都',   lat: 34.9333, lon: 135.6897 },
+  { name: '阪神',   lat: 34.7197, lon: 135.3564 },
+  { name: '中京',   lat: 35.1167, lon: 136.8833 },
+  { name: '新潟',   lat: 37.8569, lon: 138.9858 },
+  { name: '福島',   lat: 37.7500, lon: 140.4167 },
+  { name: '小倉',   lat: 33.8500, lon: 130.8167 },
+  { name: '札幌',   lat: 43.0500, lon: 141.3500 },
+  { name: '函館',   lat: 41.7667, lon: 140.7333 },
+];
+
+const WX_CODE = {
+  0:'☀️',1:'🌤',2:'⛅',3:'☁️',
+  45:'🌫',48:'🌫',
+  51:'🌦',53:'🌧',55:'🌧',
+  61:'🌧',63:'🌧',65:'🌧',
+  71:'🌨',73:'🌨',75:'🌨',
+  80:'🌦',81:'🌧',82:'⛈',
+  95:'⛈',96:'⛈',99:'⛈'
+};
+
+async function loadWeather() {
+  const el = document.getElementById('weather-content');
+  try {
+    const results = await Promise.all(RACECOURSES.map(async rc => {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${rc.lat}&longitude=${rc.lon}&current=temperature_2m,precipitation,weathercode&timezone=Asia%2FTokyo`;
+      const res = await fetch(url);
+      const d = await res.json();
+      const cur = d.current;
+      const icon = WX_CODE[cur.weathercode] || '🌤';
+      const temp = Math.round(cur.temperature_2m);
+      const rain = cur.precipitation > 0 ? `<span style="color:#60aaff;font-size:8px;">💧${cur.precipitation}mm</span>` : '';
+      // 馬場状態判定
+      let baba = '';
+      if (cur.precipitation >= 5) baba = '<span style="color:#e94560;font-size:8px;">重</span>';
+      else if (cur.precipitation >= 1) baba = '<span style="color:#f39c12;font-size:8px;">稍重</span>';
+      else if (cur.precipitation > 0) baba = '<span style="color:#f39c12;font-size:8px;">稍</span>';
+      else baba = '<span style="color:#16a34a;font-size:8px;">良</span>';
+      return `<div style="display:inline-flex;flex-direction:column;align-items:center;background:#fff;border:1px solid #e0e6f0;border-radius:8px;padding:4px 8px;min-width:46px;gap:1px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="font-size:8px;color:#6080a0;font-weight:700;">${rc.name}</div>
+        <div style="font-size:16px;line-height:1.2;">${icon}</div>
+        ${baba}
+      </div>`;
+    }));
+    el.innerHTML = results.join('');
+  } catch(e) {
+    el.innerHTML = '<span style="font-size:9px;color:#e94560;">天気取得エラー</span>';
+  }
+}
+
 window.addEventListener('load', () => {
+  loadWeather();
+  setInterval(loadWeather, 10 * 60 * 1000); // 10分ごと更新
   // 前回ログイン済みなら即スキップ
   if (localStorage.getItem('kp_pw_saved') === '1') {
     document.getElementById('pw-screen').style.display = 'none';
