@@ -270,7 +270,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
   <div id="main" class="tab-content">
   <div class="save-bar">
     <button onclick="manualSave()" class="save-bar-btn save" title="データをクラウドに保存">☁️ 保存</button>
-    <button onclick="loadFromSupabase()" class="save-bar-btn load" title="クラウドから復元（別端末・別ブラウザ用）">📥 読込</button>
+    <button onclick="location.reload()" class="save-bar-btn load" title="アプリを更新">🔄 更新</button>
   </div>
     <div class="card">
       <div class="card-title" style="position:relative;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -317,7 +317,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
   <div id="db" class="tab-content">
   <div class="save-bar">
     <button onclick="manualSave()" class="save-bar-btn save" title="データをクラウドに保存">☁️ 保存</button>
-    <button onclick="loadFromSupabase()" class="save-bar-btn load" title="クラウドから復元（別端末・別ブラウザ用）">📥 読込</button>
+    <button onclick="location.reload()" class="save-bar-btn load" title="アプリを更新">🔄 更新</button>
   </div>
     <div class="card">
       <div class="card-title">⚙️ DB設定（傾向スコア）</div>
@@ -391,7 +391,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
   <div id="record" class="tab-content">
   <div class="save-bar">
     <button onclick="manualSave()" class="save-bar-btn save" title="データをクラウドに保存">☁️ 保存</button>
-    <button onclick="loadFromSupabase()" class="save-bar-btn load" title="クラウドから復元（別端末・別ブラウザ用）">📥 読込</button>
+    <button onclick="location.reload()" class="save-bar-btn load" title="アプリを更新">🔄 更新</button>
   </div>
     <div class="card">
       <div class="card-title">📚 成績</div>
@@ -523,7 +523,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
   <div id="pace" class="tab-content">
   <div class="save-bar">
     <button onclick="manualSave()" class="save-bar-btn save" title="データをクラウドに保存">☁️ 保存</button>
-    <button onclick="loadFromSupabase()" class="save-bar-btn load" title="クラウドから復元（別端末・別ブラウザ用）">📥 読込</button>
+    <button onclick="location.reload()" class="save-bar-btn load" title="アプリを更新">🔄 更新</button>
   </div>
     <div class="card">
       <div class="card-title">🏃 展開予想・ペース判定</div>
@@ -563,7 +563,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
   <div id="xpost" class="tab-content">
   <div class="save-bar">
     <button onclick="manualSave()" class="save-bar-btn save" title="データをクラウドに保存">☁️ 保存</button>
-    <button onclick="loadFromSupabase()" class="save-bar-btn load" title="クラウドから復元（別端末・別ブラウザ用）">📥 読込</button>
+    <button onclick="location.reload()" class="save-bar-btn load" title="アプリを更新">🔄 更新</button>
   </div>
     <div class="card">
       <div class="card-title">🐦 X投稿用画像生成</div>
@@ -748,7 +748,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
   <div id="analysis" class="tab-content">
   <div class="save-bar">
     <button onclick="manualSave()" class="save-bar-btn save" title="データをクラウドに保存">☁️ 保存</button>
-    <button onclick="loadFromSupabase()" class="save-bar-btn load" title="クラウドから復元（別端末・別ブラウザ用）">📥 読込</button>
+    <button onclick="location.reload()" class="save-bar-btn load" title="アプリを更新">🔄 更新</button>
   </div>
     <div class="card">
       <div class="card-title">📊 予想</div>
@@ -4484,18 +4484,50 @@ function ovLoopRegenerate() {
 
 // 全画面表示 + カウントダウン後に自動スタート
 function ovFullscreen(card) {
+  // ── ボタンの代わりにカウントダウンオーバーレイを表示 ──
+  const cdOverlay = document.createElement('div');
+  cdOverlay.style.cssText = 'position:fixed;inset:0;background:#000;z-index:99998;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+  cdOverlay.innerHTML = `
+    <div style="font-size:13px;color:rgba(255,255,255,0.55);letter-spacing:0.2em;margin-bottom:16px;">画面録画をONにしてください</div>
+    <div id="ov-cd-num2" style="font-family:'Dela Gothic One',sans-serif;font-size:110px;color:#FFD94A;line-height:1;text-shadow:0 0 50px rgba(255,217,74,0.5);">3</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:18px;letter-spacing:0.15em;">後に全画面スタート</div>
+  `;
+  document.body.appendChild(cdOverlay);
+
+  let count = 3;
+  const cdNum = cdOverlay.querySelector('#ov-cd-num2');
+
+  const cdTimer = setInterval(() => {
+    count--;
+    if (count > 0) {
+      cdNum.textContent = String(count);
+      cdNum.style.animation = 'none';
+      void cdNum.offsetWidth;
+      cdNum.style.animation = 'ovCdPop 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+    } else {
+      clearInterval(cdTimer);
+      cdNum.style.fontSize = '52px';
+      cdNum.style.color = '#fff';
+      cdNum.textContent = 'START!';
+      setTimeout(() => {
+        document.body.removeChild(cdOverlay);
+        ovOpenFullscreen(card); // 全画面を開く
+      }, 500);
+    }
+  }, 1000);
+}
+
+function ovOpenFullscreen(card) {
   const overlay = document.createElement('div');
   overlay.id = 'ov-fs-overlay';
   overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:99999;display:flex;align-items:center;justify-content:center;';
 
-  // cardWrap: 9:16固定サイズ
-  const cardWrap = document.createElement('div');
-  cardWrap.id = 'ov-fs-cardwrap';
   const cardH = window.innerHeight;
   const cardW = Math.min(window.innerWidth, Math.round(cardH * 9 / 16));
+  const cardWrap = document.createElement('div');
+  cardWrap.id = 'ov-fs-cardwrap';
   cardWrap.style.cssText = `position:relative;overflow:hidden;width:${cardW}px;height:${cardH}px;`;
 
-  // 閉じるボタン（普段は非表示・タップで表示）
   const closeBtn = document.createElement('button');
   closeBtn.style.cssText = 'position:fixed;top:14px;right:14px;z-index:100000;background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:12px;padding:8px 16px;border-radius:20px;cursor:pointer;font-weight:700;opacity:0;';
   closeBtn.textContent = '✕ 閉じる';
