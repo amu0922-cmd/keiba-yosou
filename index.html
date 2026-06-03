@@ -620,7 +620,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
           <input type="range" id="ov-delay" min="0" max="10" step="0.5" value="1" oninput="document.getElementById('ov-delay-val').textContent=this.value+'秒'" style="flex:1;accent-color:#7c3aed;">
           <span id="ov-delay-val" style="font-size:11px;font-weight:900;color:#7c3aed;width:34px;text-align:right;">1秒</span>
         </div>
-        <div style="font-size:8px;color:#8090a0;margin-top:2px;">カード1枚目が登場するまでの秒数（カード間は0.2秒差で順番に登場）</div>
+        <div style="font-size:8px;color:#8090a0;margin-top:2px;">カード1枚目が登場するまでの秒数（カード間は0.2秒差で順番に登場・約20秒表示後にループ）</div>
       </div>
 
       <!-- 登場エフェクト -->
@@ -4449,7 +4449,10 @@ function ovShowPreview(card) {
 
   // ループ開始
   const baseDelay = parseFloat(document.getElementById('ov-delay')?.value || 1);
-  const loopSec   = baseDelay + 4 * 0.2 + 4; // 表示+余裕4秒後に再生成
+  // 動画の長さがあればそれに合わせる、なければ20秒
+  const vidEl = document.querySelector('#ov-preview-area video');
+  const vidLen = (vidEl && isFinite(vidEl.duration) && vidEl.duration > 0) ? vidEl.duration : 20;
+  const loopSec = Math.max(baseDelay + 4 * 0.2 + vidLen, baseDelay + 21);
   window._ovLoopTimer = setTimeout(ovLoopRegenerate, loopSec * 1000);
 
   // 全画面ボタン
@@ -4528,7 +4531,9 @@ function ovFullscreen(card) {
   insertCard();
 
   const baseDelay = parseFloat(document.getElementById('ov-delay')?.value || 1);
-  const loopSec   = baseDelay + 4 * 0.2 + 4;
+  const vidEl2 = document.querySelector('#ov-preview-area video');
+  const vidLen2 = (vidEl2 && isFinite(vidEl2.duration) && vidEl2.duration > 0) ? vidEl2.duration : 20;
+  const loopSec = Math.max(baseDelay + 4 * 0.2 + vidLen2, baseDelay + 21);
   let fsTimer = setInterval(insertCard, loopSec * 1000);
 }
 
