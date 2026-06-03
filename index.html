@@ -4485,36 +4485,8 @@ function ovLoopRegenerate() {
 // 全画面表示 + カウントダウン後に自動スタート
 function ovFullscreen(card) {
   // ── ボタンの代わりにカウントダウンオーバーレイを表示 ──
-  const cdOverlay = document.createElement('div');
-  cdOverlay.style.cssText = 'position:fixed;inset:0;background:#000;z-index:99998;display:flex;flex-direction:column;align-items:center;justify-content:center;';
-  cdOverlay.innerHTML = `
-    <div style="font-size:13px;color:rgba(255,255,255,0.55);letter-spacing:0.2em;margin-bottom:16px;">画面録画をONにしてください</div>
-    <div id="ov-cd-num2" style="font-family:'Dela Gothic One',sans-serif;font-size:110px;color:#FFD94A;line-height:1;text-shadow:0 0 50px rgba(255,217,74,0.5);">3</div>
-    <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:18px;letter-spacing:0.15em;">後に全画面スタート</div>
-  `;
-  document.body.appendChild(cdOverlay);
-
-  let count = 3;
-  const cdNum = cdOverlay.querySelector('#ov-cd-num2');
-
-  const cdTimer = setInterval(() => {
-    count--;
-    if (count > 0) {
-      cdNum.textContent = String(count);
-      cdNum.style.animation = 'none';
-      void cdNum.offsetWidth;
-      cdNum.style.animation = 'ovCdPop 0.35s cubic-bezier(0.34,1.56,0.64,1)';
-    } else {
-      clearInterval(cdTimer);
-      cdNum.style.fontSize = '52px';
-      cdNum.style.color = '#fff';
-      cdNum.textContent = 'START!';
-      setTimeout(() => {
-        document.body.removeChild(cdOverlay);
-        ovOpenFullscreen(card); // 全画面を開く
-      }, 500);
-    }
-  }, 1000);
+  // すぐ全画面を開いて黒幕5秒待機
+  ovOpenFullscreen(card);
 }
 
 function ovOpenFullscreen(card) {
@@ -4527,6 +4499,11 @@ function ovOpenFullscreen(card) {
   const cardWrap = document.createElement('div');
   cardWrap.id = 'ov-fs-cardwrap';
   cardWrap.style.cssText = `position:relative;overflow:hidden;width:${cardW}px;height:${cardH}px;`;
+
+  // 待機中の黒幕（動画・アニメを隠す）
+  const blackCover = document.createElement('div');
+  blackCover.style.cssText = 'position:absolute;inset:0;background:#000;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+  blackCover.innerHTML = `<div style="font-size:12px;color:rgba(255,255,255,0.4);letter-spacing:0.15em;">5秒後にスタートします</div>`;
 
   const closeBtn = document.createElement('button');
   closeBtn.style.cssText = 'position:fixed;top:14px;right:14px;z-index:100000;background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:12px;padding:8px 16px;border-radius:20px;cursor:pointer;font-weight:700;opacity:0;';
@@ -4543,6 +4520,7 @@ function ovOpenFullscreen(card) {
     document.exitFullscreen?.().catch(() => {});
   };
 
+  cardWrap.appendChild(blackCover);
   overlay.appendChild(cardWrap);
   overlay.appendChild(closeBtn);
   document.body.appendChild(overlay);
@@ -4551,6 +4529,11 @@ function ovOpenFullscreen(card) {
 
   function insertCard() {
     cardWrap.innerHTML = '';
+    // 黒幕を追加してからカードを生成（動画・アニメを隠した状態で）
+    const cover = document.createElement('div');
+    cover.style.cssText = 'position:absolute;inset:0;background:#000;z-index:50;';
+    cardWrap.appendChild(cover);
+
     _ovFsTarget = cardWrap;
     _ovIsLooping = true;
     if (_ovLastType === 'buy')       generateOverlayBuy();
@@ -4558,6 +4541,18 @@ function ovOpenFullscreen(card) {
     else if (_ovLastType === 'miss') generateOverlayResult(false);
     _ovIsLooping = false;
     _ovFsTarget = null;
+
+    // 動画を一時停止
+    cardWrap.querySelectorAll('video').forEach(v => v.pause());
+
+    // 3秒後に黒幕を消して動画・アニメをスタート
+    setTimeout(() => {
+      cover.remove();
+      cardWrap.querySelectorAll('video').forEach(v => {
+        v.currentTime = 0;
+        v.play().catch(() => {});
+      });
+    }, 5000);
   }
 
   insertCard();
