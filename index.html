@@ -3912,7 +3912,8 @@ function imgGenerate(type) {
   const payout    = (document.getElementById('img-payout')?.value || '').trim();
   const betLabels = ['単勝','馬連','ワイド','三連複'];
   const betColors = ['#ff2d55','#007aff','#34c759','#ff9500'];
-  const W = 450, H = 800;
+  const W = 450;
+  const H = type === 'score' ? 1000 : 800;
 
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
@@ -3929,7 +3930,7 @@ function imgGenerate(type) {
   _imgTc = tc;
 
   const doRender = () => {
-    const imgH = Math.round(H * 0.45);
+    const imgH = type === 'score' ? Math.round(H * 0.32) : Math.round(H * 0.45);
 
     // ── ロゴ・レース名 ──
     ctx.save();
@@ -4037,7 +4038,7 @@ function imgGenerate(type) {
   if (_imgBgDataURL) {
     const img = new Image();
     img.onload = () => {
-      const imgH = Math.round(H * 0.45);
+      const imgH = type === 'score' ? Math.round(H * 0.32) : Math.round(H * 0.45);
       // 上半分エリアを常に埋める（縦横どちらも imgH/W に合わせてcoverで描画）
       const scale = Math.max(W / img.width, imgH / img.height);
       const dw = img.width * scale;
@@ -4375,19 +4376,19 @@ function drawScoreRanking(ctx, W, imgH, tc) {
   ctx.fillStyle = tc.logo;
   ctx.font = '700 11px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('RACE PREDICT PRO', 18, imgH + 30);
+  ctx.fillText('RACE PREDICT PRO', 18, imgH + 20);
   ctx.fillStyle = tc.race;
-  ctx.font = '900 18px sans-serif';
-  ctx.fillText('📊 スコアランキング', 18, imgH + 54);
+  ctx.font = '900 20px sans-serif';
+  ctx.fillText(`${currentRaceName || 'レース'}`, 18, imgH + 46);
   ctx.fillStyle = tc.pace;
-  ctx.font = '700 11px sans-serif';
-  ctx.fillText(`⚡ ${paceLabel}`, 18, imgH + 70);
+  ctx.font = '700 12px sans-serif';
+  ctx.fillText(`⚡ ${paceLabel}　📊 スコアランキング`, 18, imgH + 64);
   ctx.restore();
 
   // ランキングバー
-  const startY = imgH + 82;
-  const rowH = 44;
-  const barMaxW = W - 36 - 60;
+  const startY = imgH + 78;
+  const rowH = 46;
+  const barMaxW = W - 120;
 
   ranked.forEach((h, i) => {
     const y = startY + i * (rowH + 4);
