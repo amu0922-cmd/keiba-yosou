@@ -4005,18 +4005,32 @@ function imgGenerate(type) {
 
     // ── コメント ──
     if (comment) {
-      const cy = H - 60;
+      const cy = H - 64;
       ctx.save();
-      ctx.fillStyle = 'rgba(0,0,0,0.65)';
-      roundRect(ctx, 18, cy, W - 36, 34, 6);
+      // 背景（グラデ）
+      const cmGrad = ctx.createLinearGradient(18, cy, W-18, cy);
+      cmGrad.addColorStop(0, 'rgba(255,217,74,0.18)');
+      cmGrad.addColorStop(1, 'rgba(0,0,0,0.75)');
+      ctx.fillStyle = cmGrad;
+      roundRect(ctx, 18, cy, W - 36, 42, 8);
       ctx.fill();
+      // 枠線
       ctx.strokeStyle = '#FFD94A';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(18, cy+4); ctx.lineTo(18, cy+30); ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.font = '700 11px sans-serif';
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, 18, cy, W - 36, 42, 8);
+      ctx.stroke();
+      // 左アクセントバー
+      ctx.fillStyle = '#FFD94A';
+      roundRect(ctx, 18, cy, 4, 42, 8);
+      ctx.fill();
+      // テキスト
+      ctx.fillStyle = '#fff';
+      ctx.font = '900 14px sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('💬 ' + comment, 28, cy + 22);
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = 4;
+      ctx.fillText('💬 ' + comment, 32, cy + 27);
+      ctx.shadowBlur = 0;
       ctx.restore();
     }
 
@@ -4039,10 +4053,19 @@ function imgGenerate(type) {
     const img = new Image();
     img.onload = () => {
       const imgH = Math.round(H * 0.45);
+      // 上半分エリアを常に埋める（縦横どちらも imgH/W に合わせてcoverで描画）
       const scale = Math.max(W / img.width, imgH / img.height);
       const dw = img.width * scale;
       const dh = img.height * scale;
-      ctx.drawImage(img, (W - dw) / 2, 0, dw, dh);
+      // 横長画像は中央から切り取り、縦長は上から切り取り
+      const dx = (W - dw) / 2;
+      const dy = 0;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, W, imgH);
+      ctx.clip();
+      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.restore();
       const grad = ctx.createLinearGradient(0, imgH * 0.6, 0, imgH + 20);
       grad.addColorStop(0, 'rgba(10,10,10,0)');
       grad.addColorStop(1, 'rgba(10,10,10,1)');
@@ -4712,10 +4735,6 @@ window.addEventListener('load', () => {
 <!-- フローティング保存ボタン -->
 
 
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
-}
-</script>
+
 </body>
 </html>
