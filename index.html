@@ -4648,16 +4648,14 @@ const WX_CODE = {
 
 async function loadWeather() {
   const el = document.getElementById('weather-content');
-  try {
-    const results = await Promise.all(RACECOURSES.map(async rc => {
+  const results = await Promise.all(RACECOURSES.map(async rc => {
+    try {
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${rc.lat}&longitude=${rc.lon}&current=temperature_2m,precipitation,weathercode&timezone=Asia%2FTokyo`;
-      const res = await fetch(url);
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const d = await res.json();
       const cur = d.current;
       const icon = WX_CODE[cur.weathercode] || '🌤';
-      const temp = Math.round(cur.temperature_2m);
-      const rain = cur.precipitation > 0 ? `<span style="color:#60aaff;font-size:8px;">💧${cur.precipitation}mm</span>` : '';
-      // 馬場状態判定
       let baba = '';
       if (cur.precipitation >= 5) baba = '<span style="color:#e94560;font-size:8px;">重</span>';
       else if (cur.precipitation >= 1) baba = '<span style="color:#f39c12;font-size:8px;">稍重</span>';
@@ -4668,11 +4666,14 @@ async function loadWeather() {
         <div style="font-size:16px;line-height:1.2;">${icon}</div>
         ${baba}
       </div>`;
-    }));
-    el.innerHTML = results.join('');
-  } catch(e) {
-    el.innerHTML = '<span style="font-size:9px;color:#e94560;">天気取得エラー</span>';
-  }
+    } catch(e) {
+      return `<div style="display:inline-flex;flex-direction:column;align-items:center;background:#fff;border:1px solid #e0e6f0;border-radius:8px;padding:4px 8px;min-width:46px;gap:1px;">
+        <div style="font-size:8px;color:#6080a0;font-weight:700;">${rc.name}</div>
+        <div style="font-size:14px;">🌤</div>
+      </div>`;
+    }
+  }));
+  if (el) el.innerHTML = results.join('');
 }
 
 window.addEventListener('load', () => {
