@@ -570,26 +570,6 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     <button onclick="manualSave()" class="save-bar-btn save" title="データをクラウドに保存">☁️ 保存</button>
     <button onclick="location.reload()" class="save-bar-btn load" title="アプリを更新">🔄 更新</button>
   </div>
-    <div class="card">
-      <div class="card-title">🐦 X投稿用画像生成</div>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">✏️ コメント（任意）</label>
-        <input type="text" id="xpost-comment" class="inp" style="width:100%;" placeholder="例: 展開は差し有利！注目の一戦">
-      </div>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:6px;">🎨 デザインテーマ</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-          <button onclick="setXTheme('dark')" id="theme-dark" style="padding:8px;border-radius:6px;border:2px solid #e94560;background:linear-gradient(135deg,#1a1a2e,#0f3460);color:#FFD700;font-size:9px;font-weight:900;cursor:pointer;">🌑 ダーク（おすすめ）</button>
-          <button onclick="setXTheme('gold')" id="theme-gold" style="padding:8px;border-radius:6px;border:2px solid #ccc;background:linear-gradient(135deg,#fffbe6,#fff3cc);color:#a07830;font-size:9px;font-weight:900;cursor:pointer;">✨ ゴールド</button>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button class="btn btn-gold" onclick="generateXPostImage()" style="padding:10px;font-size:11px;">📊 スコアランキング</button>
-        <button class="btn btn-blue" onclick="generateBuyImage()" style="padding:10px;font-size:11px;">🎯 推奨買い目</button>
-      </div>
-    </div>
-
-
     <!-- 画像オーバーレイ合成 -->
     <div class="card" style="border:2px solid #7c3aed;">
       <div class="card-title" style="color:#7c3aed;">🖼 画像オーバーレイ合成（縦型9:16）</div>
@@ -645,10 +625,13 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
       </div>
 
       <!-- 生成ボタン -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
         <button class="btn" onclick="imgGenerate('hit')" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;">🎊 的中画像</button>
         <button class="btn" onclick="imgGenerate('miss')" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#444,#222);color:#fff;">💧 ハズレ画像</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
         <button class="btn" onclick="imgGenerate('buy')" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#7c3aed,#4f1fb5);color:#fff;">📋 買い目発表</button>
+        <button class="btn btn-gold" onclick="imgGenerate('score')" style="padding:9px 4px;font-size:10px;">📊 スコアランキング</button>
       </div>
     </div>
 
@@ -3963,7 +3946,9 @@ function imgGenerate(type) {
     ctx.restore();
 
     // ── タイプ別 ──
-    if (type === 'buy') {
+    if (type === 'score') {
+      drawScoreRanking(ctx, W, imgH, tc);
+    } else if (type === 'buy') {
       drawHorseBanner(ctx, topHorse, jikustr, 18, imgH + 112, W - 36);
       drawBetCards(ctx, lines, betLabels, betColors, null, 18, imgH + 170, W - 36, type);
     } else if (type === 'hit') {
@@ -4362,6 +4347,110 @@ function drawPayout(ctx, payout, W, y) {
 
   ctx.shadowBlur = 0;
   ctx.restore();
+}
+
+function drawScoreRanking(ctx, W, imgH, tc) {
+  const overrideEl = document.getElementById('pace-override');
+  const override = overrideEl ? overrideEl.value : 'auto';
+  const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
+  const bonusMap = paceBonus[pace];
+  const paceLabel = getPaceLabel(pace);
+
+  const ranked = horses.map(h => {
+    const nk = String(h.ninki);
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
+    const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
+    const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
+    const paceAdj = bonusMap?.[h.kyakushitsu]||0;
+    const negAdj = h.negAdj||0;
+    const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
+    return {...h, totalScore, paceAdj};
+  }).sort((a,b)=>b.totalScore-a.totalScore).slice(0,8);
+
+  const maxScore = ranked[0]?.totalScore || 1;
+  const accentColor = tc.pace === '#FFD700' ? '#FFD700' : '#e94560';
+
+  // タイトル
+  ctx.save();
+  ctx.fillStyle = tc.logo;
+  ctx.font = '700 11px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('RACE PREDICT PRO', 18, imgH + 30);
+  ctx.fillStyle = tc.race;
+  ctx.font = '900 18px sans-serif';
+  ctx.fillText('📊 スコアランキング', 18, imgH + 54);
+  ctx.fillStyle = tc.pace;
+  ctx.font = '700 11px sans-serif';
+  ctx.fillText(`⚡ ${paceLabel}`, 18, imgH + 70);
+  ctx.restore();
+
+  // ランキングバー
+  const startY = imgH + 82;
+  const rowH = 44;
+  const barMaxW = W - 36 - 60;
+
+  ranked.forEach((h, i) => {
+    const y = startY + i * (rowH + 4);
+    const isTop = i === 0;
+    const barW = Math.round((h.totalScore / maxScore) * barMaxW);
+
+    ctx.save();
+    // 行背景
+    ctx.fillStyle = isTop ? `${accentColor}22` : tc.card;
+    roundRect(ctx, 18, y, W-36, rowH, 6);
+    ctx.fill();
+    if (isTop) {
+      ctx.strokeStyle = accentColor;
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, 18, y, W-36, rowH, 6);
+      ctx.stroke();
+    }
+
+    // 順位
+    ctx.fillStyle = isTop ? accentColor : tc.logo;
+    ctx.font = `900 ${isTop?'16':'13'}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(`${i+1}`, 34, y + rowH/2 + 5);
+
+    // 枠番ボックス
+    const bg = imgWakuColor(h.banum);
+    const tx = (bg === '#fff' || bg === '#e6c800') ? '#222' : '#fff';
+    ctx.fillStyle = bg;
+    roundRect(ctx, 46, y+10, 22, 22, 4); ctx.fill();
+    if (bg === '#fff') { ctx.strokeStyle='#bbb'; ctx.lineWidth=1; roundRect(ctx, 46, y+10, 22, 22, 4); ctx.stroke(); }
+    ctx.fillStyle = tx;
+    ctx.font = '900 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(h.banum), 57, y+25);
+
+    // 馬名
+    ctx.fillStyle = tc.race;
+    ctx.font = `${isTop?'900':'700'} ${isTop?'14':'12'}px sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText(h.name || `${h.banum}番`, 74, y + rowH/2 - 4);
+
+    // サブ情報
+    ctx.fillStyle = tc.logo;
+    ctx.font = '9px sans-serif';
+    const sub = [h.kyakushitsu, h.jockey, h.odds ? h.odds+'倍' : ''].filter(Boolean).join(' | ');
+    ctx.fillText(sub, 74, y + rowH/2 + 10);
+
+    // スコアバー
+    const bx = W - 36 - barMaxW;
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    roundRect(ctx, bx, y+14, barMaxW, 8, 4); ctx.fill();
+    const barColor = isTop ? accentColor : (h.paceAdj > 0 ? '#34c759' : h.paceAdj < 0 ? '#ff453a' : '#4f8ef7');
+    ctx.fillStyle = barColor;
+    roundRect(ctx, bx, y+14, Math.max(barW,4), 8, 4); ctx.fill();
+
+    // スコア数値
+    ctx.fillStyle = isTop ? accentColor : tc.race;
+    ctx.font = `900 ${isTop?'15':'13'}px sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.fillText(`${h.totalScore}pt`, W-22, y + rowH/2 + 5);
+
+    ctx.restore();
+  });
 }
 
 function roundRect(ctx, x, y, w, h, r) {
