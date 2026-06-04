@@ -3914,10 +3914,15 @@ function imgGenerate(type) {
   const betColors = ['#ff2d55','#007aff','#34c759','#ff9500'];
   const W = 450;
   const H = type === 'score' ? 1000 : 800;
+  const DPR = Math.min(window.devicePixelRatio || 2, 3); // 最大3倍
 
   const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
   const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR); // 全描画を高解像度に
 
   // テーマ設定
   const theme = _imgTheme || 'dark';
@@ -3932,19 +3937,21 @@ function imgGenerate(type) {
   const doRender = () => {
     const imgH = type === 'score' ? Math.round(H * 0.32) : Math.round(H * 0.45);
 
-    // ── ロゴ・レース名 ──
-    ctx.save();
-    ctx.fillStyle = tc.logo;
-    ctx.font = '700 13px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('RACE PREDICT PRO', 18, imgH + 48);
-    ctx.fillStyle = tc.race;
-    ctx.font = '900 26px sans-serif';
-    ctx.fillText(raceName, 18, imgH + 76);
-    ctx.fillStyle = tc.pace;
-    ctx.font = '700 13px sans-serif';
-    ctx.fillText('⚡ ' + paceLabel, 18, imgH + 95);
-    ctx.restore();
+    // ── ロゴ・レース名（scoreは独自描画するのでスキップ）──
+    if (type !== 'score') {
+      ctx.save();
+      ctx.fillStyle = tc.logo;
+      ctx.font = '700 13px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('RACE PREDICT PRO', 18, imgH + 48);
+      ctx.fillStyle = tc.race;
+      ctx.font = '900 26px sans-serif';
+      ctx.fillText(raceName, 18, imgH + 76);
+      ctx.fillStyle = tc.pace;
+      ctx.font = '700 13px sans-serif';
+      ctx.fillText('⚡ ' + paceLabel, 18, imgH + 95);
+      ctx.restore();
+    }
 
     // ── タイプ別 ──
     if (type === 'score') {
@@ -4368,87 +4375,110 @@ function drawScoreRanking(ctx, W, imgH, tc) {
     return {...h, totalScore, paceAdj};
   }).sort((a,b)=>b.totalScore-a.totalScore).slice(0,8);
 
-  const maxScore = ranked[0]?.totalScore || 1;
-  const accentColor = tc.pace === '#FFD700' ? '#FFD700' : '#e94560';
+  const maxScore = Math.max(...ranked.map(h=>h.totalScore), 1);
 
-  // タイトル
+  // ── ヘッダー ──
   ctx.save();
   ctx.fillStyle = tc.logo;
   ctx.font = '700 11px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('RACE PREDICT PRO', 18, imgH + 20);
+  ctx.fillText('RACE PREDICT PRO', 18, imgH + 22);
   ctx.fillStyle = tc.race;
   ctx.font = '900 20px sans-serif';
-  ctx.fillText(`${currentRaceName || 'レース'}`, 18, imgH + 46);
+  ctx.fillText(currentRaceName || 'レース', 18, imgH + 48);
   ctx.fillStyle = tc.pace;
-  ctx.font = '700 12px sans-serif';
-  ctx.fillText(`⚡ ${paceLabel}　📊 スコアランキング`, 18, imgH + 64);
+  ctx.font = '700 11px sans-serif';
+  ctx.fillText('⚡ ' + paceLabel + '　📊 スコアランキング', 18, imgH + 65);
   ctx.restore();
 
-  // ランキングバー
-  const startY = imgH + 78;
-  const rowH = 46;
-  const barMaxW = W - 120;
+  // ── 各行 ──
+  // レイアウト定義
+  const PAD   = 14;       // 左右余白
+  const rowH  = 80;       // 1行の高さ
+  const gap   = 6;        // 行間
+  const startY = imgH + 76;
+
+  const RANK_W  = 22;     // 順位幅
+  const WAKU_W  = 28;     // 枠番ボックス幅
+  const SCORE_W = 52;     // スコア幅（右端）
+  const NAME_X  = PAD + RANK_W + 8 + WAKU_W + 8; // 馬名開始X
+  const BAR_X   = NAME_X; // バー開始X
+  const BAR_W   = W - PAD - SCORE_W - BAR_X - 8;  // バー幅
 
   ranked.forEach((h, i) => {
-    const y = startY + i * (rowH + 4);
-    const isTop = i === 0;
-    const barW = Math.round((h.totalScore / maxScore) * barMaxW);
+    const y      = startY + i * (rowH + gap);
+    const isTop  = i === 0;
+    const accent = '#FFD700';
 
     ctx.save();
+
     // 行背景
-    ctx.fillStyle = isTop ? `${accentColor}22` : tc.card;
-    roundRect(ctx, 18, y, W-36, rowH, 6);
+    ctx.fillStyle = isTop ? 'rgba(255,215,0,0.12)' : tc.card;
+    roundRect(ctx, PAD, y, W - PAD*2, rowH, 8);
     ctx.fill();
     if (isTop) {
-      ctx.strokeStyle = accentColor;
+      ctx.strokeStyle = '#FFD700';
       ctx.lineWidth = 1.5;
-      roundRect(ctx, 18, y, W-36, rowH, 6);
+      roundRect(ctx, PAD, y, W - PAD*2, rowH, 8);
       ctx.stroke();
     }
 
     // 順位
-    ctx.fillStyle = isTop ? accentColor : tc.logo;
-    ctx.font = `900 ${isTop?'16':'13'}px sans-serif`;
+    ctx.fillStyle = isTop ? '#FFD700' : tc.logo;
+    ctx.font = `900 ${isTop ? 18 : 14}px sans-serif`;
     ctx.textAlign = 'center';
-    ctx.fillText(`${i+1}`, 34, y + rowH/2 + 5);
+    ctx.fillText(String(i + 1), PAD + RANK_W/2, y + 28);
 
     // 枠番ボックス
-    const bg = imgWakuColor(h.banum);
-    const tx = (bg === '#fff' || bg === '#e6c800') ? '#222' : '#fff';
-    ctx.fillStyle = bg;
-    roundRect(ctx, 46, y+10, 22, 22, 4); ctx.fill();
-    if (bg === '#fff') { ctx.strokeStyle='#bbb'; ctx.lineWidth=1; roundRect(ctx, 46, y+10, 22, 22, 4); ctx.stroke(); }
-    ctx.fillStyle = tx;
-    ctx.font = '900 11px sans-serif';
+    const wBg  = imgWakuColor(h.banum);
+    const wTx  = (wBg === '#fff' || wBg === '#e6c800') ? '#222' : '#fff';
+    const wkX  = PAD + RANK_W + 8;
+    ctx.fillStyle = wBg;
+    roundRect(ctx, wkX, y + 10, WAKU_W, WAKU_W, 5);
+    ctx.fill();
+    if (wBg === '#fff') {
+      ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
+      roundRect(ctx, wkX, y + 10, WAKU_W, WAKU_W, 5); ctx.stroke();
+    }
+    ctx.fillStyle = wTx;
+    ctx.font = '900 13px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(String(h.banum), 57, y+25);
+    ctx.fillText(String(h.banum), wkX + WAKU_W/2, y + 28);
 
-    // 馬名
+    // 馬名（上段）
     ctx.fillStyle = tc.race;
-    ctx.font = `${isTop?'900':'700'} ${isTop?'14':'12'}px sans-serif`;
+    ctx.font = `${isTop ? '900' : '700'} ${isTop ? 15 : 13}px sans-serif`;
     ctx.textAlign = 'left';
-    ctx.fillText(h.name || `${h.banum}番`, 74, y + rowH/2 - 4);
+    // 長い名前はトリミング
+    let name = h.name || `${h.banum}番`;
+    ctx.fillText(name, NAME_X, y + 26);
 
-    // サブ情報
-    ctx.fillStyle = tc.logo;
-    ctx.font = '9px sans-serif';
-    const sub = [h.kyakushitsu, h.jockey, h.odds ? h.odds+'倍' : ''].filter(Boolean).join(' | ');
-    ctx.fillText(sub, 74, y + rowH/2 + 10);
+    // サブ情報（中段）
+    const sub = [h.kyakushitsu, h.jockey, h.odds ? h.odds + '倍' : ''].filter(Boolean).join(' | ');
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.font = '700 10px sans-serif';
+    ctx.fillText(sub, NAME_X, y + 42);
 
-    // スコアバー
-    const bx = W - 36 - barMaxW;
+    // バー（下段）
+    const barRatio = h.totalScore / maxScore;
+    const barW = Math.round(barRatio * BAR_W);
+    const barY = y + 52;
+    const barH = 10;
+    // バー背景
     ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    roundRect(ctx, bx, y+14, barMaxW, 8, 4); ctx.fill();
-    const barColor = isTop ? accentColor : (h.paceAdj > 0 ? '#34c759' : h.paceAdj < 0 ? '#ff453a' : '#4f8ef7');
+    roundRect(ctx, BAR_X, barY, BAR_W, barH, 5);
+    ctx.fill();
+    // バー本体
+    const barColor = isTop ? '#FFD700' : (h.paceAdj > 0 ? '#34c759' : h.paceAdj < 0 ? '#ff453a' : '#4f8ef7');
     ctx.fillStyle = barColor;
-    roundRect(ctx, bx, y+14, Math.max(barW,4), 8, 4); ctx.fill();
+    roundRect(ctx, BAR_X, barY, Math.max(barW, 6), barH, 5);
+    ctx.fill();
 
-    // スコア数値
-    ctx.fillStyle = isTop ? accentColor : tc.race;
-    ctx.font = `900 ${isTop?'15':'13'}px sans-serif`;
+    // スコア（右端・縦中央）
+    ctx.fillStyle = isTop ? '#FFD700' : tc.race;
+    ctx.font = `900 ${isTop ? 16 : 14}px sans-serif`;
     ctx.textAlign = 'right';
-    ctx.fillText(`${h.totalScore}pt`, W-22, y + rowH/2 + 5);
+    ctx.fillText(`${h.totalScore}pt`, W - PAD, y + 38);
 
     ctx.restore();
   });
