@@ -263,6 +263,11 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <textarea id="baju-input" placeholder="1: 462&#10;2: 488&#10;3: 510"></textarea>
         <button class="btn btn-blue" onclick="applyBaju()" style="width: 100%; margin-top: 4px;">✅ 反映</button>
       </div>
+      <div style="margin-top: 10px;">
+        <label style="font-size: 10px; color: #6080a0; display: block; margin-bottom: 4px;">⏱ タイム偏差値（馬番: 偏差値）</label>
+        <textarea id="timdev-input" placeholder="1: 45&#10;2: 70&#10;3: 55"></textarea>
+        <button class="btn btn-blue" onclick="applyTimdev()" style="width: 100%; margin-top: 4px;">✅ 反映</button>
+      </div>
     </div>
   </div>
 
@@ -585,72 +590,107 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     </div>
 
 
-    <!-- 動画オーバーレイ（結果報告・買い目発表 動画版） -->
+    <!-- 画像オーバーレイ合成 -->
     <div class="card" style="border:2px solid #7c3aed;">
-      <div class="card-title" style="color:#7c3aed;">🎬 動画オーバーレイ（縦型動画に重ねる）</div>
-      <div style="font-size:9px;color:#6080a0;margin-bottom:8px;">Gemini生成の縦型動画の上に買い目・結果をアニメーション表示します。</div>
+      <div class="card-title" style="color:#7c3aed;">🖼 画像オーバーレイ合成（縦型9:16）</div>
+      <div style="font-size:9px;color:#6080a0;margin-bottom:10px;">キャラクター画像に買い目・的中・ハズレを合成してX投稿用画像を生成します。</div>
 
-      <!-- 動画アップロード -->
+      <!-- 画像アップロード -->
       <div style="margin-bottom:10px;">
-        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:4px;">📁 Gemini動画 / 画像をアップロード</label>
-        <input type="file" id="ov-video-input" accept="video/*,image/*" style="display:none;" onchange="ovLoadMedia(this)">
+        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:4px;">🖼 背景画像をアップロード（キャラクター画像など）</label>
+        <input type="file" id="img-bg-input" accept="image/*" style="display:none;" onchange="imgLoadBg(this)">
         <div style="display:flex;gap:6px;">
-          <button onclick="document.getElementById('ov-video-input').click()" style="flex:1;padding:9px;background:#f3eeff;border:1.5px dashed #7c3aed;border-radius:7px;color:#7c3aed;font-size:10px;font-weight:700;cursor:pointer;">📁 動画 / 画像を選択</button>
-          <button onclick="ovClearMedia()" style="padding:9px 12px;background:#fff0f0;border:1.5px solid #e94560;border-radius:7px;color:#e94560;font-size:10px;font-weight:700;cursor:pointer;">🗑 クリア</button>
+          <button onclick="document.getElementById('img-bg-input').click()" style="flex:1;padding:9px;background:#f3eeff;border:1.5px dashed #7c3aed;border-radius:7px;color:#7c3aed;font-size:10px;font-weight:700;cursor:pointer;">📁 画像を選択</button>
+          <button onclick="imgClear()" style="padding:9px 12px;background:#fff0f0;border:1.5px solid #e94560;border-radius:7px;color:#e94560;font-size:10px;font-weight:700;cursor:pointer;">🗑 クリア</button>
         </div>
-        <div id="ov-media-name" style="font-size:8px;color:#aaa;margin-top:3px;text-align:center;"></div>
+        <div id="img-bg-name" style="font-size:8px;color:#aaa;margin-top:3px;text-align:center;"></div>
+      </div>
+
+      <!-- デザインテーマ -->
+      <div style="margin-bottom:8px;">
+        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:4px;">🎨 デザインテーマ</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;" id="img-theme-group">
+          <button class="img-theme-btn" data-val="dark" onclick="imgSelectTheme(this)" style="padding:7px 4px;font-size:10px;border-radius:7px;border:2px solid #7c3aed;background:#1a1a2e;color:#fff;font-weight:700;cursor:pointer;">🌙 ダーク</button>
+          <button class="img-theme-btn" data-val="gold" onclick="imgSelectTheme(this)" style="padding:7px 4px;font-size:10px;border-radius:7px;border:1.5px solid #ccc;background:#fff;color:#555;font-weight:700;cursor:pointer;">✨ ゴールド</button>
+          <button class="img-theme-btn" data-val="white" onclick="imgSelectTheme(this)" style="padding:7px 4px;font-size:10px;border-radius:7px;border:1.5px solid #ccc;background:#fff;color:#555;font-weight:700;cursor:pointer;">☀️ ホワイト</button>
+        </div>
+      </div>
+
+      <!-- 的中スタンプデザイン -->
+      <div style="margin-bottom:8px;">
+        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:4px;">🎯 的中スタンプデザイン</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;" id="img-stamp-group">
+          <button class="img-stamp-btn" data-val="stamp" onclick="imgSelectStamp(this)" style="padding:7px 4px;font-size:10px;border-radius:7px;border:2px solid #7c3aed;background:#f3eeff;color:#7c3aed;font-weight:700;cursor:pointer;">🔴 ハンコ</button>
+          <button class="img-stamp-btn" data-val="ribbon" onclick="imgSelectStamp(this)" style="padding:7px 4px;font-size:10px;border-radius:7px;border:1.5px solid #ccc;background:#fff;color:#555;font-weight:700;cursor:pointer;">🎀 リボン</button>
+          <button class="img-stamp-btn" data-val="fire" onclick="imgSelectStamp(this)" style="padding:7px 4px;font-size:10px;border-radius:7px;border:1.5px solid #ccc;background:#fff;color:#555;font-weight:700;cursor:pointer;">🔥 炎</button>
+        </div>
       </div>
 
       <!-- コメント -->
       <div style="margin-bottom:8px;">
         <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">✏️ コメント（任意）</label>
-        <input id="ov-comment" class="inp" style="width:100%;" placeholder="例: 単勝・馬連的中！">
+        <input id="img-comment" class="inp" style="width:100%;" placeholder="例: 今週の本命はこの馬！">
       </div>
 
       <!-- 的中した買い目 -->
-      <div style="margin-bottom:10px;">
-        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">🎯 的中した買い目（スペース区切り・的中報告時のみ）</label>
-        <input id="ov-hits" class="inp" style="width:100%;" placeholder="例: 単勝 馬連　※空欄=全てハズレ扱い">
-      </div>
-
-      <!-- 登場タイミング -->
       <div style="margin-bottom:8px;">
-        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">⏱ 買い目カード登場開始（秒）</label>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <input type="range" id="ov-delay" min="0" max="10" step="0.5" value="1" oninput="document.getElementById('ov-delay-val').textContent=this.value+'秒'" style="flex:1;accent-color:#7c3aed;">
-          <span id="ov-delay-val" style="font-size:11px;font-weight:900;color:#7c3aed;width:34px;text-align:right;">1秒</span>
-        </div>
-        <div style="font-size:8px;color:#8090a0;margin-top:2px;">カード1枚目が登場するまでの秒数（カード間は0.2秒差で順番に登場・約20秒表示後にループ）</div>
+        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">🎯 的中した買い目（スペース区切り・的中報告時のみ）</label>
+        <input id="img-hits" class="inp" style="width:100%;" placeholder="例: 単勝 馬連　※空欄=全てハズレ扱い">
       </div>
 
-      <!-- 登場エフェクト -->
-      <div style="margin-bottom:12px;">
-        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:5px;">✨ 買い目カードの登場エフェクト</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;" id="ov-effect-group">
-          <button class="ov-eff-btn" data-val="fadeUp" onclick="ovSelectEffect(this)" style="padding:7px 4px;font-size:10px;border-radius:7px;border:2px solid #7c3aed;background:#f3eeff;color:#7c3aed;font-weight:700;cursor:pointer;">⬆️ 下から浮き上がり</button>
-          <button class="ov-eff-btn" data-val="fadeIn" onclick="ovSelectEffect(this)" style="padding:7px 4px;font-size:10px;border-radius:7px;border:1.5px solid #ccc;background:#fff;color:#555;font-weight:700;cursor:pointer;">💫 フェードイン</button>
-          <button class="ov-eff-btn" data-val="slideLeft" onclick="ovSelectEffect(this)" style="padding:7px 4px;font-size:10px;border-radius:7px;border:1.5px solid #ccc;background:#fff;color:#555;font-weight:700;cursor:pointer;">⬅️ 左からスライド</button>
-          <button class="ov-eff-btn" data-val="slideRight" onclick="ovSelectEffect(this)" style="padding:7px 4px;font-size:10px;border-radius:7px;border:1.5px solid #ccc;background:#fff;color:#555;font-weight:700;cursor:pointer;">➡️ 右からスライド</button>
-          <button class="ov-eff-btn" data-val="zoomIn" onclick="ovSelectEffect(this)" style="padding:7px 4px;font-size:10px;border-radius:7px;border:1.5px solid #ccc;background:#fff;color:#555;font-weight:700;cursor:pointer;">🔍 ズームイン</button>
-          <button class="ov-eff-btn" data-val="flipIn" onclick="ovSelectEffect(this)" style="padding:7px 4px;font-size:10px;border-radius:7px;border:1.5px solid #ccc;background:#fff;color:#555;font-weight:700;cursor:pointer;">🔄 フリップイン</button>
-        </div>
+      <!-- 払戻金額（的中時のみ） -->
+      <div style="margin-bottom:10px;">
+        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">💰 払戻金額（的中画像のみ・任意）</label>
+        <input id="img-payout" class="inp" style="width:100%;" placeholder="例: 単勝420円 馬連1320円（スペース区切りで複数OK）">
       </div>
 
       <!-- 生成ボタン -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
-        <button class="btn" onclick="generateOverlayResult(true)" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;">🎊 的中動画</button>
-        <button class="btn" onclick="generateOverlayResult(false)" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#444,#222);color:#fff;">💧 ハズレ動画</button>
-        <button class="btn" onclick="generateOverlayBuy()" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#7c3aed,#4f1fb5);color:#fff;">📋 買い目発表</button>
+        <button class="btn" onclick="imgGenerate('hit')" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;">🎊 的中画像</button>
+        <button class="btn" onclick="imgGenerate('miss')" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#444,#222);color:#fff;">💧 ハズレ画像</button>
+        <button class="btn" onclick="imgGenerate('buy')" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#7c3aed,#4f1fb5);color:#fff;">📋 買い目発表</button>
       </div>
     </div>
 
-    <!-- オーバーレイプレビュー -->
-    <div class="card" id="ov-preview-card" style="border:1px solid #7c3aed;display:none;">
-      <div class="card-title" style="color:#7c3aed;">▶ オーバーレイプレビュー</div>
-      <div id="ov-preview-area" style="padding:0;"></div>
-      <div style="margin-top:10px;padding:8px 12px;background:#f3eeff;border-radius:8px;font-size:9px;color:#7c3aed;font-weight:700;text-align:center;">
-        📱 iOS: 長押し保存 ／ 動画は画面録画機能をご利用ください
+    <!-- 画像プレビュー -->
+    <div class="card" id="img-preview-card" style="border:1px solid #7c3aed;display:none;">
+      <div class="card-title" style="color:#7c3aed;">🖼 プレビュー</div>
+      <div id="img-preview-area" style="padding:0;text-align:center;"></div>
+      <button id="img-save-btn" style="width:100%;margin-top:10px;padding:11px;background:linear-gradient(135deg,#7c3aed,#4f1fb5);border:none;border-radius:9px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.08em;" onclick="imgSave()">💾 画像を保存</button>
+      <div style="margin-top:6px;padding:7px 10px;background:#f3eeff;border-radius:8px;font-size:9px;color:#7c3aed;font-weight:700;text-align:center;">📱 長押し保存 または「画像を保存」ボタンをタップ</div>
+    </div>
+
+    <!-- 成績グラフ画像 -->
+    <div class="card" style="border:2px solid #1a9e50;">
+      <div class="card-title" style="color:#1a9e50;">📊 成績グラフ画像生成</div>
+      <div style="font-size:9px;color:#6080a0;margin-bottom:8px;">成績タブのデータから月別・的中率グラフ画像を生成します。</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div>
+          <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">📅 期間</label>
+          <select id="img-graph-period" class="sel" style="width:100%;font-size:11px;">
+            <option value="3">直近3ヶ月</option>
+            <option value="6" selected>直近6ヶ月</option>
+            <option value="12">直近12ヶ月</option>
+            <option value="all">全期間</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">📈 グラフ種類</label>
+          <select id="img-graph-type" class="sel" style="width:100%;font-size:11px;">
+            <option value="monthly">月別損益</option>
+            <option value="rate">的中率推移</option>
+            <option value="both">両方</option>
+          </select>
+        </div>
       </div>
+      <button class="btn" onclick="imgGenerateGraph()" style="width:100%;padding:10px;font-size:11px;background:linear-gradient(135deg,#1a9e50,#0d6e35);color:#fff;">📊 グラフ画像を生成</button>
+    </div>
+
+    <!-- グラフプレビュー -->
+    <div class="card" id="graph-preview-card" style="border:1px solid #1a9e50;display:none;">
+      <div class="card-title" style="color:#1a9e50;">📊 グラフプレビュー</div>
+      <div id="graph-preview-area" style="padding:0;text-align:center;"></div>
+      <button style="width:100%;margin-top:10px;padding:11px;background:linear-gradient(135deg,#1a9e50,#0d6e35);border:none;border-radius:9px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;" onclick="graphSave()">💾 グラフ画像を保存</button>
     </div>
 
     <!-- 的中/ハズレ報告カード -->
@@ -1181,6 +1221,44 @@ function applyBaju() {
   } catch (e) {
     setStatus('❌ エラー: ' + e.message.substring(0, 20), 'err');
   }
+}
+
+function applyTimdev() {
+  try {
+    const text = document.getElementById('timdev-input').value.trim();
+    if (!text) { setStatus('❌ 入力してください', 'err'); return; }
+    if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
+    const lines = text.split('\n').filter(l => l.trim());
+    let count = 0;
+    lines.forEach(line => {
+      const m = line.match(/(\d+)\s*[:\t]\s*(\d+\.?\d*)/);
+      if (m) {
+        const horse = horses.find(h => h.banum === parseInt(m[1]));
+        if (horse) {
+          const val = parseFloat(m[2]);
+          // 偏差値帯に変換（既存のtimdevキーに合わせる）
+          if      (val >= 75) horse.timdev = '75～';
+          else if (val >= 70) horse.timdev = '70～';
+          else if (val >= 65) horse.timdev = '65～';
+          else if (val >= 60) horse.timdev = '60～';
+          else if (val >= 55) horse.timdev = '55～';
+          else if (val >= 50) horse.timdev = '50～';
+          else if (val >= 45) horse.timdev = '45～';
+          else if (val >= 40) horse.timdev = '40～';
+          else if (val >= 35) horse.timdev = '35～';
+          else                horse.timdev = '0～';
+          count++;
+        }
+      }
+    });
+    if (count > 0) {
+      renderTable(); renderAnalysis();
+      setStatus(`✅ ${count}頭のタイム偏差値を反映`, 'ok');
+      document.getElementById('timdev-input').value = '';
+    } else {
+      setStatus('❌ 反映できた馬がありません', 'err');
+    }
+  } catch(e) { setStatus('❌ エラー: ' + e.message, 'err'); }
 }
 
 // 印マスター（競馬印）
@@ -3742,54 +3820,62 @@ async function saveBuyImage() {
   } catch(e) { setStatus('❌ 保存エラー: ' + e.message, 'err'); }
 }
 
-// ===== 動画オーバーレイ =====
-let ovMediaURL = null;
-let ovMediaIsPortrait = false;
-let ovMediaIsVideo = false;
+// ===== 画像オーバーレイ合成 =====
+let _imgTheme = 'dark';
+let _imgStamp = 'stamp';
+let _imgTc = {
+  bg:'#0a0a0a', text:'#ffffff', sub:'rgba(255,255,255,0.35)',
+  card:'rgba(0,0,0,0.65)', border:'rgba(255,255,255,0.15)',
+  race:'#ffffff', pace:'rgba(255,215,0,0.8)', logo:'rgba(255,255,255,0.3)'
+};
 
-function ovClearMedia() {
-  ovMediaURL        = null;
-  ovMediaIsVideo    = false;
-  ovMediaIsPortrait = false;
-  document.getElementById('ov-video-input').value = '';
-  document.getElementById('ov-media-name').textContent = '';
-  // プレビューもクリア
-  const area = document.getElementById('ov-preview-area');
-  area.innerHTML = '生成ボタンを押してください';
-  area.style.cssText = 'padding:20px;text-align:center;color:#aab0c0;font-size:9px;';
-  document.getElementById('ov-preview-card').style.display = 'none';
-  // ループタイマーも止める
-  if (window._ovLoopTimer) { clearTimeout(window._ovLoopTimer); window._ovLoopTimer = null; }
-  _ovLastType = null;
-  setStatus('🗑 動画をクリアしました', 'ok');
+function imgSelectTheme(btn) {
+  _imgTheme = btn.dataset.val;
+  document.querySelectorAll('.img-theme-btn').forEach(b => {
+    b.style.border = '1.5px solid #ccc';
+    b.style.background = '#fff';
+    b.style.color = '#555';
+  });
+  btn.style.border = '2px solid #7c3aed';
+  btn.style.background = _imgTheme === 'dark' ? '#1a1a2e' : '#f3eeff';
+  btn.style.color = _imgTheme === 'dark' ? '#fff' : '#7c3aed';
 }
 
-function ovLoadMedia(input) {
+function imgSelectStamp(btn) {
+  _imgStamp = btn.dataset.val;
+  document.querySelectorAll('.img-stamp-btn').forEach(b => {
+    b.style.border = '1.5px solid #ccc';
+    b.style.background = '#fff';
+    b.style.color = '#555';
+  });
+  btn.style.border = '2px solid #7c3aed';
+  btn.style.background = '#f3eeff';
+  btn.style.color = '#7c3aed';
+}
+
+let _imgBgDataURL = null;
+
+function imgLoadBg(input) {
   const file = input.files[0];
   if (!file) return;
-  ovMediaIsVideo = file.type.startsWith('video/');
-  document.getElementById('ov-media-name').textContent = '⏳ 読込中…';
-
-  // DataURLで読み込む（canvas drawImageのtainted回避）
+  document.getElementById('img-bg-name').textContent = '⏳ 読込中…';
   const reader = new FileReader();
-  reader.onload = (e) => {
-    ovMediaURL = e.target.result; // DataURL
-    document.getElementById('ov-media-name').textContent = '✅ ' + file.name;
-    if (ovMediaIsVideo) {
-      const v = document.createElement('video');
-      v.src = ovMediaURL;
-      v.addEventListener('loadedmetadata', () => { ovMediaIsPortrait = v.videoHeight >= v.videoWidth; });
-    } else {
-      const img = new Image();
-      img.onload = () => { ovMediaIsPortrait = img.naturalHeight >= img.naturalWidth; };
-      img.src = ovMediaURL;
-    }
+  reader.onload = e => {
+    _imgBgDataURL = e.target.result;
+    document.getElementById('img-bg-name').textContent = '✅ ' + file.name;
   };
   reader.readAsDataURL(file);
 }
 
-// 共通：買い目計算（generateResultImageと同じロジック）
-function ovCalcBets() {
+function imgClear() {
+  _imgBgDataURL = null;
+  document.getElementById('img-bg-input').value = '';
+  document.getElementById('img-bg-name').textContent = '';
+  document.getElementById('img-preview-card').style.display = 'none';
+}
+
+// 買い目計算（既存ロジック流用）
+function imgCalcBets() {
   const overrideEl = document.getElementById('pace-override');
   const override = overrideEl ? overrideEl.value : 'auto';
   const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
@@ -3805,774 +3891,494 @@ function ovCalcBets() {
     const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
     return {...h, totalScore};
   }).sort((a,b)=>b.totalScore-a.totalScore);
-  const scores = ranked.map(h=>h.totalScore);
-  const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
-  const std = Math.sqrt(scores.reduce((a,b)=>a+Math.pow(b-avg,2),0)/scores.length)||1;
-  const calcH = s => Math.round((s-avg)/std*10+50);
-  const rankedTop6Banums = new Set(ranked.slice(0,6).map(h=>Number(h.banum)));
-  const jikuHorses = ranked.filter(h=>calcH(h.totalScore)>=70);
+  const jikuHorses = ranked.filter(h => { const s=ranked.map(x=>x.totalScore); const avg=s.reduce((a,b)=>a+b,0)/s.length; const std=Math.sqrt(s.reduce((a,b)=>a+Math.pow(b-avg,2),0)/s.length)||1; return (h.totalScore-avg)/std*10+50 >= 70; });
   const jiku = jikuHorses.length > 0 ? jikuHorses : [ranked[0]];
   const jikustr = jiku.map(h=>h.banum).join('-');
-  const dbJockeyScored = ranked
-    .filter(h=>!jiku.find(j=>j.banum===h.banum))
-    .filter(h=>{ const n=Number(h.ninki); return !h.ninki||isNaN(n)||n>=3; })
-    .filter(h=>rankedTop6Banums.has(Number(h.banum)))
-    .map(h=>({...h,jockeyScore:db.jockey?.[h.jockey]||0}))
-    .sort((a,b)=>b.jockeyScore-a.jockeyScore)
-    .filter(h=>h.jockeyScore>0).slice(0,3);
-  const dbTop1Num = dbJockeyScored[0] ? Number(dbJockeyScored[0].banum) : null;
-  const dbTop1 = dbTop1Num !== null ? String(dbTop1Num) : null;
-  const excludeBanums2 = new Set([...jiku.map(h=>Number(h.banum)), dbTop1Num].filter(v=>v!=null));
-  const scoreTop5 = ranked.filter(h=>!excludeBanums2.has(Number(h.banum))).slice(0,5).map(h=>Number(h.banum));
+  const dbTop1 = ranked.filter(h=>!jiku.find(j=>j.banum===h.banum)).filter(h=>{ const n=Number(h.ninki); return !h.ninki||isNaN(n)||n>=3; }).sort((a,b)=>(db.jockey?.[b.jockey]||0)-(db.jockey?.[a.jockey]||0)).filter(h=>(db.jockey?.[h.jockey]||0)>0)[0];
+  const dbTop1Num = dbTop1 ? Number(dbTop1.banum) : null;
+  const scoreTop5 = ranked.filter(h=>!jiku.find(j=>j.banum===h.banum)&&h.banum!==dbTop1Num).slice(0,5).map(h=>Number(h.banum));
   const lines = [];
   lines.push(`単勝  ${jikustr}`);
-  if (dbTop1) {
-    const aite2 = scoreTop5[0] ? `.${scoreTop5[0]}` : '';
-    lines.push(`馬連  ${jikustr}-${dbTop1}${aite2}`);
-    lines.push(`ワイド ${jikustr}-${dbTop1}${aite2}`);
-    lines.push(`三連複 ${jikustr}-${dbTop1}-${scoreTop5.sort((a,b)=>a-b).join('.')}`);
-  } else {
-    const a1 = scoreTop5[0] || '';
-    const a2 = scoreTop5[1] ? `.${scoreTop5[1]}` : '';
-    lines.push(`馬連  ${jikustr}-${a1}${a2}`);
-    lines.push(`ワイド ${jikustr}-${a1}${a2}`);
-    lines.push(`三連複 ${jikustr}-${a1}-${scoreTop5.slice(1).sort((a,b)=>a-b).join('.')}`);
+  if (dbTop1Num) {
+    lines.push(`馬連  ${jikustr}-${dbTop1Num}${scoreTop5[0]?'.'+scoreTop5[0]:''}`);
+    lines.push(`ワイド ${jikustr}-${dbTop1Num}${scoreTop5[0]?'.'+scoreTop5[0]:''}`);
+    lines.push(`三連複 ${jikustr}-${dbTop1Num}-${scoreTop5.sort((a,b)=>a-b).join('.')}`);
   }
-  return { ranked, jiku, jikustr, paceLabel, lines };
+  return { ranked, jiku, jikustr, paceLabel, lines, topHorse: jiku[0] };
 }
 
-// 枠色ボックス（DOM要素）
-function ovBanuBox(banum) {
-  const wakuMap = {1:'background:#fff;color:#000;border:1.5px solid #bbb;',2:'background:#222;color:#fff;',3:'background:#cc2200;color:#fff;',4:'background:#003ecc;color:#fff;',5:'background:#e6c800;color:#222;',6:'background:#009900;color:#fff;',7:'background:#ff6600;color:#fff;',8:'background:#ff5faa;color:#fff;'};
-  const h2 = horses.find(x=>x.banum===Number(banum));
-  const ws = h2 && h2.waku ? wakuMap[h2.waku]||'background:#888;color:#fff;' : 'background:#888;color:#fff;';
-  const el = document.createElement('span');
-  el.style.cssText = ws+'display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:5px;font-weight:900;font-size:13px;flex-shrink:0;';
-  el.textContent = banum;
-  return el;
+// 枠色を返す
+function imgWakuColor(banum) {
+  const wakuMap = {1:'#fff',2:'#222',3:'#cc2200',4:'#003ecc',5:'#e6c800',6:'#009900',7:'#ff6600',8:'#ff5faa'};
+  const h = horses.find(x=>x.banum===Number(banum));
+  return h && h.waku ? (wakuMap[h.waku]||'#888') : '#888';
+}
+function imgWakuTextColor(banum) {
+  const h = horses.find(x=>x.banum===Number(banum));
+  if (!h || !h.waku) return '#fff';
+  return [1,5].includes(h.waku) ? '#222' : '#fff';
 }
 
-// 馬番列をDOM要素に展開
-function ovRenderBanums(str, container) {
-  const parts = str.split('-');
-  parts.forEach((part, pi) => {
-    if (pi > 0) {
-      const sep = document.createElement('span');
-      sep.style.cssText = 'color:rgba(255,255,255,0.4);font-size:14px;font-weight:900;margin:0 2px;';
-      sep.textContent = '-';
-      container.appendChild(sep);
-    }
-    part.split('.').forEach((n, ni) => {
-      if (ni > 0) {
-        const dot = document.createElement('span');
-        dot.style.cssText = 'color:rgba(255,255,255,0.35);font-size:11px;margin:0 1px;';
-        dot.textContent = '・';
-        container.appendChild(dot);
-      }
-      container.appendChild(ovBanuBox(n.trim()));
-    });
-  });
-}
-
-// エフェクト選択
-let ovSelectedEffect = 'fadeUp';
-function ovSelectEffect(btn) {
-  ovSelectedEffect = btn.dataset.val;
-  document.querySelectorAll('.ov-eff-btn').forEach(b => {
-    b.style.border = '1.5px solid #ccc';
-    b.style.background = '#fff';
-    b.style.color = '#555';
-  });
-  btn.style.border = '2px solid #7c3aed';
-  btn.style.background = '#f3eeff';
-  btn.style.color = '#7c3aed';
-}
-
-// カードアニメのCSS文字列を取得
-function ovGetCardAnim(delay) {
-  const dur = '0.5s';
-  const ease = 'cubic-bezier(0.22,1,0.36,1)';
-  const map = {
-    fadeUp:    `ovCardFadeUp    ${dur} ${delay}s ${ease} forwards`,
-    fadeIn:    `ovCardFadeIn    ${dur} ${delay}s ease forwards`,
-    slideLeft: `ovCardSlideLeft ${dur} ${delay}s ${ease} forwards`,
-    slideRight:`ovCardSlideRight ${dur} ${delay}s ${ease} forwards`,
-    zoomIn:    `ovCardZoomIn    ${dur} ${delay}s ${ease} forwards`,
-    flipIn:    `ovCardFlipIn    ${dur} ${delay}s ${ease} forwards`,
-  };
-  return map[ovSelectedEffect] || map.fadeUp;
-}
-
-// CSSアニメ注入（一度だけ）
-function ovInjectStyle() {
-  if (document.getElementById('ov-anim-style')) return;
-  const s = document.createElement('style');
-  s.id = 'ov-anim-style';
-  s.textContent = `
-    @keyframes ovSlideDown       { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes ovSlideLeft       { from{opacity:0;transform:translateX(-30px)} to{opacity:1;transform:translateX(0)} }
-    @keyframes ovFadeIn          { from{opacity:0} to{opacity:1} }
-    @keyframes ovStampPop        { 0%{opacity:0;transform:translateY(-50%) rotate(-20deg) scale(0.4)} 60%{transform:translateY(-50%) rotate(-12deg) scale(1.15)} 100%{opacity:1;transform:translateY(-50%) rotate(-12deg) scale(1)} }
-    @keyframes ovBigStamp        { 0%{opacity:0;transform:translate(-50%,-50%) rotate(-20deg) scale(0.4)} 60%{transform:translate(-50%,-50%) rotate(-12deg) scale(1.1)} 100%{opacity:0.82;transform:translate(-50%,-50%) rotate(-12deg) scale(1)} }
-    @keyframes ovSparkle         { 0%{opacity:0;transform:scale(0) translateY(0)} 30%{opacity:1} 100%{opacity:0;transform:scale(2) translateY(-50px)} }
-    @keyframes ovTextDots        { 0%{content:''}  33%{content:'・'}  66%{content:'・・'}  100%{content:'・・・'} }
-    @keyframes ovTextFadeIn      { 0%{opacity:0;transform:scale(0.85)} 100%{opacity:1;transform:scale(1)} }
-    @keyframes ovTextFadeOut     { 0%{opacity:1;transform:scale(1)} 100%{opacity:0;transform:scale(1.08)} }
-    @keyframes ovCardFadeUp      { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes ovCardFadeIn      { from{opacity:0} to{opacity:1} }
-    @keyframes ovCardSlideLeft   { from{opacity:0;transform:translateX(-60px)} to{opacity:1;transform:translateX(0)} }
-    @keyframes ovCardSlideRight  { from{opacity:0;transform:translateX(60px)} to{opacity:1;transform:translateX(0)} }
-    @keyframes ovCardZoomIn      { from{opacity:0;transform:scale(0.6)} to{opacity:1;transform:scale(1)} }
-    @keyframes ovCardFlipIn      { from{opacity:0;transform:perspective(400px) rotateX(-70deg)} to{opacity:1;transform:perspective(400px) rotateX(0deg)} }
-  `;
-  document.head.appendChild(s);
-}
-
-// 中央アナウンステキスト生成
-function ovMakeCenterText(text, baseDelay) {
-  if (baseDelay <= 0) return null;
-  const fadeOutStart = Math.max(0, baseDelay - 0.5);
-
-  // wrapはinset:0のflex中央
-  const wrap = document.createElement('div');
-  wrap.style.position   = 'absolute';
-  wrap.style.top        = '0';
-  wrap.style.left       = '0';
-  wrap.style.right      = '0';
-  wrap.style.bottom     = '0';
-  wrap.style.display    = 'flex';
-  wrap.style.alignItems = 'center';
-  wrap.style.justifyContent = 'center';
-  wrap.style.zIndex     = '25';
-  wrap.style.pointerEvents = 'none';
-
-  // 背景ボックス（幅はbgで制御・transformなし）
-  const bg = document.createElement('div');
-  bg.style.width          = '72%';
-  bg.style.maxWidth       = '240px';
-  bg.style.background     = 'rgba(0,0,0,0.78)';
-  bg.style.borderRadius   = '14px';
-  bg.style.padding        = '18px 18px 20px';
-  bg.style.textAlign      = 'center';
-  bg.style.border         = '1px solid rgba(255,255,255,0.15)';
-  bg.style.animation      = `ovTextFadeIn 0.5s 0.1s cubic-bezier(0.22,1,0.36,1) both, ovTextFadeOut 0.5s ${fadeOutStart}s ease forwards`;
-
-  // テキスト
-  const t = document.createElement('div');
-  t.style.fontSize   = '15px';
-  t.style.fontWeight = '900';
-  t.style.color      = '#fff';
-  t.style.letterSpacing = '0.05em';
-  t.style.lineHeight = '1.6';
-  t.style.textShadow = '0 2px 8px rgba(0,0,0,0.9)';
-  t.textContent = text;
-
-  // ドット点滅
-  const dots = document.createElement('div');
-  dots.style.fontSize   = '20px';
-  dots.style.color      = '#FFD94A';
-  dots.style.marginTop  = '8px';
-  dots.style.fontWeight = '900';
-  dots.style.minHeight  = '28px';
-  dots.style.letterSpacing = '0.2em';
-  let d = 0;
-  const dotStrs = ['', '・', '・・', '・・・'];
-  const iv = setInterval(() => { d = (d+1)%4; dots.textContent = dotStrs[d]; }, 400);
-  setTimeout(() => clearInterval(iv), baseDelay * 1000);
-
-  bg.appendChild(t);
-  bg.appendChild(dots);
-  wrap.appendChild(bg);
-  return wrap;
-}
-
-// メディア背景を生成
-function ovMakeBg() {
-  const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:absolute;inset:0;background:#0a0a0a;overflow:hidden;';
-  if (ovMediaURL) {
-    if (ovMediaIsVideo) {
-      const v = document.createElement('video');
-      v.src = ovMediaURL;
-      v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
-      v.crossOrigin = 'anonymous';
-      if (ovMediaIsPortrait) {
-        v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
-      } else {
-        v.style.cssText = 'position:absolute;top:50%;left:0;width:100%;height:auto;transform:translateY(-50%);object-fit:contain;';
-      }
-      wrap.appendChild(v);
-    } else {
-      const img = document.createElement('img');
-      img.src = ovMediaURL;
-      img.style.cssText = ovMediaIsPortrait
-        ? 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;'
-        : 'position:absolute;top:50%;left:0;width:100%;height:auto;transform:translateY(-50%);object-fit:contain;';
-      wrap.appendChild(img);
-    }
-  } else {
-    wrap.style.background = 'linear-gradient(160deg,#1a1205,#0d0d18,#0a0a0a)';
-    const ph = document.createElement('div');
-    ph.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.12);font-size:11px;letter-spacing:0.15em;';
-    ph.textContent = '🎬 動画なし（プレースホルダー）';
-    wrap.appendChild(ph);
-  }
-  return wrap;
-}
-
-// スパーク
-function ovMakeSparks() {
-  const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:20;overflow:hidden;';
-  const pos = [{l:'10%',t:'25%'},{l:'90%',t:'20%'},{l:'75%',t:'55%'},{l:'15%',t:'70%'},{l:'50%',t:'15%'},{l:'85%',t:'78%'}];
-  const cols = ['#FFD94A','#FF8C00','#fff','#FF6B6B','#00E5FF'];
-  pos.forEach((p,i) => {
-    const s = document.createElement('div');
-    const sz = 3+Math.random()*5;
-    s.style.cssText = `position:absolute;left:${p.l};top:${p.t};width:${sz}px;height:${sz}px;border-radius:50%;background:${cols[i%cols.length]};opacity:0;animation:ovSparkle ${1.4+Math.random()*2}s ${0.4+i*0.3}s linear infinite;`;
-    wrap.appendChild(s);
-  });
-  return wrap;
-}
-
-// 共通：カード枠を生成
-function ovMakeCard() {
-  ovInjectStyle();
-  const card = document.createElement('div');
-  card.style.cssText = 'position:relative;width:100%;max-width:360px;margin:0 auto;aspect-ratio:9/16;overflow:hidden;border-radius:14px;background:#0a0a0a;box-shadow:0 0 40px rgba(124,58,237,0.25),0 16px 48px rgba(0,0,0,0.7);';
-  card.appendChild(ovMakeBg());
-  card.appendChild(ovMakeSparks());
-  // 上下グラデ
-  // 下半分グラデ（テキスト読みやすくする）上はキャラが見えるよう透明
-  const bg2 = document.createElement('div');
-  bg2.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:62%;background:linear-gradient(0deg,rgba(0,0,0,0.90) 55%,rgba(0,0,0,0.4) 80%,transparent 100%);z-index:10;pointer-events:none;';
-  card.appendChild(bg2);
-  return card;
-}
-
-// ── 的中 / ハズレ動画 ──
-function generateOverlayResult(isHit) {
+// メイン生成関数
+function imgGenerate(type) {
   if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
-  const { jikustr, paceLabel, lines } = ovCalcBets();
-  const raceName = currentRaceName || 'レース';
-  const comment  = (document.getElementById('ov-comment').value || '').trim();
-  const hitTypes = (document.getElementById('ov-hits').value || '').trim();
-  const hitSet   = new Set(hitTypes.split(/[\s,、]+/).filter(Boolean));
+  const { jiku, jikustr, paceLabel, lines, topHorse } = imgCalcBets();
+  const raceName  = currentRaceName || 'レース';
+  const comment   = (document.getElementById('img-comment').value || '').trim();
+  const hitTypes  = new Set((document.getElementById('img-hits').value || '').split(/[\s,、]+/).filter(Boolean));
+  const payout    = (document.getElementById('img-payout')?.value || '').trim();
   const betLabels = ['単勝','馬連','ワイド','三連複'];
   const betColors = ['#ff2d55','#007aff','#34c759','#ff9500'];
+  const W = 450, H = 800;
 
-  const card = ovMakeCard();
-
-  // 中央アナウンステキスト
-  const baseDelayR = parseFloat(document.getElementById('ov-delay')?.value || 1);
-  if (baseDelayR > 0) {
-    const ct = ovMakeCenterText('今回のレース結果は…', baseDelayR);
-    if (ct) card.appendChild(ct);
-  }
-
-  // レース名バー（下部・買い目の上）
-  const raceBar = document.createElement('div');
-  const bdR = parseFloat(document.getElementById('ov-delay')?.value||1);
-  raceBar.style.cssText = `position:absolute;left:12px;right:12px;bottom:46%;z-index:15;opacity:0;animation:ovSlideDown 0.5s ${bdR+0.0}s cubic-bezier(0.22,1,0.36,1) forwards;`;
-  raceBar.innerHTML = `
-    <div style="font-size:9px;color:rgba(255,255,255,0.45);letter-spacing:0.22em;margin-bottom:1px;">RACE PREDICT PRO</div>
-    <div style="font-size:14px;font-weight:900;color:#fff;letter-spacing:0.05em;text-shadow:0 1px 8px rgba(0,0,0,0.8);">${raceName}</div>
-    <div style="font-size:9px;color:rgba(255,215,0,0.7);margin-top:1px;font-weight:700;">🏇 軸馬: ${jikustr}　⚡ ${paceLabel}</div>
-  `;
-  card.appendChild(raceBar);
-
-  // 買い目ラベル
-  const betLabel = document.createElement('div');
-  betLabel.style.cssText = `position:absolute;left:12px;right:12px;bottom:43%;z-index:15;font-size:9px;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:0.18em;opacity:0;animation:ovFadeIn 0.4s ${bdR+0.1}s ease forwards;`;
-  betLabel.textContent = '🎯 推奨買い目（結果）';
-  card.appendChild(betLabel);
-
-  // 買い目カード×4
-  const betWrap = document.createElement('div');
-  betWrap.style.cssText = 'position:absolute;left:12px;right:12px;top:55%;z-index:15;display:flex;flex-direction:column;gap:5px;';
-
-  lines.forEach((line, i) => {
-    const label = betLabels[i] || '';
-    const cnt   = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
-    const col   = betColors[i];
-    const isLineHit = isHit && hitSet.has(label);
-    const rowBg = isLineHit ? 'rgba(233,69,96,0.2)' : 'rgba(0,0,0,0.65)';
-    const border = isLineHit ? '1.5px solid #e94560' : '1px solid rgba(255,255,255,0.15)';
-    const baseDelay = parseFloat(document.getElementById('ov-delay')?.value || 1);
-    const delay = baseDelay + i * 0.2;
-
-    const row = document.createElement('div');
-    row.style.cssText = `position:relative;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;background:${rowBg};border:${border};backdrop-filter:blur(8px);opacity:0;animation:${ovGetCardAnim(delay)};`;
-
-    // 種別ピル
-    const pill = document.createElement('div');
-    pill.style.cssText = `background:${col};color:#fff;font-size:9px;font-weight:900;padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0;`;
-    pill.textContent = label;
-    row.appendChild(pill);
-
-    // 馬番
-    const nums = document.createElement('div');
-    nums.style.cssText = 'display:flex;align-items:center;flex-wrap:wrap;gap:3px;flex:1;';
-    ovRenderBanums(cnt, nums);
-    row.appendChild(nums);
-
-    // 的中スタンプ
-    if (isLineHit) {
-      const stamp = document.createElement('div');
-      stamp.style.cssText = `position:absolute;right:8px;top:50%;transform:translateY(-50%) rotate(-12deg);font-size:16px;font-weight:900;color:#e94560;border:2px solid #e94560;border-radius:4px;padding:1px 5px;white-space:nowrap;opacity:0;animation:ovStampPop 0.5s ${delay+0.3}s cubic-bezier(0.34,1.56,0.64,1) forwards;`;
-      stamp.textContent = '的中';
-      row.appendChild(stamp);
-    }
-    betWrap.appendChild(row);
-  });
-
-  // ハズレ時は全体に大スタンプ
-  if (!isHit) {
-    const bigStamp = document.createElement('div');
-    bigStamp.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-12deg);font-size:58px;font-weight:900;color:#555;border:5px solid #555;border-radius:10px;padding:4px 18px;white-space:nowrap;z-index:16;opacity:0;animation:ovBigStamp 0.6s 1.8s cubic-bezier(0.34,1.56,0.64,1) forwards;pointer-events:none;';
-    bigStamp.textContent = 'ハズレ';
-    betWrap.appendChild(bigStamp);
-  }
-  card.appendChild(betWrap);
-
-  // コメント
-  if (comment) {
-    const cm = document.createElement('div');
-    cm.style.cssText = 'position:absolute;left:12px;right:12px;bottom:6%;z-index:15;background:rgba(0,0,0,0.65);border-left:3px solid #FFD94A;border-radius:0 6px 6px 0;padding:5px 10px;opacity:0;animation:ovFadeIn 0.4s 2.2s ease forwards;backdrop-filter:blur(6px);';
-    cm.innerHTML = `<span style="font-size:9px;color:rgba(255,255,255,0.9);font-weight:700;line-height:1.5;">💬 ${comment}</span>`;
-    card.appendChild(cm);
-  }
-
-  // フッター
-  const footer = document.createElement('div');
-  footer.style.cssText = 'position:absolute;bottom:14px;right:14px;z-index:15;font-size:8px;color:rgba(255,255,255,0.22);letter-spacing:0.12em;opacity:0;animation:ovFadeIn 0.4s 2.4s ease forwards;';
-  footer.textContent = 'RACE PREDICT PRO';
-  card.appendChild(footer);
-
-  _ovLastType = isHit ? 'hit' : 'miss';
-  ovShowPreview(card);
-  if (!_ovIsLooping) setStatus(`✅ ${isHit ? '的中' : 'ハズレ'}動画オーバーレイ生成完了！`, 'ok');
-}
-
-// ── 買い目発表動画 ──
-function generateOverlayBuy() {
-  if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
-  const { jiku, jikustr, paceLabel, lines } = ovCalcBets();
-  const raceName = currentRaceName || 'レース';
-  const comment  = (document.getElementById('ov-comment').value || '').trim();
-  const betLabels = ['単勝','馬連','ワイド','三連複'];
-  const betColors = ['#ff2d55','#007aff','#34c759','#ff9500'];
-  const topHorse = jiku[0];
-
-  const card = ovMakeCard();
-
-  // 中央アナウンステキスト
-  const baseDelayB = parseFloat(document.getElementById('ov-delay')?.value || 1);
-  if (baseDelayB > 0) {
-    const ct = ovMakeCenterText('今回のレースの買い目は…', baseDelayB);
-    if (ct) card.appendChild(ct);
-  }
-
-  // レース名バー（下部）
-  const raceBar = document.createElement('div');
-  const bdB = parseFloat(document.getElementById('ov-delay')?.value||1);
-  raceBar.style.cssText = `position:absolute;left:12px;right:12px;bottom:52%;z-index:15;opacity:0;animation:ovSlideDown 0.5s ${bdB+0.0}s cubic-bezier(0.22,1,0.36,1) forwards;`;
-  raceBar.innerHTML = `
-    <div style="font-size:9px;color:rgba(255,255,255,0.45);letter-spacing:0.22em;margin-bottom:1px;">RACE PREDICT PRO</div>
-    <div style="font-size:14px;font-weight:900;color:#fff;letter-spacing:0.05em;text-shadow:0 1px 8px rgba(0,0,0,0.8);">${raceName}</div>
-    <div style="font-size:9px;color:rgba(255,215,0,0.7);margin-top:1px;font-weight:700;">⚡ ${paceLabel}</div>
-  `;
-  card.appendChild(raceBar);
-
-  // 本命馬名バナー
-  const horseBanner = document.createElement('div');
-  horseBanner.style.cssText = `position:absolute;left:0;right:0;bottom:44%;z-index:15;padding:0 12px;opacity:0;animation:ovSlideLeft 0.55s ${bdB+0.1}s cubic-bezier(0.22,1,0.36,1) forwards;`;
-  const badge = document.createElement('div');
-  badge.style.cssText = 'display:inline-block;background:#C0001A;color:#fff;font-size:9px;font-weight:900;letter-spacing:0.18em;padding:2px 9px;border-radius:3px 3px 0 0;';
-  badge.textContent = '◎ 本命';
-  const nameBox = document.createElement('div');
-  nameBox.style.cssText = 'display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.75);border-left:4px solid #FFD94A;padding:6px 12px;border-radius:0 8px 8px 0;backdrop-filter:blur(6px);';
-  if (topHorse) {
-    const wakuEl = ovBanuBox(topHorse.banum);
-    wakuEl.style.width = '28px'; wakuEl.style.height = '28px'; wakuEl.style.fontSize = '14px';
-    nameBox.appendChild(wakuEl);
-  }
-  const nameText = document.createElement('div');
-  nameText.style.cssText = 'font-size:26px;font-weight:900;color:#fff;line-height:1;text-shadow:0 2px 10px rgba(0,0,0,0.9);';
-  nameText.textContent = topHorse ? (topHorse.name || topHorse.banum+'番') : jikustr;
-  nameBox.appendChild(nameText);
-  horseBanner.appendChild(badge);
-  horseBanner.appendChild(nameBox);
-  card.appendChild(horseBanner);
-
-  // 買い目ラベル
-  const bLabel = document.createElement('div');
-  bLabel.style.cssText = `position:absolute;left:12px;right:12px;bottom:41%;z-index:15;font-size:9px;font-weight:700;color:rgba(255,255,255,0.45);letter-spacing:0.18em;opacity:0;animation:ovFadeIn 0.4s ${bdB+0.2}s ease forwards;`;
-  bLabel.textContent = '📋 今週の買い目';
-  card.appendChild(bLabel);
-
-  // 買い目カード×4
-  const betWrap = document.createElement('div');
-  betWrap.style.cssText = 'position:absolute;left:12px;right:12px;top:60%;z-index:15;display:flex;flex-direction:column;gap:5px;';
-  lines.forEach((line, i) => {
-    const label = betLabels[i] || '';
-    const cnt   = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
-    const col   = betColors[i];
-    const baseDelay = parseFloat(document.getElementById('ov-delay')?.value || 1);
-    const delay = baseDelay + i * 0.2;
-    const row = document.createElement('div');
-    row.style.cssText = `position:relative;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,0.14);backdrop-filter:blur(8px);opacity:0;animation:${ovGetCardAnim(delay)};`;
-    const pill = document.createElement('div');
-    pill.style.cssText = `background:${col};color:#fff;font-size:9px;font-weight:900;padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0;`;
-    pill.textContent = label;
-    row.appendChild(pill);
-    const nums = document.createElement('div');
-    nums.style.cssText = 'display:flex;align-items:center;flex-wrap:wrap;gap:3px;flex:1;';
-    ovRenderBanums(cnt, nums);
-    row.appendChild(nums);
-    betWrap.appendChild(row);
-  });
-  card.appendChild(betWrap);
-
-  // コメント
-  if (comment) {
-    const cm = document.createElement('div');
-    cm.style.cssText = 'position:absolute;left:12px;right:12px;bottom:5%;z-index:15;background:rgba(0,0,0,0.65);border-left:3px solid #FFD94A;border-radius:0 6px 6px 0;padding:5px 10px;opacity:0;animation:ovFadeIn 0.4s 2.0s ease forwards;backdrop-filter:blur(6px);';
-    cm.innerHTML = `<span style="font-size:9px;color:rgba(255,255,255,0.9);font-weight:700;line-height:1.5;">💬 ${comment}</span>`;
-    card.appendChild(cm);
-  }
-
-  // フッター
-  const footer = document.createElement('div');
-  footer.style.cssText = 'position:absolute;bottom:14px;right:14px;z-index:15;font-size:8px;color:rgba(255,255,255,0.22);letter-spacing:0.12em;opacity:0;animation:ovFadeIn 0.4s 2.2s ease forwards;';
-  footer.textContent = 'RACE PREDICT PRO';
-  card.appendChild(footer);
-
-  _ovLastType = 'buy';
-  ovShowPreview(card);
-  if (!_ovIsLooping) setStatus('✅ 買い目発表動画オーバーレイ生成完了！', 'ok');
-}
-
-// canvas録画でオーバーレイを動画に焼き込んで保存
-async function ovStartRecording(card, btn) {
-  const videoEl = card.querySelector('video');
-  if (!videoEl) { alert('動画をアップロードしてください。'); return; }
-
-  const W = card.offsetWidth  || 360;
-  const H = card.offsetHeight || 640;
-  const baseDelay   = parseFloat(document.getElementById('ov-delay')?.value || 1);
-  const vidDuration = (isFinite(videoEl.duration) && videoEl.duration > 0) ? videoEl.duration : 10;
-  const totalSec    = Math.max(vidDuration + 0.5, baseDelay + 5);
-
-  if (btn) { btn.textContent = `⏺ 処理中… (${Math.ceil(totalSec)}秒かかります)`; btn.disabled = true; }
-  setStatus('⏺ オーバーレイ録画中…', 'ok');
-
-  // ── Step1: オーバーレイのみをcanvasに録画 ──
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  const mimeType = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']
-    .find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
+  // テーマ設定
+  const theme = _imgTheme || 'dark';
+  const themeColors = {
+    dark:  { bg:'#0a0a0a', card:'rgba(0,0,0,0.65)',        border:'rgba(255,255,255,0.15)', race:'#ffffff',  pace:'rgba(255,215,0,0.8)', logo:'rgba(255,255,255,0.3)' },
+    gold:  { bg:'#1a1000', card:'rgba(30,20,0,0.8)',        border:'rgba(255,200,0,0.3)',   race:'#FFE066',  pace:'#FFD700',             logo:'rgba(255,200,0,0.5)'   },
+    white: { bg:'#f5f5f0', card:'rgba(255,255,255,0.85)',   border:'rgba(0,0,100,0.15)',    race:'#1a1a2e',  pace:'#e94560',             logo:'rgba(0,0,50,0.3)'      },
+  };
+  const tc = themeColors[theme] || themeColors.dark;
+  _imgTc = tc;
 
-  // アニメリセット
-  const animEls = Array.from(card.querySelectorAll('[style*="animation"]'));
-  animEls.forEach(el => {
-    el._oa = el.style.animation; el._oo = el.style.opacity;
-    el.style.animation = 'none'; el.style.opacity = '0';
-  });
-  void card.offsetWidth;
-  animEls.forEach(el => { el.style.animation = el._oa; el.style.opacity = el._oo; });
+  const doRender = () => {
+    const imgH = Math.round(H * 0.45);
 
-  // オーバーレイ録画（背景は透明）
-  const overlayBlob = await new Promise(resolve => {
-    const chunks = [];
-    const rec = new MediaRecorder(canvas.captureStream(30), { mimeType, videoBitsPerSecond: 4000000 });
-    rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-    rec.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+    // ── ロゴ・レース名 ──
+    ctx.save();
+    ctx.fillStyle = tc.logo;
+    ctx.font = '700 13px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('RACE PREDICT PRO', 18, imgH + 48);
+    ctx.fillStyle = tc.race;
+    ctx.font = '900 26px sans-serif';
+    ctx.fillText(raceName, 18, imgH + 76);
+    ctx.fillStyle = tc.pace;
+    ctx.font = '700 13px sans-serif';
+    ctx.fillText('⚡ ' + paceLabel, 18, imgH + 95);
+    ctx.restore();
 
-    rec.start(100);
-    let startTime = null;
-    const cardRect = card.getBoundingClientRect();
+    // ── タイプ別 ──
+    if (type === 'buy') {
+      drawHorseBanner(ctx, topHorse, jikustr, 18, imgH + 112, W - 36);
+      drawBetCards(ctx, lines, betLabels, betColors, null, 18, imgH + 170, W - 36, type);
+    } else if (type === 'hit') {
+      drawBetCards(ctx, lines, betLabels, betColors, hitTypes, 18, imgH + 112, W - 36, type);
+    } else {
+      drawBetCards(ctx, lines, betLabels, betColors, null, 18, imgH + 112, W - 36, type);
+    }
 
-    function drawEl(el) {
-      const r  = el.getBoundingClientRect();
-      const x  = r.left - cardRect.left;
-      const y  = r.top  - cardRect.top;
-      if (r.width < 1 || r.height < 1) return;
-      const cs = window.getComputedStyle(el);
-      const op = parseFloat(cs.opacity);
-      if (isNaN(op) || op < 0.03) return;
-
+    // ── ハズレスタンプ（最前面）──
+    if (type === 'miss') {
+      const cardCount = lines.length;
+      const totalH = cardCount * 44 - 6;
+      const stampX = W / 2;
+      const stampY = imgH + 112 + totalH / 2;
       ctx.save();
-      ctx.globalAlpha = Math.min(op, 1);
-      const bg = cs.backgroundColor;
-      if (bg && !bg.includes('rgba(0, 0, 0, 0)') && bg !== 'transparent') {
-        ctx.fillStyle = bg;
-        const rad = Math.min(parseFloat(cs.borderRadius)||0, r.height/2);
-        if (rad > 0 && ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x,y,r.width,r.height,rad); ctx.fill(); }
-        else ctx.fillRect(x, y, r.width, r.height);
-      }
-      const bw = parseFloat(cs.borderWidth)||0;
-      if (bw >= 1) {
-        const bc = cs.borderColor||'';
-        if (bc && !bc.includes('rgba(0, 0, 0, 0)')) {
-          ctx.strokeStyle = bc; ctx.lineWidth = bw;
-          const rad2 = Math.min(parseFloat(cs.borderRadius)||0, r.height/2);
-          if (rad2 > 0 && ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x+bw/2,y+bw/2,r.width-bw,r.height-bw,rad2); ctx.stroke(); }
-          else ctx.strokeRect(x+bw/2,y+bw/2,r.width-bw,r.height-bw);
-        }
-      }
+      ctx.font = '900 52px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const tw2 = ctx.measureText('ハズレ').width;
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      roundRect(ctx, stampX - tw2/2 - 18, stampY - 34, tw2 + 36, 68, 10);
+      ctx.fill();
+      ctx.strokeStyle = '#e94560';
+      ctx.lineWidth = 4;
+      roundRect(ctx, stampX - tw2/2 - 18, stampY - 34, tw2 + 36, 68, 10);
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = 'rgba(0,0,0,0.9)';
+      ctx.shadowBlur = 8;
+      ctx.fillText('ハズレ', stampX, stampY);
       ctx.restore();
-
-      Array.from(el.children).forEach(c => drawEl(c));
-
-      if (el.children.length === 0) {
-        const txt = el.textContent?.trim();
-        if (txt && txt.length < 100) {
-          const r2 = el.getBoundingClientRect();
-          const cs2 = window.getComputedStyle(el);
-          const op2 = parseFloat(cs2.opacity);
-          if (isNaN(op2) || op2 < 0.03) return;
-          ctx.save();
-          ctx.globalAlpha = Math.min(op2,1);
-          const fs = parseFloat(cs2.fontSize)||12;
-          ctx.font = `${cs2.fontWeight||'700'} ${fs}px "Noto Sans JP",sans-serif`;
-          ctx.fillStyle = cs2.color||'#fff';
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.shadowColor='rgba(0,0,0,0.85)'; ctx.shadowBlur=5; ctx.shadowOffsetY=1;
-          ctx.fillText(txt, r2.left-cardRect.left+r2.width/2, r2.top-cardRect.top+r2.height/2);
-          ctx.restore();
-        }
-      }
     }
 
-    function draw(ts) {
-      if (!startTime) startTime = ts;
-      const elapsed = (ts - startTime) / 1000;
-      ctx.clearRect(0, 0, W, H);
-      Array.from(card.children).forEach(el => {
-        if (el.tagName !== 'VIDEO') drawEl(el);
-      });
-      if (elapsed < totalSec) requestAnimationFrame(draw);
-      else rec.stop();
+    // ── 払戻 ──
+    if (type === 'hit' && payout) {
+      const payY = imgH + 112 + lines.length * 44 + 4;
+      drawPayout(ctx, payout, W, payY);
     }
-    requestAnimationFrame(draw);
-    setTimeout(() => { if (rec.state === 'recording') rec.stop(); }, (totalSec + 2) * 1000);
-  });
 
-  setStatus('⏺ ffmpegで動画を合成中…', 'ok');
-
-  // ── Step2: ffmpeg.wasmで元動画とオーバーレイを合成 ──
-  try {
-    const { FFmpeg } = window.FFmpegWASM || window['@ffmpeg/ffmpeg'] || {};
-    const { fetchFile, toBlobURL } = FFmpegUtil;
-
-    const ffmpeg = new FFmpeg();
-    await ffmpeg.load({
-      coreURL: await toBlobURL('https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js', 'text/javascript'),
-      wasmURL: await toBlobURL('https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm', 'application/wasm'),
-    });
-
-    // 元動画をffmpegに渡す
-    const vidData = await fetch(ovMediaURL).then(r => r.arrayBuffer());
-    await ffmpeg.writeFile('input.webm', new Uint8Array(vidData));
-
-    // オーバーレイwebmをffmpegに渡す
-    const ovData = await overlayBlob.arrayBuffer();
-    await ffmpeg.writeFile('overlay.webm', new Uint8Array(ovData));
-
-    // 合成: 元動画の上にオーバーレイをalpha合成
-    await ffmpeg.exec([
-      '-i', 'input.webm',
-      '-i', 'overlay.webm',
-      '-filter_complex', `[0:v]scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2[base];[base][1:v]overlay=0:0`,
-      '-c:v', 'libvpx-vp9',
-      '-b:v', '4M',
-      '-t', String(totalSec),
-      'output.webm'
-    ]);
-
-    const outData = await ffmpeg.readFile('output.webm');
-    const outBlob = new Blob([outData.buffer], { type: 'video/webm' });
-    const url = URL.createObjectURL(outBlob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'overlay_final_' + Date.now() + '.webm';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    if (btn) { btn.textContent = '🎬 オーバーレイ込みで動画を録画・保存'; btn.disabled = false; }
-    setStatus('✅ 動画を保存しました！', 'ok');
-
-  } catch(e) {
-    console.error('ffmpeg error:', e);
-    // ffmpeg失敗時はオーバーレイのみ保存
-    const url = URL.createObjectURL(overlayBlob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'overlay_only_' + Date.now() + '.webm';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    if (btn) { btn.textContent = '🎬 オーバーレイ込みで動画を録画・保存'; btn.disabled = false; }
-    setStatus('⚠️ 合成失敗。オーバーレイのみ保存しました', 'err');
-  }
-}
-
-// プレビューエリアに表示
-// 最後に生成したオーバーレイの種類と引数を保存
-let _ovLastType = null; // 'result_hit' | 'result_miss' | 'buy'
-
-let _ovFsTarget = null; // 全画面挿入先（nullならプレビューエリアに挿入）
-
-function ovShowPreview(card) {
-  // 全画面ターゲットがある場合はそちらに挿入してreturn
-  if (_ovFsTarget) {
-    const tw = _ovFsTarget.offsetWidth  || Math.round(window.innerHeight * 9 / 16);
-    const th = _ovFsTarget.offsetHeight || window.innerHeight;
-    card.style.cssText = `position:absolute;top:0;left:0;width:${tw}px;height:${th}px;border-radius:0;box-shadow:none;overflow:hidden;aspect-ratio:unset;max-width:unset;margin:0;`;
-    const v = card.querySelector('video');
-    if (v) {
-      v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:' + (ovMediaIsPortrait ? 'cover' : 'contain') + ';';
-      v.muted = false;
-      v.play?.().catch(()=>{});
+    // ── コメント ──
+    if (comment) {
+      const cy = H - 60;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.65)';
+      roundRect(ctx, 18, cy, W - 36, 34, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#FFD94A';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(18, cy+4); ctx.lineTo(18, cy+30); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = '700 11px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('💬 ' + comment, 28, cy + 22);
+      ctx.restore();
     }
-    _ovFsTarget.appendChild(card);
-    return;
-  }
 
-  // 既存ループタイマーをクリア
-  if (window._ovLoopTimer) { clearTimeout(window._ovLoopTimer); window._ovLoopTimer = null; }
+    // ── フッター ──
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('RACE PREDICT PRO', W - 16, H - 14);
+    ctx.restore();
 
-  const area = document.getElementById('ov-preview-area');
-  area.style.cssText = 'padding:0;';
-  area.innerHTML = '';
-  area.appendChild(card);
-
-  // ループ開始
-  const baseDelay = parseFloat(document.getElementById('ov-delay')?.value || 1);
-  // 動画の長さがあればそれに合わせる、なければ20秒
-  const vidEl = document.querySelector('#ov-preview-area video');
-  const vidLen = (vidEl && isFinite(vidEl.duration) && vidEl.duration > 0) ? vidEl.duration : 20;
-  const loopSec = Math.max(baseDelay + 4 * 0.2 + vidLen, baseDelay + 21);
-  window._ovLoopTimer = setTimeout(ovLoopRegenerate, loopSec * 1000);
-
-  // 全画面ボタン
-  const fsBtn = document.createElement('button');
-  fsBtn.style.cssText = 'width:100%;margin-top:10px;padding:12px;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1.5px solid #7c3aed;border-radius:9px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.08em;display:block;';
-  fsBtn.textContent = '⛶ 全画面表示して画面録画';
-  fsBtn.onclick = () => ovFullscreen(card);
-  area.appendChild(fsBtn);
-
-  const guide = document.createElement('div');
-  guide.style.cssText = 'margin-top:6px;padding:8px 12px;background:#f3eeff;border-radius:8px;font-size:9px;color:#7c3aed;line-height:1.7;';
-  guide.innerHTML = '📱 <b>Android録画手順:</b><br>①「全画面表示」ボタンを押す<br>②通知バー → 画面録画ボタンをON<br>③録画完了後、全画面を閉じる<br>🔁 カードは自動でループします';
-  area.appendChild(guide);
-
-  document.getElementById('ov-preview-card').style.display = 'block';
-  document.getElementById('ov-preview-card').scrollIntoView({behavior:'smooth', block:'nearest'});
-}
-
-// ループ：カードをDOMごと再生成して差し替え
-let _ovIsLooping = false;
-function ovLoopRegenerate() {
-  if (!_ovLastType) return;
-  _ovIsLooping = true;
-  if (_ovLastType === 'buy')         generateOverlayBuy();
-  else if (_ovLastType === 'hit')    generateOverlayResult(true);
-  else if (_ovLastType === 'miss')   generateOverlayResult(false);
-  _ovIsLooping = false;
-}
-
-// 全画面表示 + カウントダウン後に自動スタート
-function ovFullscreen(card) {
-  // ── ボタンの代わりにカウントダウンオーバーレイを表示 ──
-  // すぐ全画面を開いて黒幕5秒待機
-  ovOpenFullscreen(card);
-}
-
-function ovOpenFullscreen(card) {
-  const overlay = document.createElement('div');
-  overlay.id = 'ov-fs-overlay';
-  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:99999;display:flex;align-items:center;justify-content:center;';
-
-  const cardH = window.innerHeight;
-  const cardW = Math.min(window.innerWidth, Math.round(cardH * 9 / 16));
-  const cardWrap = document.createElement('div');
-  cardWrap.id = 'ov-fs-cardwrap';
-  cardWrap.style.cssText = `position:relative;overflow:hidden;width:${cardW}px;height:${cardH}px;`;
-
-  // 待機中の黒幕（動画・アニメを隠す）
-  const blackCover = document.createElement('div');
-  blackCover.style.cssText = 'position:absolute;inset:0;background:#000;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;';
-  blackCover.innerHTML = `<div style="font-size:12px;color:rgba(255,255,255,0.4);letter-spacing:0.15em;">5秒後にスタートします</div>`;
-
-  const closeBtn = document.createElement('button');
-  closeBtn.style.cssText = 'position:fixed;top:14px;right:14px;z-index:100000;background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:12px;padding:8px 16px;border-radius:20px;cursor:pointer;font-weight:700;opacity:0;';
-  closeBtn.textContent = '✕ 閉じる';
-  overlay.addEventListener('click', () => {
-    closeBtn.style.opacity = closeBtn.style.opacity === '0' ? '1' : '0';
-  });
-  closeBtn.onclick = (e) => {
-    e.stopPropagation();
-    clearInterval(fsTimer);
-    overlay.querySelectorAll('video').forEach(v => { v.pause(); v.src = ''; });
-    document.body.removeChild(overlay);
-    document.body.style.overflow = '';
-    document.exitFullscreen?.().catch(() => {});
+    showImgPreview(canvas);
   };
 
-  cardWrap.appendChild(blackCover);
-  overlay.appendChild(cardWrap);
-  overlay.appendChild(closeBtn);
-  document.body.appendChild(overlay);
-  document.body.style.overflow = 'hidden';
-  overlay.requestFullscreen?.().catch(() => {});
+  // 背景描画
+  ctx.fillStyle = tc.bg;
+  ctx.fillRect(0, 0, W, H);
 
-  function insertCard() {
-    cardWrap.innerHTML = '';
-    // 黒幕を追加してからカードを生成（動画・アニメを隠した状態で）
-    const cover = document.createElement('div');
-    cover.style.cssText = 'position:absolute;inset:0;background:#000;z-index:50;';
-    cardWrap.appendChild(cover);
-
-    _ovFsTarget = cardWrap;
-    _ovIsLooping = true;
-    if (_ovLastType === 'buy')       generateOverlayBuy();
-    else if (_ovLastType === 'hit')  generateOverlayResult(true);
-    else if (_ovLastType === 'miss') generateOverlayResult(false);
-    _ovIsLooping = false;
-    _ovFsTarget = null;
-
-    // 動画を一時停止
-    cardWrap.querySelectorAll('video').forEach(v => v.pause());
-
-    // 3秒後に黒幕を消して動画・アニメをスタート
-    setTimeout(() => {
-      cover.remove();
-      cardWrap.querySelectorAll('video').forEach(v => {
-        v.currentTime = 0;
-        v.play().catch(() => {});
-      });
-    }, 5000);
+  if (_imgBgDataURL) {
+    const img = new Image();
+    img.onload = () => {
+      const imgH = Math.round(H * 0.45);
+      const scale = Math.max(W / img.width, imgH / img.height);
+      const dw = img.width * scale;
+      const dh = img.height * scale;
+      ctx.drawImage(img, (W - dw) / 2, 0, dw, dh);
+      const grad = ctx.createLinearGradient(0, imgH * 0.6, 0, imgH + 20);
+      grad.addColorStop(0, 'rgba(10,10,10,0)');
+      grad.addColorStop(1, 'rgba(10,10,10,1)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, imgH + 20);
+      doRender();
+    };
+    img.onerror = () => { doRender(); };
+    img.src = _imgBgDataURL;
+  } else {
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#1a1205');
+    grad.addColorStop(1, '#0a0a0a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    doRender();
   }
-
-  insertCard();
-
-  const baseDelay = parseFloat(document.getElementById('ov-delay')?.value || 1);
-  const vidEl2 = document.querySelector('#ov-preview-area video');
-  const vidLen2 = (vidEl2 && isFinite(vidEl2.duration) && vidEl2.duration > 0) ? vidEl2.duration : 20;
-  const loopSec = Math.max(baseDelay + 4 * 0.2 + vidLen2, baseDelay + 21);
-  let fsTimer = setInterval(insertCard, loopSec * 1000);
 }
 
-// カウントダウンアニメCSS追加
-(function(){
-  if (document.getElementById('ov-cd-style')) return;
-  const s = document.createElement('style');
-  s.id = 'ov-cd-style';
-  s.textContent = '@keyframes ovCdPop { from{transform:scale(1.4);opacity:0.5} to{transform:scale(1);opacity:1} }';
-  document.head.appendChild(s);
-})();
-// ===== 動画オーバーレイここまで =====
+function drawHorseBanner(ctx, horse, jikustr, x, y, w) {
+  if (!horse) return;
+  ctx.save();
+  // 本命バッジ
+  ctx.fillStyle = '#C0001A';
+  roundRect(ctx, x, y, 52, 16, 3);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = '700 9px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('◎ 本命', x + 26, y + 11);
+
+  // 馬名ボックス
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  roundRect(ctx, x, y + 18, w, 42, 6);
+  ctx.fill();
+  ctx.strokeStyle = '#FFD94A';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x, y+22); ctx.lineTo(x, y+58); ctx.stroke();
+
+  // 枠番ボックス
+  const bgCol = imgWakuColor(horse.banum);
+  const txCol = imgWakuTextColor(horse.banum);
+  ctx.fillStyle = bgCol;
+  roundRect(ctx, x + 8, y + 24, 28, 28, 5);
+  ctx.fill();
+  ctx.fillStyle = txCol;
+  ctx.font = '900 14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(String(horse.banum), x + 22, y + 43);
+
+  // 馬名
+  ctx.fillStyle = '#fff';
+  ctx.font = '900 22px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(horse.name || jikustr, x + 44, y + 46);
+  ctx.restore();
+}
+
+function drawHitBadge(ctx, text, color, y) {
+  ctx.save();
+  const x = 18;
+  const pad = 10;
+  ctx.font = '900 13px sans-serif';
+  const tw = ctx.measureText(text).width + pad * 2;
+  const bh = 22;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.fillStyle = color + '22';
+  roundRect(ctx, x, y, tw, bh, 3);
+  ctx.fill();
+  roundRect(ctx, x, y, tw, bh, 3);
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.textAlign = 'left';
+  ctx.fillText(text, x + pad, y + 15);
+  ctx.restore();
+}
+
+function drawBigStamp(ctx, text, color, cx, cy) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.font = '900 42px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // 外枠
+  const tw = ctx.measureText(text).width + 24;
+  const th = 52;
+  ctx.strokeRect(cx - tw/2, cy - th/2, tw, th);
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.12;
+  ctx.fillRect(cx - tw/2, cy - th/2, tw, th);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = color;
+  ctx.fillText(text, cx, cy);
+  ctx.restore();
+}
+
+function drawBetCards(ctx, lines, betLabels, betColors, hitTypes, x, y, w, type) {
+  const cardH = 38;
+  const gap   = 6;
+  lines.forEach((line, i) => {
+    const label = betLabels[i] || '';
+    const cnt   = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
+    const col   = betColors[i];
+    const isHit = hitTypes && hitTypes.has(label);
+    const cy    = y + i * (cardH + gap);
+
+    ctx.save();
+    // カード背景
+    ctx.fillStyle = isHit ? 'rgba(233,69,96,0.18)' : _imgTc.card;
+    roundRect(ctx, x, cy, w, cardH, 8);
+    ctx.fill();
+    ctx.strokeStyle = isHit ? '#e94560' : _imgTc.border;
+    ctx.lineWidth = isHit ? 1.5 : 1;
+    roundRect(ctx, x, cy, w, cardH, 8);
+    ctx.stroke();
+
+    // 種別ピル
+    ctx.fillStyle = col;
+    roundRect(ctx, x + 8, cy + 9, 36, 20, 5);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = '700 10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x + 26, cy + 23);
+
+    // 馬番
+    let bx = x + 52;
+    const parts = cnt.split('-');
+    parts.forEach((part, pi) => {
+      if (pi > 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '700 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('-', bx + 6, cy + 23);
+        bx += 14;
+      }
+      part.split('.').forEach((n, ni) => {
+        if (ni > 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          ctx.font = '11px sans-serif';
+          ctx.fillText('・', bx + 5, cy + 23);
+          bx += 11;
+        }
+        const bg = imgWakuColor(n.trim());
+        const tx = imgWakuTextColor(n.trim());
+        ctx.fillStyle = bg;
+        roundRect(ctx, bx, cy + 7, 24, 24, 4);
+        ctx.fill();
+        if (bg === '#fff') {
+          ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
+          roundRect(ctx, bx, cy + 7, 24, 24, 4); ctx.stroke();
+        }
+        // 白背景の場合は必ず黒テキスト
+        ctx.fillStyle = (bg === '#fff' || bg === '#e6c800') ? '#222' : tx;
+        ctx.font = '900 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(n.trim(), bx + 12, cy + 23);
+        bx += 28;
+      });
+    });
+
+    // 的中スタンプ（デザイン別）
+    if (isHit) {
+      const stamp = _imgStamp || 'stamp';
+      ctx.save();
+      ctx.font = '900 13px sans-serif';
+      ctx.textAlign = 'right';
+      const sw = ctx.measureText('的中').width + 14;
+      const sx = x + w - sw - 6;
+      const sy = cy + 8;
+      const sh = 22;
+      if (stamp === 'stamp') {
+        // ハンコ風（赤枠）
+        ctx.strokeStyle = '#e94560'; ctx.lineWidth = 2;
+        ctx.strokeRect(sx, sy, sw, sh);
+        ctx.fillStyle = 'rgba(233,69,96,0.1)';
+        ctx.fillRect(sx, sy, sw, sh);
+        ctx.fillStyle = '#e94560';
+        ctx.fillText('的中', x + w - 13, cy + 23);
+      } else if (stamp === 'ribbon') {
+        // リボン風（グラデ背景）
+        const rg = ctx.createLinearGradient(sx, sy, sx+sw, sy+sh);
+        rg.addColorStop(0, '#ff6b9d'); rg.addColorStop(1, '#e94560');
+        ctx.fillStyle = rg;
+        roundRect(ctx, sx, sy, sw, sh, 11); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.fillText('的中', x + w - 13, cy + 23);
+      } else if (stamp === 'fire') {
+        // 炎風（オレンジ）
+        const fg = ctx.createLinearGradient(sx, sy, sx+sw, sy+sh);
+        fg.addColorStop(0, '#ff4500'); fg.addColorStop(1, '#ff8c00');
+        ctx.fillStyle = fg;
+        roundRect(ctx, sx, sy, sw, sh, 5); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 6;
+        ctx.fillText('的中🔥', x + w - 13, cy + 23);
+        ctx.shadowBlur = 0;
+      }
+      ctx.restore();
+    }
+
+    // ハズレ全体スタンプ
+
+    ctx.restore();
+  });
+}
+
+// キラキラエフェクト
+function drawSparkles(ctx, W, H, imgH) {
+  const stars = [
+    {x:0.08,y:0.12,s:18},{x:0.92,y:0.08,s:22},{x:0.15,y:0.35,s:14},
+    {x:0.85,y:0.28,s:16},{x:0.05,y:0.55,s:12},{x:0.95,y:0.5,s:14},
+    {x:0.12,y:0.72,s:10},{x:0.88,y:0.68,s:12},{x:0.5,y:0.06,s:16},
+    {x:0.3,y:0.18,s:10},{x:0.7,y:0.15,s:12},{x:0.25,y:0.45,s:8},
+    {x:0.75,y:0.42,s:9},{x:0.5,y:0.3,s:20}
+  ];
+  stars.forEach(({x, y, s}) => {
+    const px = x * W;
+    const py = y * H;
+    ctx.save();
+    // 4方向の光芒
+    ['#FFD700','#FFE566','#fff'].forEach((col, ci) => {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = ci === 2 ? 1 : 1.5;
+      ctx.globalAlpha = ci === 2 ? 0.6 : 0.8;
+      ctx.beginPath();
+      ctx.moveTo(px - s, py); ctx.lineTo(px + s, py);
+      ctx.moveTo(px, py - s); ctx.lineTo(px, py + s);
+      ctx.moveTo(px - s*0.6, py - s*0.6); ctx.lineTo(px + s*0.6, py + s*0.6);
+      ctx.moveTo(px + s*0.6, py - s*0.6); ctx.lineTo(px - s*0.6, py + s*0.6);
+      ctx.stroke();
+    });
+    // 中心の光点
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(px, py, s * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+// 払戻金額表示（複数対応・自動縮小）
+function drawPayout(ctx, payout, W, y) {
+  ctx.save();
+  const cx = W / 2;
+  const items = payout.trim().split(/\s+/).filter(Boolean);
+  const fontSize = items.length === 1 ? 34 : items.length === 2 ? 26 : 19;
+  const rows = items.length <= 2
+    ? [items.join('  ')]
+    : [items.slice(0, Math.ceil(items.length/2)).join('  '), items.slice(Math.ceil(items.length/2)).join('  ')];
+  const boxH = 22 + rows.length * (fontSize + 10) + 10;
+  const bx = 18, bw = W - 36;
+
+  // 枠背景
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  roundRect(ctx, bx, y, bw, boxH, 10);
+  ctx.fill();
+
+  // 金色枠線（二重）
+  ctx.strokeStyle = '#FFD700';
+  ctx.lineWidth = 2;
+  roundRect(ctx, bx, y, bw, boxH, 10);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,215,0,0.3)';
+  ctx.lineWidth = 1;
+  roundRect(ctx, bx + 4, y + 4, bw - 8, boxH - 8, 7);
+  ctx.stroke();
+
+  // 「払戻」ラベル
+  ctx.fillStyle = 'rgba(255,215,0,0.7)';
+  ctx.font = '700 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('払　戻', cx, y + 17);
+
+  // 区切り線
+  ctx.strokeStyle = 'rgba(255,215,0,0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(bx + 20, y + 22);
+  ctx.lineTo(bx + bw - 20, y + 22);
+  ctx.stroke();
+
+  // 金額テキスト
+  ctx.fillStyle = '#FFD700';
+  ctx.font = `900 ${fontSize}px sans-serif`;
+  ctx.shadowColor = 'rgba(255,140,0,0.7)';
+  ctx.shadowBlur = 12;
+  rows.forEach((row, i) => {
+    ctx.fillText(row, cx, y + 22 + (i + 1) * (fontSize + 8));
+  });
+
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function showImgPreview(canvas) {
+  const area = document.getElementById('img-preview-area');
+  area.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = canvas.toDataURL('image/png');
+  img.style.cssText = 'width:100%;border-radius:8px;display:block;';
+  img.dataset.dataurl = img.src;
+  area.appendChild(img);
+  document.getElementById('img-preview-card').style.display = 'block';
+  document.getElementById('img-preview-card').scrollIntoView({behavior:'smooth', block:'nearest'});
+  setStatus('✅ 画像生成完了！', 'ok');
+}
+
+function imgSave() {
+  const img = document.querySelector('#img-preview-area img');
+  if (!img) return;
+  const a = document.createElement('a');
+  a.href = img.dataset.dataurl || img.src;
+  a.download = 'overlay_' + Date.now() + '.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+// ===== 画像オーバーレイ合成ここまで =====
 
 // ページ非表示時に全動画を停止
 document.addEventListener('visibilitychange', () => {
@@ -4580,6 +4386,215 @@ document.addEventListener('visibilitychange', () => {
     document.querySelectorAll('video').forEach(v => v.pause());
   }
 });
+
+// ===== 成績グラフ画像生成 =====
+function imgGenerateGraph() {
+  if (!records || records.length === 0) { setStatus('❌ 成績データがありません', 'err'); return; }
+
+  const period  = document.getElementById('img-graph-period').value;
+  const gtype   = document.getElementById('img-graph-type').value;
+
+  // 期間フィルタ
+  const now = new Date();
+  const filtered = records.filter(r => {
+    if (period === 'all') return true;
+    const d = new Date(r.date);
+    const months = parseInt(period);
+    const cutoff = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
+    return d >= cutoff;
+  }).sort((a,b) => new Date(a.date) - new Date(b.date));
+
+  if (filtered.length === 0) { setStatus('❌ 該当期間のデータがありません', 'err'); return; }
+
+  // 月別集計
+  const monthly = {};
+  filtered.forEach(r => {
+    const d = new Date(r.date);
+    const key = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!monthly[key]) monthly[key] = { invest:0, ret:0, win:0, total:0 };
+    monthly[key].invest += Number(r.invest)||0;
+    monthly[key].ret    += Number(r.return)||0;
+    monthly[key].total  += 1;
+    if ((Number(r.return)||0) > 0) monthly[key].win += 1;
+  });
+
+  const months  = Object.keys(monthly).sort();
+  const profits = months.map(m => monthly[m].ret - monthly[m].invest);
+  const rates   = months.map(m => monthly[m].total > 0 ? Math.round(monthly[m].win/monthly[m].total*100) : 0);
+
+  const W = 450, H = gtype === 'both' ? 620 : 400;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // 背景
+  ctx.fillStyle = '#0f0f1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // タイトル
+  ctx.fillStyle = '#fff';
+  ctx.font = '900 16px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('📊 成績レポート', W/2, 30);
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '11px sans-serif';
+  ctx.fillText(`${months[0]} 〜 ${months[months.length-1]}　全${filtered.length}レース`, W/2, 50);
+
+  // サマリー
+  const totalInvest  = filtered.reduce((s,r)=>s+(Number(r.invest)||0),0);
+  const totalReturn  = filtered.reduce((s,r)=>s+(Number(r.return)||0),0);
+  const totalProfit  = totalReturn - totalInvest;
+  const totalWin     = filtered.filter(r=>(Number(r.return)||0)>0).length;
+  const winRate      = Math.round(totalWin/filtered.length*100);
+  const roi          = totalInvest > 0 ? Math.round(totalReturn/totalInvest*100) : 0;
+
+  const sumY = 70;
+  const summaries = [
+    { label:'投資額', val:`¥${totalInvest.toLocaleString()}`, col:'rgba(255,255,255,0.7)' },
+    { label:'払戻額', val:`¥${totalReturn.toLocaleString()}`, col:'rgba(255,255,255,0.7)' },
+    { label:'損益',   val:`${totalProfit>=0?'+':''}¥${totalProfit.toLocaleString()}`, col: totalProfit>=0?'#34c759':'#ff3b30' },
+    { label:'的中率', val:`${winRate}%`, col:'#FFD700' },
+    { label:'回収率', val:`${roi}%`, col: roi>=100?'#34c759':'#ff9500' },
+  ];
+  summaries.forEach((s, i) => {
+    const bx = 18 + i * 82;
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    roundRect(ctx, bx, sumY, 78, 46, 6); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(s.label, bx+39, sumY+14);
+    ctx.fillStyle = s.col;
+    ctx.font = `900 ${s.val.length>8?10:12}px sans-serif`;
+    ctx.fillText(s.val, bx+39, sumY+34);
+  });
+
+  const drawBarChart = (startY, data, labels, title, colorFn, unit) => {
+    const cH = 200, padL = 55, padR = 20, padT = 30, padB = 30;
+    const cW = W - padL - padR;
+    const barW = Math.min(32, cW/data.length - 4);
+    const maxV = Math.max(...data.map(Math.abs), 1);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '700 12px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(title, padL, startY + 16);
+
+    const zeroY = startY + padT + cH / 2;
+
+    // ゼロライン
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL, zeroY); ctx.lineTo(W-padR, zeroY); ctx.stroke();
+
+    // グリッド
+    [0.5, 1].forEach(f => {
+      const gy = zeroY - (cH/2)*f;
+      const gy2 = zeroY + (cH/2)*f;
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.beginPath(); ctx.moveTo(padL,gy); ctx.lineTo(W-padR,gy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(padL,gy2); ctx.lineTo(W-padR,gy2); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+      const v = Math.round(maxV * f);
+      ctx.fillText((v>=0?'+':'')+v+unit, padL-4, gy+4);
+      ctx.fillText(-v+unit, padL-4, gy2+4);
+    });
+
+    data.forEach((v, i) => {
+      const x = padL + i * (cW / data.length) + (cW/data.length - barW)/2;
+      const bh = Math.abs(v) / maxV * (cH/2 - 4);
+      const by = v >= 0 ? zeroY - bh : zeroY;
+      ctx.fillStyle = colorFn(v);
+      roundRect(ctx, x, by, barW, Math.max(bh, 2), 3); ctx.fill();
+      // ラベル
+      ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(labels[i].replace(/^\d+\//,''), x+barW/2, startY+padT+cH+padB-2);
+    });
+  };
+
+  const drawLineChart = (startY, data, labels, title, color, unit) => {
+    const cH = 160, padL = 45, padR = 20, padT = 30, padB = 25;
+    const cW = W - padL - padR;
+    const maxV = Math.max(...data, 1);
+    const minV = 0;
+
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '700 12px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(title, padL, startY + 16);
+
+    // 100%ライン
+    if (maxV >= 100) {
+      const ly = startY + padT + cH - (100-minV)/(maxV-minV||1)*cH;
+      ctx.strokeStyle = 'rgba(255,215,0,0.4)'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.moveTo(padL,ly); ctx.lineTo(W-padR,ly); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255,215,0,0.6)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText('100%', padL-4, ly+4);
+    }
+
+    const pts = data.map((v,i) => ({
+      x: padL + i*(cW/(data.length-1||1)),
+      y: startY + padT + cH - (v-minV)/(maxV-minV||1)*cH
+    }));
+
+    // 塗りつぶし
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, startY+padT+cH);
+    pts.forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.lineTo(pts[pts.length-1].x, startY+padT+cH);
+    ctx.closePath();
+    ctx.fillStyle = color+'33'; ctx.fill();
+
+    // ライン
+    ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    pts.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
+    ctx.stroke();
+
+    // 点
+    pts.forEach((p,i) => {
+      ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+      ctx.fillStyle = color; ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = '700 9px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(data[i]+unit, p.x, p.y-10);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '8px sans-serif';
+      ctx.fillText(labels[i].replace(/^\d+\//,''), p.x, startY+padT+cH+padB-2);
+    });
+  };
+
+  const chartStart = sumY + 56;
+  if (gtype === 'monthly' || gtype === 'both') {
+    drawBarChart(chartStart, profits, months, '月別損益（円）',
+      v => v >= 0 ? '#34c759' : '#ff3b30', '円');
+  }
+  if (gtype === 'rate' || gtype === 'both') {
+    const rateStart = gtype === 'both' ? chartStart + 270 : chartStart;
+    drawLineChart(rateStart, rates, months, '的中率推移（%）', '#FFD700', '%');
+  }
+
+  // フッター
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('RACE PREDICT PRO', W-16, H-12);
+
+  // プレビュー表示
+  const area = document.getElementById('graph-preview-area');
+  area.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = canvas.toDataURL('image/png');
+  img.dataset.dataurl = img.src;
+  img.style.cssText = 'width:100%;border-radius:8px;display:block;';
+  area.appendChild(img);
+  document.getElementById('graph-preview-card').style.display = 'block';
+  document.getElementById('graph-preview-card').scrollIntoView({behavior:'smooth', block:'nearest'});
+  setStatus('✅ グラフ画像生成完了！', 'ok');
+}
+
+function graphSave() {
+  const img = document.querySelector('#graph-preview-area img');
+  if (!img) return;
+  const a = document.createElement('a');
+  a.href = img.dataset.dataurl || img.src;
+  a.download = 'graph_' + Date.now() + '.png';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+// ===== 成績グラフ画像生成ここまで =====
 
 // ===== X投稿タブここまで =====
 
