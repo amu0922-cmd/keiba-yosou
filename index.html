@@ -5074,22 +5074,41 @@ function updateJudgment() {
 
   const results = lines.map((line, i) => {
     const label = betLabels[i];
-    const nums = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '')
-      .split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+    const body = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
 
     let hit = false;
+
     if (label === '単勝') {
+      const nums = body.split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
       hit = nums.includes(rank1);
+
     } else if (label === '馬連' || label === 'ワイド') {
+      // 例: 10-12.8 → 軸[10,12] 相手[8] → 全馬番でincludes判定
+      const nums = body.split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
       if (rank1 && rank2) {
         hit = nums.includes(rank1) && nums.includes(rank2);
       }
+
     } else if (label === '三連複') {
+      // 例: 10-12-5.8.13.16.18
+      // "-"で分割 → [10, 12, 5.8.13.16.18]
+      // 最後の要素は"."区切りの相手馬群
+      const parts = body.split('-');
+      const jiku = parts.slice(0, -1).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+      const aite = parts[parts.length - 1].split('.').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+
       if (rank1 && rank2 && rank3) {
-        hit = nums.includes(rank1) && nums.includes(rank2) && nums.includes(rank3);
+        const actual = [rank1, rank2, rank3];
+        // 軸馬が全員着順3以内に含まれているか
+        const jikuOk = jiku.every(j => actual.includes(j));
+        // 残り1頭が相手馬群に含まれているか
+        const remaining = actual.filter(a => !jiku.includes(a));
+        const aiteOk = remaining.every(r => aite.includes(r));
+        hit = jikuOk && aiteOk;
       }
     }
 
+    const nums = body.split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
     return { label, nums, hit };
   });
 
@@ -5136,12 +5155,25 @@ function transferToRecord() {
     if (r1) {
       lines.forEach((line, i) => {
         const label = betLabelList[i];
-        const nums = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '')
-          .split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+        const body2 = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
+        const nums = body2.split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
         let hit = false;
-        if (label === '単勝') hit = nums.includes(r1);
-        else if (label === '馬連' || label === 'ワイド') hit = r1 && r2 && nums.includes(r1) && nums.includes(r2);
-        else if (label === '三連複') hit = r1 && r2 && r3 && nums.includes(r1) && nums.includes(r2) && nums.includes(r3);
+        if (label === '単勝') {
+          hit = nums.includes(r1);
+        } else if (label === '馬連' || label === 'ワイド') {
+          hit = r1 && r2 && nums.includes(r1) && nums.includes(r2);
+        } else if (label === '三連複') {
+          const parts2 = body2.split('-');
+          const jiku2 = parts2.slice(0,-1).map(n=>parseInt(n.trim())).filter(n=>!isNaN(n));
+          const aite2 = parts2[parts2.length-1].split('.').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n));
+          if (r1 && r2 && r3) {
+            const actual2 = [r1,r2,r3];
+            const jikuOk2 = jiku2.every(j=>actual2.includes(j));
+            const rem2 = actual2.filter(a=>!jiku2.includes(a));
+            const aiteOk2 = rem2.every(rv=>aite2.includes(rv));
+            hit = jikuOk2 && aiteOk2;
+          }
+        }
         if (hit) hitLabels.push(label);
       });
     }
