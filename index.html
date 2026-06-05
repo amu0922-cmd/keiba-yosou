@@ -4017,7 +4017,7 @@ function imgGenerate(type) {
 
   const doRender = () => {
     // テキストを上・画像を下に配置
-    const imgH = type === 'score' ? Math.round(H * 0.32) : Math.round(H * 0.38);
+    const imgH = type === 'score' ? Math.round(H * 0.50) : Math.round(H * 0.48);
     const textH = H - imgH; // テキストエリアの高さ（上部）
 
     // ── ロゴ・レース名（scoreは独自描画するのでスキップ）──
@@ -4026,13 +4026,13 @@ function imgGenerate(type) {
       ctx.fillStyle = tc.logo;
       ctx.font = '700 13px sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('RACE PREDICT PRO', 18, 22);
+      ctx.fillText('RACE PREDICT PRO', 18, 52);
       ctx.fillStyle = tc.race;
       ctx.font = '900 26px sans-serif';
-      ctx.fillText(raceName, 18, 50);
+      ctx.fillText(raceName, 18, 80);
       ctx.fillStyle = tc.pace;
       ctx.font = '700 13px sans-serif';
-      ctx.fillText('⚡ ' + paceLabel, 18, 68);
+      ctx.fillText('⚡ ' + paceLabel, 18, 98);
       ctx.restore();
     }
 
@@ -4040,12 +4040,12 @@ function imgGenerate(type) {
     if (type === 'score') {
       drawScoreRanking(ctx, W, imgH, tc, comment);
     } else if (type === 'buy') {
-      drawHorseBanner(ctx, topHorse, jikustr, 18, 80, W - 36);
-      drawBetCards(ctx, lines, betLabels, betColors, null, 18, 138, W - 36, type);
+      drawHorseBanner(ctx, topHorse, jikustr, 18, 112, W - 36);
+      drawBetCards(ctx, lines, betLabels, betColors, null, 18, 170, W - 36, type);
     } else if (type === 'hit') {
-      drawBetCards(ctx, lines, betLabels, betColors, hitTypes, 18, 80, W - 36, type);
+      drawBetCards(ctx, lines, betLabels, betColors, hitTypes, 18, 120, W - 36, type);
     } else {
-      drawBetCards(ctx, lines, betLabels, betColors, null, 18, 80, W - 36, type);
+      drawBetCards(ctx, lines, betLabels, betColors, null, 18, 120, W - 36, type);
     }
 
     // ── ハズレスタンプ（最前面）──
@@ -4053,7 +4053,7 @@ function imgGenerate(type) {
       const cardCount = lines.length;
       const totalH = cardCount * 44 - 6;
       const stampX = W / 2;
-      const stampY = 80 + totalH / 2;
+      const stampY = 120 + totalH / 2;
       ctx.save();
       ctx.font = '900 52px sans-serif';
       ctx.textAlign = 'center';
@@ -4075,7 +4075,7 @@ function imgGenerate(type) {
 
     // ── 払戻 ──
     if (type === 'hit' && payout) {
-      const payY = 80 + lines.length * 44 + 4;
+      const payY = 120 + lines.length * 44 + 4;
       drawPayout(ctx, payout, W, payY);
     }
 
@@ -4083,11 +4083,12 @@ function imgGenerate(type) {
     if (comment) {
       let cy;
       if (type === 'score') {
-        cy = H - 80;
+        const scoreRows = comment ? 6 : 8;
+        cy = 102 + scoreRows * (66 + 4) + 10;
       } else if (type === 'buy') {
-        cy = 138 + lines.length * 44 + 8;
+        cy = 170 + lines.length * 44 + 8;
       } else {
-        cy = 80 + lines.length * 44 + 8;
+        cy = 120 + lines.length * 44 + 8;
       }
       ctx.save();
       // 背景（グラデ）
@@ -4135,7 +4136,7 @@ function imgGenerate(type) {
   if (_imgBgDataURL) {
     const img = new Image();
     img.onload = () => {
-      const imgHh = type === 'score' ? Math.round(H * 0.32) : Math.round(H * 0.38);
+      const imgHh = type === 'score' ? Math.round(H * 0.50) : Math.round(H * 0.48);
       const imgTop = H - imgHh; // 画像は下半分
       const scale = Math.max(W / img.width, imgHh / img.height);
       const dw = img.width * scale;
@@ -4463,7 +4464,7 @@ function drawScoreRanking(ctx, W, imgH, tc, comment) {
     const negAdj = h.negAdj||0;
     const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
     return {...h, totalScore, paceAdj};
-  }).sort((a,b)=>b.totalScore-a.totalScore).slice(0, comment ? 6 : 8);
+  }).sort((a,b)=>b.totalScore-a.totalScore).slice(0, 6);
 
   const maxScore = Math.max(...ranked.map(h=>h.totalScore), 1);
 
@@ -4472,20 +4473,20 @@ function drawScoreRanking(ctx, W, imgH, tc, comment) {
   ctx.fillStyle = tc.logo;
   ctx.font = '700 11px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('RACE PREDICT PRO', 18, 18);
+  ctx.fillText('RACE PREDICT PRO', 18, 48);
   ctx.fillStyle = tc.race;
   ctx.font = '900 20px sans-serif';
-  ctx.fillText(currentRaceName || 'レース', 18, 44);
+  ctx.fillText(currentRaceName || 'レース', 18, 74);
   ctx.fillStyle = tc.pace;
   ctx.font = '700 11px sans-serif';
-  ctx.fillText('⚡ ' + paceLabel + '　📊 スコアランキング', 18, 60);
+  ctx.fillText('⚡ ' + paceLabel + '　📊 スコアランキング', 18, 90);
   ctx.restore();
 
   // ── 各行 ──
   const PAD   = 14;
-  const rowH  = 80;
-  const gap   = 6;
-  const startY = 72;
+  const rowH  = 66;
+  const gap   = 4;
+  const startY = 102;
 
   const RANK_W  = 22;     // 順位幅
   const WAKU_W  = 28;     // 枠番ボックス幅
