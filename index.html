@@ -5099,12 +5099,16 @@ function updateJudgment() {
       const nums = body.split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
       hit = nums.includes(rank1);
 
-    } else if (label === '馬連' || label === 'ワイド') {
-      // 例: 10-12.8 → 軸[10,12] 相手[8] → 全馬番でincludes判定
+    } else if (label === '馬連') {
       const nums = body.split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
       if (rank1 && rank2) {
         hit = nums.includes(rank1) && nums.includes(rank2);
       }
+    } else if (label === 'ワイド') {
+      // ワイドは購入馬番から2頭が3着以内に入ればOK
+      const nums = body.split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+      const top3 = [rank1, rank2, rank3].filter(Boolean);
+      hit = nums.filter(n => top3.includes(n)).length >= 2;
 
     } else if (label === '三連複') {
       // 例: 10-12-5.8.13.16.18
@@ -5177,8 +5181,11 @@ function transferToRecord() {
         let hit = false;
         if (label === '単勝') {
           hit = nums.includes(r1);
-        } else if (label === '馬連' || label === 'ワイド') {
+        } else if (label === '馬連') {
           hit = r1 && r2 && nums.includes(r1) && nums.includes(r2);
+        } else if (label === 'ワイド') {
+          const top3w = [r1,r2,r3].filter(Boolean);
+          hit = nums.filter(n => top3w.includes(n)).length >= 2;
         } else if (label === '三連複') {
           const parts2 = body2.split('-');
           const jiku2 = parts2.slice(0,-1).map(n=>parseInt(n.trim())).filter(n=>!isNaN(n));
@@ -5238,7 +5245,8 @@ function autoFillHits() {
       .split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
     let hit = false;
     if (label === '単勝') hit = nums.includes(rank1);
-    else if (label === '馬連' || label === 'ワイド') hit = rank1 && rank2 && nums.includes(rank1) && nums.includes(rank2);
+    else if (label === '馬連') hit = rank1 && rank2 && nums.includes(rank1) && nums.includes(rank2);
+    else if (label === 'ワイド') { const t3a=[rank1,rank2,rank3].filter(Boolean); hit = nums.filter(n=>t3a.includes(n)).length>=2; }
     else if (label === '三連複') hit = rank1 && rank2 && rank3 && nums.includes(rank1) && nums.includes(rank2) && nums.includes(rank3);
     if (hit) hits.push(label);
   });
