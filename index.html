@@ -288,38 +288,8 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
       <!-- 着順入力エリア（馬読み込み後に表示） -->
 
       <!-- 着順入力エリア（テーブル下） -->
-      <div id="finish-rank-area" style="display:none;background:#1a1a2e;border-radius:8px;padding:10px 12px;margin:8px 0;border:1.5px solid #7c3aed;">
-        <div style="font-size:10px;color:#FFD700;font-weight:700;margin-bottom:8px;">🏆 着順入力 → 的中/ハズレ自動判定</div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:5px;">
-            <span style="font-size:11px;color:#fff;font-weight:700;">🥇1着:</span>
-            <input type="number" id="rank1-input" min="1" max="18" placeholder="馬番"
-              style="width:48px;height:32px;text-align:center;font-size:14px;font-weight:900;border:1.5px solid #FFD700;border-radius:6px;background:#0a0a1a;color:#FFD700;padding:0;"
-              oninput="updateRankFromInput()">
-          </div>
-          <div style="display:flex;align-items:center;gap:5px;">
-            <span style="font-size:11px;color:#fff;font-weight:700;">🥈2着:</span>
-            <input type="number" id="rank2-input" min="1" max="18" placeholder="馬番"
-              style="width:48px;height:32px;text-align:center;font-size:14px;font-weight:900;border:1.5px solid #c0c0c0;border-radius:6px;background:#0a0a1a;color:#c0c0c0;padding:0;"
-              oninput="updateRankFromInput()">
-          </div>
-          <div style="display:flex;align-items:center;gap:5px;">
-            <span style="font-size:11px;color:#fff;font-weight:700;">🥉3着:</span>
-            <input type="number" id="rank3-input" min="1" max="18" placeholder="馬番"
-              style="width:48px;height:32px;text-align:center;font-size:14px;font-weight:900;border:1.5px solid #cd7f32;border-radius:6px;background:#0a0a1a;color:#cd7f32;padding:0;"
-              oninput="updateRankFromInput()">
-          </div>
-          <button onclick="clearFinishRanks()" style="padding:6px 12px;background:#333;border:none;border-radius:6px;color:#aaa;font-size:10px;cursor:pointer;">🔄 クリア</button>
-        </div>
-      </div>
 
       <!-- 的中判定カード（着順入力後に表示） -->
-      <div id="judgment-card" style="display:none;background:#0f1a0f;border:2px solid #7c3aed;border-radius:10px;padding:12px;margin:8px 0;">
-        <div style="font-size:11px;color:#7c3aed;font-weight:900;margin-bottom:8px;">🏆 的中/ハズレ判定</div>
-        <div id="judgment-result" style="margin-bottom:10px;"></div>
-        <button class="btn btn-green" onclick="transferToRecord()" style="width:100%;padding:10px;font-size:12px;font-weight:900;margin-bottom:6px;">📝 成績タブに転送して記録</button>
-        <button onclick="clearFinishRanks()" style="width:100%;padding:8px;background:#333;border:none;border-radius:6px;color:#aaa;font-size:11px;cursor:pointer;">🔄 着順をクリア</button>
-      </div>
 
       <div style="overflow-x: auto; overflow-y: auto; max-height: 650px;">
         <table class="table" id="main-table" style="min-width: 1200px;">
@@ -352,6 +322,39 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
           <tbody id="table-body"></tbody>
         </table>
       </div>
+
+      <div id="finish-rank-area" style="display:none;background:#1a1a2e;border-radius:8px;padding:10px 12px;margin:8px 0;border:1.5px solid #7c3aed;">
+        <div style="font-size:10px;color:#FFD700;font-weight:700;margin-bottom:8px;">🏆 着順入力 → 的中/ハズレ自動判定</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="font-size:11px;color:#fff;font-weight:700;">🥇1着:</span>
+            <input type="number" id="rank1-input" min="1" max="18" placeholder="馬番"
+              style="width:48px;height:32px;text-align:center;font-size:14px;font-weight:900;border:1.5px solid #FFD700;border-radius:6px;background:#0a0a1a;color:#FFD700;padding:0;"
+              oninput="updateRankFromInput()">
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="font-size:11px;color:#fff;font-weight:700;">🥈2着:</span>
+            <input type="number" id="rank2-input" min="1" max="18" placeholder="馬番"
+              style="width:48px;height:32px;text-align:center;font-size:14px;font-weight:900;border:1.5px solid #c0c0c0;border-radius:6px;background:#0a0a1a;color:#c0c0c0;padding:0;"
+              oninput="updateRankFromInput()">
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="font-size:11px;color:#fff;font-weight:700;">🥉3着:</span>
+            <input type="number" id="rank3-input" min="1" max="18" placeholder="馬番"
+              style="width:48px;height:32px;text-align:center;font-size:14px;font-weight:900;border:1.5px solid #cd7f32;border-radius:6px;background:#0a0a1a;color:#cd7f32;padding:0;"
+              oninput="updateRankFromInput()">
+          </div>
+          <button onclick="clearFinishRanks()" style="padding:6px 12px;background:#333;border:none;border-radius:6px;color:#aaa;font-size:10px;cursor:pointer;">🔄 クリア</button>
+        </div>
+      </div>
+
+      <div id="judgment-card" style="display:none;background:#0f1a0f;border:2px solid #7c3aed;border-radius:10px;padding:12px;margin:8px 0;">
+        <div style="font-size:11px;color:#7c3aed;font-weight:900;margin-bottom:8px;">🏆 的中/ハズレ判定</div>
+        <div id="judgment-result" style="margin-bottom:10px;"></div>
+        <button class="btn btn-green" onclick="transferToRecord()" style="width:100%;padding:10px;font-size:12px;font-weight:900;margin-bottom:6px;">📝 成績タブに転送して記録</button>
+        <button onclick="clearFinishRanks()" style="width:100%;padding:8px;background:#333;border:none;border-radius:6px;color:#aaa;font-size:11px;cursor:pointer;">🔄 着順をクリア</button>
+      </div>
+
     </div>
   </div>
 
