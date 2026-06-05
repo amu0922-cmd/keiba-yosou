@@ -4079,7 +4079,8 @@ function imgGenerate(type) {
 
     // ── コメント ──
     if (comment) {
-      const cy = H - 64;
+      // scoreは8行×(rowH+gap)=8×52=416 + startY(imgH+78) で計算
+      const cy = type === 'score' ? H - 80 : H - 64;
       ctx.save();
       // 背景（グラデ）
       const cmGrad = ctx.createLinearGradient(18, cy, W-18, cy);
@@ -4454,7 +4455,7 @@ function drawScoreRanking(ctx, W, imgH, tc) {
     const negAdj = h.negAdj||0;
     const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
     return {...h, totalScore, paceAdj};
-  }).sort((a,b)=>b.totalScore-a.totalScore).slice(0,8);
+  }).sort((a,b)=>b.totalScore-a.totalScore).slice(0,7);
 
   const maxScore = Math.max(...ranked.map(h=>h.totalScore), 1);
 
