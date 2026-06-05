@@ -3950,9 +3950,12 @@ function imgCalcBets() {
   const jikuHorses = ranked.filter(h => { const s=ranked.map(x=>x.totalScore); const avg=s.reduce((a,b)=>a+b,0)/s.length; const std=Math.sqrt(s.reduce((a,b)=>a+Math.pow(b-avg,2),0)/s.length)||1; return (h.totalScore-avg)/std*10+50 >= 70; });
   const jiku = jikuHorses.length > 0 ? jikuHorses : [ranked[0]];
   const jikustr = jiku.map(h=>h.banum).join('-');
-  const dbTop1 = ranked.filter(h=>!jiku.find(j=>j.banum===h.banum)).filter(h=>{ const n=Number(h.ninki); return !h.ninki||isNaN(n)||n>=3; }).sort((a,b)=>(db.jockey?.[b.jockey]||0)-(db.jockey?.[a.jockey]||0)).filter(h=>(db.jockey?.[h.jockey]||0)>0)[0];
-  const dbTop1Num = dbTop1 ? Number(dbTop1.banum) : null;
-  const scoreTop5 = ranked.filter(h=>!jiku.find(j=>j.banum===h.banum)&&h.banum!==dbTop1Num).slice(0,5).map(h=>Number(h.banum));
+  // DB騎手スコアがある場合はそれを優先、なければスコア上位2番手を使用
+  const nonJiku = ranked.filter(h=>!jiku.find(j=>j.banum===h.banum));
+  const dbTop1 = nonJiku.filter(h=>{ const n=Number(h.ninki); return !h.ninki||isNaN(n)||n>=3; }).sort((a,b)=>(db.jockey?.[b.jockey]||0)-(db.jockey?.[a.jockey]||0)).filter(h=>(db.jockey?.[h.jockey]||0)>0)[0];
+  // DB騎手スコアがなければスコア2番手を相手にする
+  const dbTop1Num = dbTop1 ? Number(dbTop1.banum) : (nonJiku[0] ? Number(nonJiku[0].banum) : null);
+  const scoreTop5 = ranked.filter(h=>!jiku.find(j=>j.banum===h.banum)&&Number(h.banum)!==dbTop1Num).slice(0,5).map(h=>Number(h.banum));
   const lines = [];
   lines.push(`単勝  ${jikustr}`);
   if (dbTop1Num) {
