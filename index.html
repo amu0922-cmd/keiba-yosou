@@ -2647,191 +2647,186 @@ function renderAnalysis() {
 
 // テキストコピペからインポート
 function showLearningEngine() {
-  const result = analyzeLearningPatterns();
-  const div = document.getElementById('learning-result');
-  
-  if (result.patterns.length === 0) {
-    div.innerHTML = '<div style="padding: 10px; background: #fff3cd; border-radius: 4px; color: #856404; font-size: 9px;">📊 データが足りません。3件以上の成績を記録してください。</div>';
-    return;
-  }
-  
-  let html = '<div style="padding: 12px; background: #e8f5e9; border-radius: 6px; border-left: 4px solid #4caf50;">';
-  html += '<div style="font-weight: 900; color: #2e7d32; margin-bottom: 10px; font-size: 11px;">🧠 学習エンジン分析</div>';
-  
-  // パターンの表示
-  result.patterns.forEach(pattern => {
-    html += `<div style="font-size: 9px; color: #1b5e20; margin-bottom: 6px; padding: 6px; background: #fff; border-radius: 4px; border-left: 3px solid #4caf50;">✓ ${pattern}</div>`;
-  });
-  
-  // 詳細データ：陣形別
-  if (result.formationStats && Object.keys(result.formationStats).length > 0) {
-    html += '<div style="margin-top: 12px; font-size: 9px; color: #1b5e20;"><strong>📊 陣形別的中率：</strong></div>';
-    Object.entries(result.formationStats).forEach(([formation, stat]) => {
-      const rate = stat.total > 0 ? (stat.hit / stat.total * 100).toFixed(1) : 0;
-      const recovery = stat.totalInvest > 0 ? (stat.totalReturn / stat.totalInvest * 100).toFixed(1) : 0;
-      html += `<div style="font-size: 8px; color: #333; margin-bottom: 4px; padding: 4px; background: #f5f5f5; border-radius: 3px;">
-        ${formation}: 的中率${rate}% (${stat.hit}/${stat.total}) | 回収率${recovery}%
-      </div>`;
-    });
-  }
-  
-  // 詳細データ：買い目別
-  if (result.purchaseStats && Object.keys(result.purchaseStats).length > 0) {
-    html += '<div style="margin-top: 12px; font-size: 9px; color: #1b5e20;"><strong>🎯 買い目別的中率：</strong></div>';
-    Object.entries(result.purchaseStats).forEach(([purchase, stat]) => {
-      const rate = stat.total > 0 ? (stat.hit / stat.total * 100).toFixed(1) : 0;
-      const recovery = stat.totalInvest > 0 ? (stat.totalReturn / stat.totalInvest * 100).toFixed(1) : 0;
-      html += `<div style="font-size: 8px; color: #333; margin-bottom: 4px; padding: 4px; background: #f5f5f5; border-radius: 3px;">
-        ${purchase}: 的中率${rate}% (${stat.hit}/${stat.total}) | 回収率${recovery}%
-      </div>`;
-    });
-  }
-  
-  // スコア帯別分析
-  if (result.scoreStats && Object.keys(result.scoreStats).length > 0) {
-    html += '<div style="margin-top: 12px; font-size: 9px; color: #1b5e20;"><strong>📈 偏差値帯別的中率：</strong></div>';
-    const sortedScores = Object.entries(result.scoreStats).sort((a, b) => {
-      const scoreA = parseInt(a[0].split('～')[0]);
-      const scoreB = parseInt(b[0].split('～')[0]);
-      return scoreB - scoreA;
-    });
-    sortedScores.forEach(([band, stat]) => {
-      const rate = stat.total > 0 ? (stat.hit / stat.total * 100).toFixed(1) : 0;
-      const recovery = stat.totalInvest > 0 ? (stat.totalReturn / stat.totalInvest * 100).toFixed(1) : 0;
-      html += `<div style="font-size: 8px; color: #333; margin-bottom: 4px; padding: 4px; background: #f5f5f5; border-radius: 3px;">
-        偏差値${band}: 的中率${rate}% (${stat.hit}/${stat.total}) | 回収率${recovery}%
-      </div>`;
-    });
-  }
-  
-  // 推奨度インジケータ（※次のレースに適用する際の参考）
-  html += '<div style="margin-top: 12px; font-size: 9px; color: #1b5e20;"><strong>🚀 推奨度ガイド（参考）：</strong></div>';
-  html += '<div style="font-size: 8px; color: #333; margin-bottom: 4px; padding: 4px; background: #ffe0e0; border-radius: 3px;">🔥🔥🔥 過去の最強陣形が出現した時</div>';
-  html += '<div style="font-size: 8px; color: #333; margin-bottom: 4px; padding: 4px; background: #ffefcc; border-radius: 3px;">🔥🔥 的中率が高い陣形（50%以上）が出現した時</div>';
-  html += '<div style="font-size: 8px; color: #333; margin-bottom: 4px; padding: 4px; background: #fff5f5; border-radius: 3px;">🔥 的中率が低い陣形（30%以下）は注意</div>';
-  
-  html += '</div>';
-  
-  div.innerHTML = html;
+  const result = analyzeDbOptimization();
+  const el = document.getElementById('learning-result');
+  if (!el) return;
+  el.innerHTML = result;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-// 学習エンジン：過去データから法則を抽出
-function analyzeLearningPatterns() {
-  if (records.length < 3) return { patterns: [], insight: '📊 データが足りません。3件以上の成績を記録してください。' };
-  
-  // 陣形別的中率分析
-  const formationStats = {};
-  records.forEach(r => {
-    if (!r.formation) return;
-    if (!formationStats[r.formation]) {
-      formationStats[r.formation] = { total: 0, hit: 0, totalReturn: 0, totalInvest: 0 };
-    }
-    formationStats[r.formation].total++;
-    formationStats[r.formation].totalInvest += r.invest;
-    formationStats[r.formation].totalReturn += r.return;
-    if (r.return > r.invest) {
-      formationStats[r.formation].hit++;
-    }
-  });
-  
-  // 買い目別的中率分析
-  const purchaseStats = {};
-  records.forEach(r => {
-    if (!r.purchase || r.purchase === '購入なし') return;
-    if (!purchaseStats[r.purchase]) {
-      purchaseStats[r.purchase] = { total: 0, hit: 0, totalReturn: 0, totalInvest: 0 };
-    }
-    purchaseStats[r.purchase].total++;
-    purchaseStats[r.purchase].totalInvest += r.invest;
-    purchaseStats[r.purchase].totalReturn += r.return;
-    if (r.return > r.invest) {
-      purchaseStats[r.purchase].hit++;
-    }
-  });
-  
-  // 距離別的中率分析
-  const distanceStats = {};
-  records.forEach(r => {
-    if (!r.distance) return;
-    if (!distanceStats[r.distance]) {
-      distanceStats[r.distance] = { total: 0, hit: 0, totalReturn: 0, totalInvest: 0 };
-    }
-    distanceStats[r.distance].total++;
-    distanceStats[r.distance].totalInvest += r.invest;
-    distanceStats[r.distance].totalReturn += r.return;
-    if (r.return > r.invest) {
-      distanceStats[r.distance].hit++;
-    }
-  });
-  
-  // 馬場別的中率分析
-  const conditionStats = {};
-  records.forEach(r => {
-    if (!r.condition) return;
-    if (!conditionStats[r.condition]) {
-      conditionStats[r.condition] = { total: 0, hit: 0, totalReturn: 0, totalInvest: 0 };
-    }
-    conditionStats[r.condition].total++;
-    conditionStats[r.condition].totalInvest += r.invest;
-    conditionStats[r.condition].totalReturn += r.return;
-    if (r.return > r.invest) {
-      conditionStats[r.condition].hit++;
-    }
-  });
-  
-  // 最強の陣形を検出
-  let bestFormation = null, bestFormationRate = 0;
-  Object.entries(formationStats).forEach(([form, stat]) => {
-    const rate = stat.total > 0 ? stat.hit / stat.total : 0;
-    if (rate > bestFormationRate) {
-      bestFormationRate = rate;
-      bestFormation = form;
-    }
-  });
-  
-  // 最強の買い目を検出
-  let bestPurchase = null, bestPurchaseRate = 0;
-  Object.entries(purchaseStats).forEach(([purch, stat]) => {
-    const rate = stat.total > 0 ? stat.hit / stat.total : 0;
-    if (rate > bestPurchaseRate) {
-      bestPurchaseRate = rate;
-      bestPurchase = purch;
-    }
-  });
-  
-  const patterns = [];
-  if (bestFormation) {
-    patterns.push(`📊 陣形「${bestFormation}」が最強：的中率${(bestFormationRate * 100).toFixed(1)}%（${formationStats[bestFormation].hit}/${formationStats[bestFormation].total}）`);
+// ===== DB最適化提案エンジン =====
+function analyzeDbOptimization() {
+  // horsesSnapshotを持つ成績のみ対象
+  const validRecs = records.filter(r => r.horsesSnapshot && r.horsesSnapshot.length > 0 && r.finishRanks?.rank1);
+  if (validRecs.length < 3) {
+    return `<div style="padding:12px;color:#888;font-size:11px;">📊 出馬表スナップショット付きのデータが3件以上必要です。<br>着順入力→転送→記録の流れで3レース以上保存してください。</div>`;
   }
-  if (bestPurchase) {
-    patterns.push(`🎯 買い目「${bestPurchase}」が最強：的中率${(bestPurchaseRate * 100).toFixed(1)}%（${purchaseStats[bestPurchase].hit}/${purchaseStats[bestPurchase].total}）`);
-  }
-  
-  const totalInvest = records.reduce((a, b) => a + b.invest, 0);
-  const totalReturn = records.reduce((a, b) => a + b.return, 0);
-  const overallRate = totalInvest > 0 ? totalReturn / totalInvest : 0;
-  patterns.push(`💰 総合回収率：${(overallRate * 100).toFixed(1)}%`);
-  
-  // スコア帯別分析
-  const scoreStats = {};
-  records.forEach(r => {
-    if (!r.score) return;
-    const score = parseInt(r.score);
-    // スコアを10刻みでグルーピング
-    const band = Math.floor(score / 10) * 10 + '～' + (Math.floor(score / 10) * 10 + 9);
-    if (!scoreStats[band]) {
-      scoreStats[band] = { total: 0, hit: 0, totalReturn: 0, totalInvest: 0 };
-    }
-    scoreStats[band].total++;
-    scoreStats[band].totalInvest += r.invest;
-    scoreStats[band].totalReturn += r.return;
-    if (r.return > r.invest) {
-      scoreStats[band].hit++;
-    }
+
+  // DBカテゴリ一覧
+  const CATS = [
+    { key: 'jockey',      label: '騎手',   field: 'jockey'      },
+    { key: 'kyakushitsu', label: '脚質',   field: 'kyakushitsu' },
+    { key: 'sire',        label: '種牡馬', field: 'sire'        },
+    // age（年齢）は3歳限定レースが多く統計が偏るため除外
+    { key: 'maeclass',    label: '前走クラス', field: 'maeclass' },
+    { key: 'maejun',      label: '前走着順', field: 'maejun', toString: true },
+    { key: 'waku',        label: '枠番',   field: 'waku', toString: true },
+    { key: 'timdev',      label: 'タイム偏差値', field: 'timdev' },
+    { key: 'baju',        label: '馬体重帯', field: 'baju'      },
+  ];
+
+  // 全レースで各カテゴリの値ごとに「着順上位3着以内か否か」を集計
+  const catStats = {};
+  CATS.forEach(c => { catStats[c.key] = {}; });
+
+  validRecs.forEach(r => {
+    const top3 = [r.finishRanks.rank1, r.finishRanks.rank2, r.finishRanks.rank3].filter(Boolean);
+    r.horsesSnapshot.forEach(h => {
+      const isTop3 = top3.includes(h.banum);
+      CATS.forEach(c => {
+        const raw = c.toString ? String(h[c.field] ?? '') : (h[c.field] ?? '');
+        if (!raw && raw !== 0) return;
+        const rawStr = String(raw);
+
+        // DBキーと部分一致するフルネームを探す
+        const dbKeys = db[c.key] ? Object.keys(db[c.key]) : [];
+        const matchedKey = dbKeys.find(k => k.includes(rawStr) || rawStr.includes(k)) || rawStr;
+
+        if (!catStats[c.key][matchedKey]) catStats[c.key][matchedKey] = { top3: 0, total: 0, currentScore: 0 };
+        catStats[c.key][matchedKey].total++;
+        if (isTop3) catStats[c.key][matchedKey].top3++;
+        catStats[c.key][matchedKey].currentScore = db[c.key]?.[matchedKey] || 0;
+      });
+    });
   });
-  
-  return { formationStats, purchaseStats, distanceStats, conditionStats, scoreStats, patterns };
+
+  // 提案を生成
+  const proposals = [];
+  CATS.forEach(c => {
+    const entries = Object.entries(catStats[c.key]);
+    if (entries.length === 0) return;
+    entries.forEach(([val, stat]) => {
+      if (stat.total < 3) return; // サンプル少なすぎはスキップ
+      const rate = stat.top3 / stat.total; // 3着以内率
+      const current = stat.currentScore;
+      // 期待スコア：3着以内率50%=0、70%=+20、30%=-20 に相当
+      const expected = Math.round((rate - 0.5) * 80); // -40〜+40
+      const diff = expected - current;
+      if (Math.abs(diff) >= 10) { // 10pt以上乖離があれば提案
+        proposals.push({
+          cat: c.key, label: c.label, val, rate, current, expected, diff,
+          total: stat.total, top3: stat.top3,
+          priority: Math.abs(diff) * stat.total // 乖離×サンプル数で優先度
+        });
+      }
+    });
+  });
+
+  proposals.sort((a, b) => b.priority - a.priority);
+
+  // 全体サマリー
+  const totalRecs = validRecs.length;
+  const hitRecs   = validRecs.filter(r => r.hitLabels?.length > 0).length;
+  const hitRate   = Math.round(hitRecs / totalRecs * 100);
+  const totalProfit = validRecs.reduce((s, r) => s + ((r.return||0) - (r.invest||0)), 0);
+
+  let html = `
+    <div style="background:#0f1a0f;border-radius:10px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:900;color:#34c759;margin-bottom:8px;">📊 分析対象: ${totalRecs}レース</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;">
+        <div style="text-align:center;">
+          <div style="color:#888;font-size:9px;">的中率</div>
+          <div style="color:#FFD700;font-weight:900;">${hitRate}%</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="color:#888;font-size:9px;">損益合計</div>
+          <div style="color:${totalProfit>=0?'#34c759':'#ff3b30'};font-weight:900;">${totalProfit>=0?'+':''}¥${totalProfit.toLocaleString()}</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="color:#888;font-size:9px;">提案件数</div>
+          <div style="color:#fff;font-weight:900;">${proposals.length}件</div>
+        </div>
+      </div>
+    </div>`;
+
+  if (proposals.length === 0) {
+    html += `<div style="color:#888;font-size:11px;padding:12px;">現在のDB設定はデータとよく一致しています。引き続き記録を積み重ねてください。</div>`;
+  } else {
+    // 上げ提案・下げ提案に分類
+    const upProps   = proposals.filter(p => p.diff > 0).slice(0, 8);
+    const downProps = proposals.filter(p => p.diff < 0).slice(0, 8);
+
+    if (upProps.length > 0) {
+      html += `<div style="font-size:11px;font-weight:900;color:#34c759;margin-bottom:6px;">⬆️ スコアを上げると精度が上がりそうな項目</div>`;
+      upProps.forEach(p => {
+        html += `
+          <div style="background:rgba(52,199,89,0.1);border:1px solid rgba(52,199,89,0.3);border-radius:8px;padding:8px;margin-bottom:5px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+              <span style="font-size:11px;font-weight:700;color:#1a1a1a;">${p.label}：<span style="color:#1a6e00;font-weight:900;">${p.val}</span></span>
+              <span style="font-size:10px;color:#1a6e00;font-weight:900;">+${p.diff}pt 推奨</span>
+            </div>
+            <div style="font-size:9px;color:#2a4a2a;">
+              3着以内率 ${Math.round(p.rate*100)}% (${p.top3}/${p.total}件) ／ 現在: ${p.current}pt → 推奨: <strong style="color:#1a6e00;">${p.expected}pt</strong>
+            </div>
+            <button onclick="applyDbProposal('${p.cat}','${p.val}',${p.expected})" 
+              style="margin-top:5px;padding:4px 10px;background:#34c759;border:none;border-radius:5px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;">
+              ✅ ${p.expected}ptに適用
+            </button>
+          </div>`;
+      });
+    }
+
+    if (downProps.length > 0) {
+      html += `<div style="font-size:11px;font-weight:900;color:#ff3b30;margin-bottom:6px;margin-top:10px;">⬇️ スコアを下げると精度が上がりそうな項目</div>`;
+      downProps.forEach(p => {
+        html += `
+          <div style="background:rgba(255,59,48,0.1);border:1px solid rgba(255,59,48,0.3);border-radius:8px;padding:8px;margin-bottom:5px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+              <span style="font-size:11px;font-weight:700;color:#1a1a1a;">${p.label}：<span style="color:#8b0000;font-weight:900;">${p.val}</span></span>
+              <span style="font-size:10px;color:#c00000;font-weight:900;">${p.diff}pt 推奨</span>
+            </div>
+            <div style="font-size:9px;color:#4a1a1a;">
+              3着以内率 ${Math.round(p.rate*100)}% (${p.top3}/${p.total}件) ／ 現在: ${p.current}pt → 推奨: <strong style="color:#c00000;">${p.expected}pt</strong>
+            </div>
+            <button onclick="applyDbProposal('${p.cat}','${p.val}',${p.expected})"
+              style="margin-top:5px;padding:4px 10px;background:#ff3b30;border:none;border-radius:5px;color:#fff;font-size:9px;font-weight:700;cursor:pointer;">
+              ✅ ${p.expected}ptに適用
+            </button>
+          </div>`;
+      });
+    }
+
+    html += `
+      <div style="margin-top:10px;padding:8px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:9px;color:#888;line-height:1.7;">
+        ⚠️ 提案はあくまで過去${totalRecs}レースの傾向です。サンプルが少ない場合は参考程度にしてください。<br>
+        「適用」ボタンを押すとDBタブのスコアが即反映されます。
+      </div>`;
+  }
+
+  return html;
 }
+
+// DB提案を即適用
+function applyDbProposal(cat, val, score) {
+  if (!db[cat]) db[cat] = {};
+
+  // DBに既存のキーで部分一致するものがあればそちらに適用
+  const existingKeys = Object.keys(db[cat]);
+  const matchedKey = existingKeys.find(k =>
+    k.includes(val) || val.includes(k) || k === val
+  );
+
+  const targetKey = matchedKey || val;
+  db[cat][targetKey] = score;
+  localStorage.setItem('kp_db', JSON.stringify(db));
+  renderTable();
+  setStatus(`✅ ${cat}「${targetKey}」を${score}ptに更新しました`, 'ok');
+  // 再分析
+  const el = document.getElementById('learning-result');
+  if (el) el.innerHTML = analyzeDbOptimization();
+}
+
 
 // DB設定専用バックアップ機能
 function downloadDBBackup() {
