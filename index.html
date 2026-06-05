@@ -4016,7 +4016,9 @@ function imgGenerate(type) {
   _imgTc = tc;
 
   const doRender = () => {
-    const imgH = type === 'score' ? Math.round(H * 0.32) : Math.round(H * 0.45);
+    // テキストを上・画像を下に配置
+    const imgH = type === 'score' ? Math.round(H * 0.32) : Math.round(H * 0.38);
+    const textH = H - imgH; // テキストエリアの高さ（上部）
 
     // ── ロゴ・レース名（scoreは独自描画するのでスキップ）──
     if (type !== 'score') {
@@ -4024,13 +4026,13 @@ function imgGenerate(type) {
       ctx.fillStyle = tc.logo;
       ctx.font = '700 13px sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('RACE PREDICT PRO', 18, imgH + 48);
+      ctx.fillText('RACE PREDICT PRO', 18, 22);
       ctx.fillStyle = tc.race;
       ctx.font = '900 26px sans-serif';
-      ctx.fillText(raceName, 18, imgH + 76);
+      ctx.fillText(raceName, 18, 50);
       ctx.fillStyle = tc.pace;
       ctx.font = '700 13px sans-serif';
-      ctx.fillText('⚡ ' + paceLabel, 18, imgH + 95);
+      ctx.fillText('⚡ ' + paceLabel, 18, 68);
       ctx.restore();
     }
 
@@ -4038,12 +4040,12 @@ function imgGenerate(type) {
     if (type === 'score') {
       drawScoreRanking(ctx, W, imgH, tc, comment);
     } else if (type === 'buy') {
-      drawHorseBanner(ctx, topHorse, jikustr, 18, imgH + 112, W - 36);
-      drawBetCards(ctx, lines, betLabels, betColors, null, 18, imgH + 170, W - 36, type);
+      drawHorseBanner(ctx, topHorse, jikustr, 18, 80, W - 36);
+      drawBetCards(ctx, lines, betLabels, betColors, null, 18, 138, W - 36, type);
     } else if (type === 'hit') {
-      drawBetCards(ctx, lines, betLabels, betColors, hitTypes, 18, imgH + 112, W - 36, type);
+      drawBetCards(ctx, lines, betLabels, betColors, hitTypes, 18, 80, W - 36, type);
     } else {
-      drawBetCards(ctx, lines, betLabels, betColors, null, 18, imgH + 112, W - 36, type);
+      drawBetCards(ctx, lines, betLabels, betColors, null, 18, 80, W - 36, type);
     }
 
     // ── ハズレスタンプ（最前面）──
@@ -4051,7 +4053,7 @@ function imgGenerate(type) {
       const cardCount = lines.length;
       const totalH = cardCount * 44 - 6;
       const stampX = W / 2;
-      const stampY = imgH + 112 + totalH / 2;
+      const stampY = 80 + totalH / 2;
       ctx.save();
       ctx.font = '900 52px sans-serif';
       ctx.textAlign = 'center';
@@ -4073,14 +4075,20 @@ function imgGenerate(type) {
 
     // ── 払戻 ──
     if (type === 'hit' && payout) {
-      const payY = imgH + 112 + lines.length * 44 + 4;
+      const payY = 80 + lines.length * 44 + 4;
       drawPayout(ctx, payout, W, payY);
     }
 
-    // ── コメント ──
+    // ── コメント（買い目の直後）──
     if (comment) {
-      // scoreは8行×(rowH+gap)=8×52=416 + startY(imgH+78) で計算
-      const cy = type === 'score' ? H - 80 : H - 64;
+      let cy;
+      if (type === 'score') {
+        cy = H - 80;
+      } else if (type === 'buy') {
+        cy = 138 + lines.length * 44 + 8;
+      } else {
+        cy = 80 + lines.length * 44 + 8;
+      }
       ctx.save();
       // 背景（グラデ）
       const cmGrad = ctx.createLinearGradient(18, cy, W-18, cy);
@@ -4114,7 +4122,7 @@ function imgGenerate(type) {
     ctx.fillStyle = 'rgba(255,255,255,0.2)';
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText('RACE PREDICT PRO', W - 16, H - 14);
+    ctx.fillText('RACE PREDICT PRO', W - 16, H - 10);
     ctx.restore();
 
     showImgPreview(canvas);
@@ -4127,25 +4135,25 @@ function imgGenerate(type) {
   if (_imgBgDataURL) {
     const img = new Image();
     img.onload = () => {
-      const imgH = type === 'score' ? Math.round(H * 0.32) : Math.round(H * 0.45);
-      // 上半分エリアを常に埋める（縦横どちらも imgH/W に合わせてcoverで描画）
-      const scale = Math.max(W / img.width, imgH / img.height);
+      const imgHh = type === 'score' ? Math.round(H * 0.32) : Math.round(H * 0.38);
+      const imgTop = H - imgHh; // 画像は下半分
+      const scale = Math.max(W / img.width, imgHh / img.height);
       const dw = img.width * scale;
       const dh = img.height * scale;
-      // 横長画像は中央から切り取り、縦長は上から切り取り
       const dx = (W - dw) / 2;
-      const dy = 0;
+      const dy = imgTop;
       ctx.save();
       ctx.beginPath();
-      ctx.rect(0, 0, W, imgH);
+      ctx.rect(0, imgTop, W, imgHh);
       ctx.clip();
       ctx.drawImage(img, dx, dy, dw, dh);
       ctx.restore();
-      const grad = ctx.createLinearGradient(0, imgH * 0.6, 0, imgH + 20);
-      grad.addColorStop(0, 'rgba(10,10,10,0)');
-      grad.addColorStop(1, 'rgba(10,10,10,1)');
+      // 上方向グラデ（テキストエリアとなじませる）
+      const grad = ctx.createLinearGradient(0, imgTop, 0, imgTop + imgHh * 0.5);
+      grad.addColorStop(0, 'rgba(10,10,10,1)');
+      grad.addColorStop(1, 'rgba(10,10,10,0)');
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, W, imgH + 20);
+      ctx.fillRect(0, imgTop, W, imgHh * 0.5);
       doRender();
     };
     img.onerror = () => { doRender(); };
@@ -4459,26 +4467,25 @@ function drawScoreRanking(ctx, W, imgH, tc, comment) {
 
   const maxScore = Math.max(...ranked.map(h=>h.totalScore), 1);
 
-  // ── ヘッダー ──
+  // ── ヘッダー（上部基準に変更）──
   ctx.save();
   ctx.fillStyle = tc.logo;
   ctx.font = '700 11px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('RACE PREDICT PRO', 18, imgH + 22);
+  ctx.fillText('RACE PREDICT PRO', 18, 18);
   ctx.fillStyle = tc.race;
   ctx.font = '900 20px sans-serif';
-  ctx.fillText(currentRaceName || 'レース', 18, imgH + 48);
+  ctx.fillText(currentRaceName || 'レース', 18, 44);
   ctx.fillStyle = tc.pace;
   ctx.font = '700 11px sans-serif';
-  ctx.fillText('⚡ ' + paceLabel + '　📊 スコアランキング', 18, imgH + 65);
+  ctx.fillText('⚡ ' + paceLabel + '　📊 スコアランキング', 18, 60);
   ctx.restore();
 
   // ── 各行 ──
-  // レイアウト定義
-  const PAD   = 14;       // 左右余白
-  const rowH  = 80;       // 1行の高さ
-  const gap   = 6;        // 行間
-  const startY = imgH + 76;
+  const PAD   = 14;
+  const rowH  = 80;
+  const gap   = 6;
+  const startY = 72;
 
   const RANK_W  = 22;     // 順位幅
   const WAKU_W  = 28;     // 枠番ボックス幅
