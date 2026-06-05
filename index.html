@@ -284,6 +284,41 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <span id="race-name-badge" style="display:flex;align-items:center;justify-content:center;margin-top:6px;padding:4px 14px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;font-size:14px;font-weight:900;border-radius:20px;letter-spacing:0.05em;position:relative;"></span>
 
       </div>
+
+      <!-- 着順入力エリア（馬読み込み後に表示） -->
+      <div id="finish-rank-area" style="display:none;background:#1a1a2e;border-radius:8px;padding:10px 12px;margin:8px 0;border:1.5px solid #7c3aed;">
+        <div style="font-size:10px;color:#FFD700;font-weight:700;margin-bottom:8px;">🏆 着順入力 → 的中/ハズレ自動判定</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="font-size:11px;color:#fff;font-weight:700;">🥇1着:</span>
+            <input type="number" id="rank1-input" min="1" max="18" placeholder="馬番"
+              style="width:48px;height:32px;text-align:center;font-size:14px;font-weight:900;border:1.5px solid #FFD700;border-radius:6px;background:#0a0a1a;color:#FFD700;padding:0;"
+              oninput="updateRankFromInput()">
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="font-size:11px;color:#fff;font-weight:700;">🥈2着:</span>
+            <input type="number" id="rank2-input" min="1" max="18" placeholder="馬番"
+              style="width:48px;height:32px;text-align:center;font-size:14px;font-weight:900;border:1.5px solid #c0c0c0;border-radius:6px;background:#0a0a1a;color:#c0c0c0;padding:0;"
+              oninput="updateRankFromInput()">
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="font-size:11px;color:#fff;font-weight:700;">🥉3着:</span>
+            <input type="number" id="rank3-input" min="1" max="18" placeholder="馬番"
+              style="width:48px;height:32px;text-align:center;font-size:14px;font-weight:900;border:1.5px solid #cd7f32;border-radius:6px;background:#0a0a1a;color:#cd7f32;padding:0;"
+              oninput="updateRankFromInput()">
+          </div>
+          <button onclick="clearFinishRanks()" style="padding:6px 12px;background:#333;border:none;border-radius:6px;color:#aaa;font-size:10px;cursor:pointer;">🔄 クリア</button>
+        </div>
+      </div>
+
+      <!-- 的中判定カード（着順入力後に表示） -->
+      <div id="judgment-card" style="display:none;background:#0f1a0f;border:2px solid #7c3aed;border-radius:10px;padding:12px;margin:8px 0;">
+        <div style="font-size:11px;color:#7c3aed;font-weight:900;margin-bottom:8px;">🏆 的中/ハズレ判定</div>
+        <div id="judgment-result" style="margin-bottom:10px;"></div>
+        <button class="btn btn-green" onclick="transferToRecord()" style="width:100%;padding:10px;font-size:12px;font-weight:900;margin-bottom:6px;">📝 成績タブに転送して記録</button>
+        <button onclick="clearFinishRanks()" style="width:100%;padding:8px;background:#333;border:none;border-radius:6px;color:#aaa;font-size:11px;cursor:pointer;">🔄 着順をクリア</button>
+      </div>
+
       <div style="overflow-x: auto; overflow-y: auto; max-height: 650px;">
         <table class="table" id="main-table" style="min-width: 1200px;">
           <thead style="background: linear-gradient(135deg, #0f3460, #1a3a52); color: #FFD700; position: sticky; top: 0; z-index: 10;">
@@ -416,14 +451,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
           <option value="通常・混線">通常・混線</option>
           <option value="波乱">波乱</option>
         </select>
-        <select id="record-purchase" class="sel" style="font-size: 10px;">
-          <option value="">買い目</option>
-          <option value="単勝">単勝</option>
-          <option value="単勝・ワイド">単勝・ワイド</option>
-          <option value="馬連BOX">馬連BOX</option>
-          <option value="三連複">三連複</option>
-          <option value="購入なし">購入なし</option>
-        </select>
+
       </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px;">
         <select id="record-distance" class="sel" style="font-size: 10px;">
@@ -461,17 +489,8 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <input type="text" id="record-invest" class="inp" placeholder="投資¥" style="font-size: 10px;">
         <input type="text" id="record-return" class="inp" placeholder="回収¥" style="font-size: 10px;">
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
-        <select id="record-rank" class="sel" style="font-size: 10px;">
-          <option value="">着順</option>
-          <option value="1着">1着</option>
-          <option value="2着">2着</option>
-          <option value="3着">3着</option>
-          <option value="4着">4着</option>
-          <option value="5着">5着</option>
-          <option value="外">外</option>
-        </select>
-        <input type="text" id="record-score" class="inp" placeholder="偏差値" style="font-size: 10px;">
+      <div style="margin-bottom: 8px;">
+        <input type="text" id="record-score" class="inp" placeholder="偏差値（任意）" style="width:100%;font-size: 10px;">
       </div>
       <div style="margin-bottom: 8px;">
         <input type="text" id="record-memo" class="inp" placeholder="備考" style="width: 100%; font-size: 10px;">
@@ -767,6 +786,9 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     </div>
   </div>
 
+  <!-- 着順入力・的中判定 -->
+
+  <!-- 着順入力・的中判定 -->
   <!-- 予想分析タブ -->
   <div id="analysis" class="tab-content">
   <div class="save-bar">
@@ -1309,6 +1331,9 @@ function autoSaveHorses() {
 
 function renderTable() {
   autoSaveHorses();
+  // 着順入力エリアを表示
+  const fra = document.getElementById('finish-rank-area');
+  if (fra) fra.style.display = horses.length > 0 ? 'block' : 'none';
   scheduleAutoSave();
   const tbody = document.getElementById('table-body');
   tbody.innerHTML = '';
@@ -1379,6 +1404,8 @@ function renderTable() {
           <div style="${getWakuStyle(h.waku)}width:36px;height:36px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;">
             ${h.banum}
           </div>
+
+
           <div style="position:absolute;top:1px;left:2px;font-size:8px;font-weight:900;opacity:0.75;line-height:1;">
             <input style="width:14px;background:transparent;border:none;font-size:7px;font-weight:900;color:transparent;padding:0;text-align:left;cursor:pointer;" value="${h.waku}" onchange="horses[${idx}].waku=this.value;renderTable();" maxlength="1">
           </div>
@@ -1792,11 +1819,11 @@ function editRecord(idx) {
   document.getElementById('record-race').value = r.race;
   document.getElementById('record-date').value = r.date;
   document.getElementById('record-formation').value = r.formation || '';
-  document.getElementById('record-purchase').value = r.purchase || '';
+  // record-purchase は削除済みのためスキップ
   document.getElementById('record-distance').value = r.distance || '';
   document.getElementById('record-course').value = r.course || '';
   document.getElementById('record-condition').value = r.condition || '';
-  document.getElementById('record-rank').value = r.rank || '';
+  // record-rank は削除済みのためスキップ
   document.getElementById('record-score').value = r.score || '';
   document.getElementById('record-invest').value = r.invest;
   document.getElementById('record-return').value = r.return;
@@ -1816,11 +1843,11 @@ function updateRecord(idx) {
   const race = document.getElementById('record-race').value || '無名';
   const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
   const formation = document.getElementById('record-formation').value || '';
-  const purchase = document.getElementById('record-purchase').value || '';
+  const purchase = '';
   const distance = document.getElementById('record-distance').value || '';
   const course = document.getElementById('record-course').value || '';
   const condition = document.getElementById('record-condition').value || '';
-  const rank = document.getElementById('record-rank').value || '';
+  const rank = '';
   const score = document.getElementById('record-score').value || '';
   const invest = parseInt(document.getElementById('record-invest').value) || 0;
   const ret = parseInt(document.getElementById('record-return').value) || 0;
@@ -1848,11 +1875,11 @@ function resetRecordForm() {
   document.getElementById('record-race').value = '';
   document.getElementById('record-date').value = '';
   document.getElementById('record-formation').value = '';
-  document.getElementById('record-purchase').value = '';
+
   document.getElementById('record-distance').value = '';
   document.getElementById('record-course').value = '';
   document.getElementById('record-condition').value = '';
-  document.getElementById('record-rank').value = '';
+
   document.getElementById('record-score').value = '';
   document.getElementById('record-invest').value = '';
   document.getElementById('record-return').value = '';
@@ -1863,11 +1890,11 @@ function addRecord() {
   const race = document.getElementById('record-race').value || '無名';
   const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
   const formation = document.getElementById('record-formation').value || '';
-  const purchase = document.getElementById('record-purchase').value || '';
+  const purchase = '';
   const distance = document.getElementById('record-distance').value || '';
   const course = document.getElementById('record-course').value || '';
   const condition = document.getElementById('record-condition').value || '';
-  const rank = document.getElementById('record-rank').value || '';
+  const rank = '';
   const score = document.getElementById('record-score').value || '';
   const invest = parseInt(document.getElementById('record-invest').value) || 0;
   const ret = parseInt(document.getElementById('record-return').value) || 0;
@@ -1875,7 +1902,23 @@ function addRecord() {
   
   if (invest === 0) { setStatus('❌ 金額を入力', 'err'); return; }
   
-  records.push({id: Date.now(), race, date, formation, purchase, distance, course, condition, rank, score, invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo});
+  // 転送データを取得（transferToRecord()で保存したデータを使用）
+  const pt = window._pendingTransfer || {};
+  const finishRanks = pt.finishRanks || { rank1: null, rank2: null, rank3: null };
+  const betLines    = pt.betLines    || [];
+  const hitLabels   = pt.hitLabels   || [];
+  const horsesSnapshot = pt.horsesSnapshot || JSON.parse(JSON.stringify(horses));
+  const dbSnapshot     = pt.dbSnapshot     || JSON.parse(JSON.stringify(db));
+  const paceInfo       = pt.paceInfo       || '';
+  window._pendingTransfer = null; // 使用後クリア
+
+  records.push({
+    id: Date.now(), race, date, formation, purchase, distance, course, condition, rank, score,
+    invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo,
+    // 拡張データ
+    finishRanks, betLines, hitLabels, paceInfo,
+    horsesSnapshot, dbSnapshot
+  });
   localStorage.setItem('kp_records', JSON.stringify(records));
   renderRecordList();
   resetRecordForm();
@@ -1892,18 +1935,24 @@ function renderRecordList() {
     return `
     <div style="background: #fafbff; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
       <div style="font-weight: 700; font-size: 10px; color: #1a1a2e; margin-bottom: 4px;">
-        ${r.race}
+        <a href="https://db.netkeiba.com/?pid=race_search_detail" target="_blank"
+          style="color:#1a1a2e;text-decoration:none;" onclick="event.stopPropagation();">
+          ${r.race}🔗
+        </a>
         ${r.formation ? `<span style="color: #e94560; font-size: 9px; margin-left: 8px;">📊 ${r.formation}</span>` : ''}
         ${r.purchase ? `<span style="color: #2563eb; font-size: 9px; margin-left: 4px;">🎯 ${r.purchase}</span>` : ''}
         ${r.rank ? `<span style="color: #16a34a; font-size: 9px; margin-left: 4px;">🏁 ${r.rank}</span>` : ''}
       </div>
-      <div style="font-size: 9px; color: #6080a0; margin-bottom: 4px;">
-        (${r.date}) 投¥${r.invest.toLocaleString()} | 回¥${r.return.toLocaleString()} | ${r.rate}%
-        ${r.score ? `| 偏差値${r.score}` : ''}
+      <div style="font-size: 9px; color: #6080a0; margin-bottom: 4px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+        <span>(${r.date})</span>
+        <span>投¥${r.invest.toLocaleString()} | 回¥${r.return.toLocaleString()} | ${r.rate}%</span>
+        ${r.hitLabels?.length ? `<span style="background:#34c759;color:#fff;font-size:8px;font-weight:700;padding:1px 6px;border-radius:4px;">🎯 ${r.hitLabels.join('・')}的中</span>` : (r.finishRanks?.rank1 ? `<span style="background:#555;color:#fff;font-size:8px;font-weight:700;padding:1px 6px;border-radius:4px;">💧ハズレ</span>` : '')}
+        ${r.finishRanks?.rank1 ? `<span style="font-size:8px;color:#888;">1着${r.finishRanks.rank1}番${r.finishRanks.rank2?' 2着'+r.finishRanks.rank2+'番':''}${r.finishRanks.rank3?' 3着'+r.finishRanks.rank3+'番':''}</span>` : ''}
       </div>
       ${r.distance ? `<div style="font-size: 8px; color: #8090a0; margin-bottom: 2px;">📍 ${r.distance}m | ${r.course || '?'} | ${r.condition || '?'}</div>` : ''}
       ${r.memo && r.memo !== '📋 コピペインポート' ? `<div style="font-size: 8px; color: #8090a0; margin-bottom: 4px;">備: ${r.memo}</div>` : ''}
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
+        <button class="btn btn-blue" style="padding: 4px; font-size: 8px;" onclick="showRecordDetail(${origIdx});">📋 詳細</button>
         <button class="btn btn-blue" style="padding: 4px; font-size: 8px;" onclick="editRecord(${origIdx});">✏️ 編集</button>
         <button class="btn btn-red" style="padding: 4px; font-size: 8px;" onclick="records.splice(${origIdx}, 1); localStorage.setItem('kp_records', JSON.stringify(records)); renderRecordList();">✕ 削除</button>
       </div>
@@ -2825,18 +2874,37 @@ function uploadDBBackup() {
 
 // バックアップ機能
 function downloadBackup() {
-  const backup = {records: records, db: db, exportDate: new Date().toISOString(), exportCount: records.length};
+  // netkeiba URLも全て収集
+  const raceUrls = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('kp_race_url_')) {
+      raceUrls[key] = localStorage.getItem(key);
+    }
+  }
+
+  const backup = {
+    version: '2.0',
+    exportDate: new Date().toISOString(),
+    exportCount: records.length,
+    records,           // 成績（出馬表スナップショット・買い目・着順含む）
+    db,                // DBスコア設定
+    horses,            // 現在の出馬表
+    currentRaceName,   // 現在のレース名
+    raceUrls,          // netnkeiba URL一覧
+  };
+
   const jsonString = JSON.stringify(backup, null, 2);
   const blob = new Blob([jsonString], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = '競馬予想ツール_バックアップ_' + new Date().toISOString().split('T')[0] + '.json';
+  link.download = '競馬予想バックアップ_' + new Date().toISOString().split('T')[0] + '.json';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-  setStatus('✅ ' + records.length + '件のデータをダウンロードしました', 'ok');
+  setStatus('✅ ' + records.length + '件 + 全設定をバックアップしました', 'ok');
 }
 
 function uploadBackup() {
@@ -2854,8 +2922,18 @@ function uploadBackup() {
       if (backup.db) db = backup.db;
       localStorage.setItem('kp_records', JSON.stringify(records));
       if (backup.db) localStorage.setItem('kp_db', JSON.stringify(db));
+      // netkeiba URLを復元
+      if (backup.raceUrls) {
+        Object.entries(backup.raceUrls).forEach(([k, v]) => localStorage.setItem(k, v));
+      }
+      // 現在の出馬表を復元
+      if (backup.horses && backup.horses.length > 0) {
+        horses = backup.horses;
+        if (backup.currentRaceName) setRaceName(backup.currentRaceName);
+        renderTable();
+      }
       renderRecordList();
-      setStatus('✅ ' + records.length + '件のデータを復元しました', 'ok');
+      setStatus('✅ ' + records.length + '件 + 全設定を復元しました', 'ok');
     } catch (error) {
       setStatus('❌ ファイルの読み込みに失敗しました', 'err');
     }
@@ -4738,6 +4816,417 @@ function graphSave() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 // ===== 成績グラフ画像生成ここまで =====
+
+// ===== レース詳細ページ =====
+function showRecordDetail(idx) {
+  const r = records[idx];
+  if (!r) return;
+
+  // 詳細モーダルを作成
+  const modal = document.createElement('div');
+  modal.id = 'record-detail-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:#000;z-index:99999;overflow-y:auto;padding:16px;';
+
+  const betLabels = ['単勝','馬連','ワイド','三連複'];
+  const betColors = ['#ff2d55','#007aff','#34c759','#ff9500'];
+
+  // 買い目・判定HTML
+  const betHTML = (r.betLines || []).map((line, i) => {
+    const label = betLabels[i];
+    const isHit = (r.hitLabels || []).includes(label);
+    const nums = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;margin-bottom:4px;
+      background:${isHit?'rgba(52,199,89,0.15)':'rgba(255,255,255,0.05)'};
+      border:1px solid ${isHit?'#34c759':'rgba(255,255,255,0.1)'};">
+      <span style="background:${betColors[i]};color:#fff;font-size:9px;font-weight:900;padding:2px 8px;border-radius:5px;">${label}</span>
+      <span style="font-size:12px;color:#fff;">${nums}</span>
+      <span style="margin-left:auto;font-size:12px;font-weight:700;color:${isHit?'#34c759':'#ff3b30'}">${isHit?'✅ 的中':'❌ ハズレ'}</span>
+    </div>`;
+  }).join('');
+
+  // 着順HTML
+  const rankHTML = r.finishRanks?.rank1 ? `
+    <div style="display:flex;gap:12px;margin-bottom:12px;">
+      ${r.finishRanks.rank1?`<span style="font-size:13px;font-weight:900;color:#FFD700;">🥇 ${r.finishRanks.rank1}番</span>`:''}
+      ${r.finishRanks.rank2?`<span style="font-size:13px;font-weight:900;color:#c0c0c0;">🥈 ${r.finishRanks.rank2}番</span>`:''}
+      ${r.finishRanks.rank3?`<span style="font-size:13px;font-weight:900;color:#cd7f32;">🥉 ${r.finishRanks.rank3}番</span>`:''}
+    </div>` : '<div style="color:#888;font-size:11px;">着順データなし</div>';
+
+  // スコアランキングHTML（保存済み馬データから再計算）
+  let scoreHTML = '';
+  if (r.horsesSnapshot && r.horsesSnapshot.length > 0) {
+    // wakuMapは固定
+    const wakuColors = {1:'#fff',2:'#222',3:'#cc2200',4:'#003ecc',5:'#e6c800',6:'#009900',7:'#ff6600',8:'#ff5faa'};
+    const wakuTexts  = {1:'#000',5:'#000'};
+    const db2 = r.dbSnapshot || {};
+    const pb  = paceBonus || {};
+    const bm  = pb[calcPaceFromHorses?.(r.horsesSnapshot)||'normal'] || {};
+    const ranked = r.horsesSnapshot.map(h => {
+      const s = (db2.jockey?.[h.jockey]||0)+(db2.sire?.[h.sire]||0)+(db2.age?.[String(h.age)]||0)
+               +(db2.kyakushitsu?.[h.kyakushitsu]||0)+(db2.ninki?.[String(h.ninki)]||0)
+               +(db2.maejun?.[String(h.maejun)]||0)+(db2.maeclass?.[h.maeclass]||0)
+               +(db2.waku?.[String(h.waku)]||0)+(db2.timdev?.[h.timdev]||0)+(db2.baju?.[h.baju]||0)
+               +({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0)
+               +({'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0)
+               +(bm[h.kyakushitsu]||0)+(h.negAdj||0);
+      return {...h, totalScore: s};
+    }).sort((a,b)=>b.totalScore-a.totalScore).slice(0,8);
+    scoreHTML = ranked.map((h,i) => {
+      const isFinish1 = r.finishRanks?.rank1 === h.banum;
+      const bg = wakuColors[h.waku] || '#888';
+      const tx = wakuTexts[h.waku] || '#fff';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;margin-bottom:3px;
+        background:${isFinish1?'rgba(255,215,0,0.15)':'rgba(255,255,255,0.04)'};
+        border:1px solid ${isFinish1?'#FFD700':'rgba(255,255,255,0.08)'};">
+        <span style="color:${i===0?'#FFD700':'#888'};font-size:11px;font-weight:900;width:16px;">${i+1}</span>
+        <span style="background:${bg};color:${tx};font-size:10px;font-weight:900;padding:2px 6px;border-radius:4px;min-width:22px;text-align:center;">${h.banum}</span>
+        <span style="font-size:12px;color:#fff;font-weight:${i===0?'900':'700'};">${h.name||h.banum+'番'}</span>
+        <span style="font-size:9px;color:#888;">${h.kyakushitsu||''}</span>
+        <span style="margin-left:auto;font-size:11px;font-weight:900;color:${i===0?'#FFD700':'#aaa'};">${h.totalScore}pt</span>
+        ${isFinish1?'<span style="font-size:10px;">🥇</span>':''}
+      </div>`;
+    }).join('');
+  }
+
+  const hitCount = (r.hitLabels||[]).length;
+  const profit = (r.return||0) - (r.invest||0);
+
+  modal.innerHTML = `
+    <div style="max-width:480px;margin:0 auto;">
+      <!-- ヘッダー -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:16px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:2px;">${r.date}</div>
+          <div style="font-size:18px;font-weight:900;color:#fff;line-height:1.3;">${r.race}</div>
+          ${r.paceInfo?`<div style="font-size:11px;color:#FFD700;margin-top:2px;">⚡ ${r.paceInfo}</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:18px;font-weight:900;color:${hitCount>0?'#34c759':'#ff3b30'};white-space:nowrap;">
+            ${hitCount>0?`🎯 ${hitCount}的中`:'💧 ハズレ'}
+          </div>
+          <div style="font-size:13px;color:${profit>=0?'#34c759':'#ff3b30'};font-weight:700;white-space:nowrap;">
+            ${profit>=0?'+':''}¥${profit.toLocaleString()}
+          </div>
+        </div>
+      </div>
+
+      <!-- 着順 -->
+      <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:8px;font-weight:700;">🏁 確定着順</div>
+        ${rankHTML}
+      </div>
+
+      <!-- 買い目・判定 -->
+      <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:8px;font-weight:700;">🎯 推奨買い目・判定</div>
+        ${betHTML || '<div style="color:#888;font-size:11px;">買い目データなし</div>'}
+      </div>
+
+      <!-- スコアランキング -->
+      ${scoreHTML ? `<div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:8px;font-weight:700;">📊 スコアランキング（当時）</div>
+        ${scoreHTML}
+      </div>` : ''}
+
+      <!-- 成績メモ -->
+      <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:6px;font-weight:700;">💰 成績データ</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
+          <div style="color:#aaa;">投資額</div><div style="color:#fff;font-weight:700;">¥${(r.invest||0).toLocaleString()}</div>
+          <div style="color:#aaa;">払戻額</div><div style="color:#fff;font-weight:700;">¥${(r.return||0).toLocaleString()}</div>
+          <div style="color:#aaa;">損益</div><div style="color:${profit>=0?'#34c759':'#ff3b30'};font-weight:900;">${profit>=0?'+':''}¥${profit.toLocaleString()}</div>
+          ${r.distance?`<div style="color:#aaa;">距離</div><div style="color:#fff;">${r.distance}m</div>`:''}
+          ${r.memo?`<div style="color:#aaa;">メモ</div><div style="color:#fff;">${r.memo}</div>`:''}
+        </div>
+      </div>
+
+      <!-- 出馬表スナップショット -->
+      ${r.horsesSnapshot && r.horsesSnapshot.length > 0 ? `
+      <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:8px;font-weight:700;">🐎 出馬表（当時）</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:10px;">
+            <thead>
+              <tr style="background:rgba(255,255,255,0.08);">
+                <th style="padding:4px;color:#aaa;text-align:center;">馬番</th>
+                <th style="padding:4px;color:#aaa;text-align:left;">馬名</th>
+                <th style="padding:4px;color:#aaa;">騎手</th>
+                <th style="padding:4px;color:#aaa;">脚質</th>
+                <th style="padding:4px;color:#aaa;">人気</th>
+                <th style="padding:4px;color:#aaa;">オッズ</th>
+                <th style="padding:4px;color:#aaa;">調教</th>
+                <th style="padding:4px;color:#aaa;">厩舎</th>
+                <th style="padding:4px;color:#aaa;">前着</th>
+                <th style="padding:4px;color:#aaa;">偏差値</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${r.horsesSnapshot.map(h => {
+                const wc = {1:'#fff',2:'#222',3:'#cc2200',4:'#003ecc',5:'#e6c800',6:'#009900',7:'#ff6600',8:'#ff5faa'}[h.waku]||'#888';
+                const wt = [1,5].includes(h.waku)?'#000':'#fff';
+                const is1 = r.finishRanks?.rank1 === h.banum;
+                const is2 = r.finishRanks?.rank2 === h.banum;
+                const is3 = r.finishRanks?.rank3 === h.banum;
+                const medal = is1?'🥇':is2?'🥈':is3?'🥉':'';
+                const chokyoColor = h.chokyoFinal==='A'?'#34c759':h.chokyoFinal==='C'?'#ff3b30':'#aaa';
+                return `<tr style="border-bottom:1px solid rgba(255,255,255,0.06);background:${is1?'rgba(255,215,0,0.12)':is2?'rgba(192,192,192,0.08)':is3?'rgba(205,127,50,0.08)':''}">
+                  <td style="padding:4px;text-align:center;">
+                    <span style="background:${wc};color:${wt};font-size:10px;font-weight:900;padding:2px 5px;border-radius:4px;">${h.banum}</span>
+                  </td>
+                  <td style="padding:4px;color:#fff;font-weight:${is1||is2||is3?'900':'400'};white-space:nowrap;">${medal}${h.name||''}</td>
+                  <td style="padding:4px;color:#aaa;white-space:nowrap;">${h.jockey||''}</td>
+                  <td style="padding:4px;color:#aaa;text-align:center;">${h.kyakushitsu||''}</td>
+                  <td style="padding:4px;color:#aaa;text-align:center;">${h.ninki||''}</td>
+                  <td style="padding:4px;color:#aaa;text-align:center;">${h.odds||''}</td>
+                  <td style="padding:4px;text-align:center;color:${chokyoColor};font-weight:700;">${h.chokyoFinal||''}${h.chokyoPrev?'/'+h.chokyoPrev:''}</td>
+                  <td style="padding:4px;color:#aaa;white-space:nowrap;">${h.stable||''}</td>
+                  <td style="padding:4px;color:#aaa;text-align:center;">${h.maejun||''}</td>
+                  <td style="padding:4px;color:#aaa;text-align:center;">${h.timdev||''}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>` : ''}
+
+      <!-- ネットケイバリンク（編集可能） -->
+      <div style="margin-bottom:12px;">
+        <div id="netkeiba-btn-wrap-${r.id}" style="display:flex;gap:6px;">
+          ${(() => {
+            const savedUrl = localStorage.getItem('kp_race_url_' + r.race);
+            if (savedUrl) {
+              return `<a href="${savedUrl}" target="_blank"
+                style="flex:1;display:block;text-align:center;padding:12px;background:linear-gradient(135deg,#e94560,#c0293a);border-radius:10px;color:#fff;font-weight:700;font-size:13px;text-decoration:none;">
+                🔗 netkeiba でレース結果を確認
+              </a>
+              <button onclick="editNetkeibaUrl('${r.race}', '${r.id}')" style="padding:12px 14px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;color:#fff;font-size:13px;cursor:pointer;">✏️</button>`;
+            } else {
+              return `<button onclick="editNetkeibaUrl('${r.race}', '${r.id}')"
+                style="flex:1;padding:12px;background:linear-gradient(135deg,#555,#333);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">
+                🔗 netkeiba URLを登録
+              </button>`;
+            }
+          })()}
+        </div>
+      </div>
+
+      <!-- 閉じるボタン -->
+      <button onclick="document.getElementById('record-detail-modal').remove()"
+        style="width:100%;padding:12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+        ✕ 閉じる
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.scrollTop = 0;
+}
+function editNetkeibaUrl(raceName, recordId) {
+  const key = 'kp_race_url_' + raceName;
+  const current = localStorage.getItem(key) || '';
+  const url = prompt('netnkeiba のURLを入力（空欄でクリア）:', current);
+  if (url === null) return;
+  if (url.trim()) {
+    localStorage.setItem(key, url.trim());
+    setStatus('✅ URL登録しました', 'ok');
+    // 出馬表タブのバッジも更新
+    if (typeof setRaceName === 'function') setRaceName(currentRaceName);
+  } else {
+    localStorage.removeItem(key);
+    setStatus('🗑 URLをクリアしました', 'ok');
+  }
+  // 詳細モーダルを再描画
+  const modal = document.getElementById('record-detail-modal');
+  if (modal) {
+    const idx = records.findIndex(r => r.id === parseInt(recordId) || r.id === recordId);
+    if (idx >= 0) {
+      modal.remove();
+      showRecordDetail(idx);
+    }
+  }
+}
+
+// ===== レース詳細ページここまで =====
+
+// ===== 着順判定 =====
+function updateJudgment() {
+  if (horses.length === 0) return;
+
+  // 着順が入力されているか確認
+  const ranked = horses.filter(h => h.finishRank);
+  if (ranked.length === 0) {
+    document.getElementById('judgment-card').style.display = 'none';
+    return;
+  }
+  document.getElementById('judgment-card').style.display = 'block';
+  // 判定カードへスクロール
+  setTimeout(() => document.getElementById('judgment-card').scrollIntoView({behavior:'smooth', block:'nearest'}), 100);
+
+  // 1〜3着の馬番を取得
+  const rank1 = horses.find(h => h.finishRank === 1)?.banum;
+  const rank2 = horses.find(h => h.finishRank === 2)?.banum;
+  const rank3 = horses.find(h => h.finishRank === 3)?.banum;
+
+  if (!rank1) {
+    document.getElementById('judgment-result').innerHTML =
+      '<div style="font-size:11px;color:#aaa;">1着を入力すると判定します</div>';
+    return;
+  }
+
+  // 推奨買い目を計算
+  const { lines } = imgCalcBets();
+  const betLabels = ['単勝','馬連','ワイド','三連複'];
+
+  const results = lines.map((line, i) => {
+    const label = betLabels[i];
+    const nums = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '')
+      .split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+
+    let hit = false;
+    if (label === '単勝') {
+      hit = nums.includes(rank1);
+    } else if (label === '馬連' || label === 'ワイド') {
+      if (rank1 && rank2) {
+        hit = nums.includes(rank1) && nums.includes(rank2);
+      }
+    } else if (label === '三連複') {
+      if (rank1 && rank2 && rank3) {
+        hit = nums.includes(rank1) && nums.includes(rank2) && nums.includes(rank3);
+      }
+    }
+
+    return { label, nums, hit };
+  });
+
+  const hitCount = results.filter(r => r.hit).length;
+  const html = `
+    <div style="margin-bottom:8px;">
+      <div style="font-size:12px;font-weight:900;color:${hitCount>0?'#34c759':'#ff3b30'};margin-bottom:6px;">
+        ${hitCount>0 ? `🎯 ${hitCount}点的中！` : '💧 ハズレ'}
+      </div>
+      <div style="font-size:10px;color:#6080a0;margin-bottom:8px;">
+        確定着順: ${rank1?`1着 ${rank1}番`:''}${rank2?` / 2着 ${rank2}番`:''}${rank3?` / 3着 ${rank3}番`:''}
+      </div>
+      ${results.map(r => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;margin-bottom:4px;
+          background:${r.hit?'rgba(52,199,89,0.12)':'rgba(0,0,0,0.3)'};
+          border:1px solid ${r.hit?'#34c759':'rgba(255,255,255,0.1)'};">
+          <span style="background:${r.hit?'#34c759':'#555'};color:#fff;font-size:9px;font-weight:900;padding:2px 8px;border-radius:5px;">${r.label}</span>
+          <span style="font-size:11px;color:#fff;">${r.nums.join(' - ')}</span>
+          <span style="margin-left:auto;font-size:12px;color:${r.hit?'#34c759':'#ff3b30'};font-weight:700;">${r.hit?'✅ 的中':'❌ ハズレ'}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;">
+      <button class="btn" onclick="autoFillHits()" style="padding:8px;font-size:10px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;">🎊 的中画像へ反映</button>
+      <button class="btn" onclick="imgGenerate('hit')" style="padding:8px;font-size:10px;background:linear-gradient(135deg,#7c3aed,#4f1fb5);color:#fff;">📸 的中画像生成</button>
+      <button class="btn" onclick="imgGenerate('miss')" style="padding:8px;font-size:10px;background:#333;color:#fff;">💧 ハズレ画像生成</button>
+    </div>
+  `;
+  document.getElementById('judgment-result').innerHTML = html;
+}
+
+// 的中買い目を投稿タブの入力欄に自動反映
+function transferToRecord() {
+  // 買い目・判定データを取得
+  let betLines = [], hitLabels = [], betData = {};
+  const betLabelList = ['単勝','馬連','ワイド','三連複'];
+  const r1 = parseInt(document.getElementById('rank1-input')?.value) || null;
+  const r2 = parseInt(document.getElementById('rank2-input')?.value) || null;
+  const r3 = parseInt(document.getElementById('rank3-input')?.value) || null;
+
+  try {
+    const { lines } = imgCalcBets();
+    betLines = lines;
+    if (r1) {
+      lines.forEach((line, i) => {
+        const label = betLabelList[i];
+        const nums = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '')
+          .split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+        let hit = false;
+        if (label === '単勝') hit = nums.includes(r1);
+        else if (label === '馬連' || label === 'ワイド') hit = r1 && r2 && nums.includes(r1) && nums.includes(r2);
+        else if (label === '三連複') hit = r1 && r2 && r3 && nums.includes(r1) && nums.includes(r2) && nums.includes(r3);
+        if (hit) hitLabels.push(label);
+      });
+    }
+  } catch(e) {}
+
+  // グローバルに保存（addRecord時に参照）
+  window._pendingTransfer = {
+    finishRanks: { rank1: r1, rank2: r2, rank3: r3 },
+    betLines,
+    hitLabels,
+    horsesSnapshot: JSON.parse(JSON.stringify(horses)),
+    dbSnapshot: JSON.parse(JSON.stringify(db)),
+    paceInfo: (() => { try { return getPaceLabel(calcPaceFromHorses(horses)); } catch(e) { return ''; } })(),
+    raceName: currentRaceName || ''
+  };
+
+  // 成績フォームに自動入力
+  if (currentRaceName && !document.getElementById('record-race').value) {
+    document.getElementById('record-race').value = currentRaceName;
+  }
+  if (!document.getElementById('record-date').value) {
+    document.getElementById('record-date').value = new Date().toISOString().split('T')[0];
+  }
+
+  // 成績タブへ移動
+  switchTo('record');
+  setStatus(`✅ 転送完了！投資・払戻を入力して「記録」を押してください`, 'ok');
+  setTimeout(() => {
+    document.getElementById('record-invest')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 300);
+}
+
+function autoFillHits() {
+  const ranked = horses.filter(h => h.finishRank);
+  if (ranked.length === 0) return;
+  const rank1 = horses.find(h => h.finishRank === 1)?.banum;
+  const rank2 = horses.find(h => h.finishRank === 2)?.banum;
+  const rank3 = horses.find(h => h.finishRank === 3)?.banum;
+  const { lines } = imgCalcBets();
+  const betLabels = ['単勝','馬連','ワイド','三連複'];
+  const hits = [];
+  lines.forEach((line, i) => {
+    const label = betLabels[i];
+    const nums = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '')
+      .split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+    let hit = false;
+    if (label === '単勝') hit = nums.includes(rank1);
+    else if (label === '馬連' || label === 'ワイド') hit = rank1 && rank2 && nums.includes(rank1) && nums.includes(rank2);
+    else if (label === '三連複') hit = rank1 && rank2 && rank3 && nums.includes(rank1) && nums.includes(rank2) && nums.includes(rank3);
+    if (hit) hits.push(label);
+  });
+  const hitsEl = document.getElementById('img-hits');
+  if (hitsEl) hitsEl.value = hits.join(' ');
+  setStatus(`✅ 的中買い目を反映: ${hits.join(' ')||'なし'}`, 'ok');
+  // 投稿タブへ移動
+  switchTo('xpost');
+}
+
+function clearFinishRanks() {
+  horses.forEach(h => h.finishRank = null);
+  ['rank1-input','rank2-input','rank3-input'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('judgment-card').style.display = 'none';
+}
+
+function updateRankFromInput() {
+  const r1 = parseInt(document.getElementById('rank1-input')?.value);
+  const r2 = parseInt(document.getElementById('rank2-input')?.value);
+  const r3 = parseInt(document.getElementById('rank3-input')?.value);
+  horses.forEach(h => {
+    h.finishRank = null;
+    if (!isNaN(r1) && h.banum === r1) h.finishRank = 1;
+    if (!isNaN(r2) && h.banum === r2) h.finishRank = 2;
+    if (!isNaN(r3) && h.banum === r3) h.finishRank = 3;
+  });
+  updateJudgment();
+}
+// ===== 着順判定ここまで =====
 
 // ===== X投稿タブここまで =====
 
