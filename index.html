@@ -4036,7 +4036,7 @@ function imgGenerate(type) {
 
     // ── タイプ別 ──
     if (type === 'score') {
-      drawScoreRanking(ctx, W, imgH, tc);
+      drawScoreRanking(ctx, W, imgH, tc, comment);
     } else if (type === 'buy') {
       drawHorseBanner(ctx, topHorse, jikustr, 18, imgH + 112, W - 36);
       drawBetCards(ctx, lines, betLabels, betColors, null, 18, imgH + 170, W - 36, type);
@@ -4439,7 +4439,7 @@ function drawPayout(ctx, payout, W, y) {
   ctx.restore();
 }
 
-function drawScoreRanking(ctx, W, imgH, tc) {
+function drawScoreRanking(ctx, W, imgH, tc, comment) {
   const overrideEl = document.getElementById('pace-override');
   const override = overrideEl ? overrideEl.value : 'auto';
   const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
@@ -4455,7 +4455,7 @@ function drawScoreRanking(ctx, W, imgH, tc) {
     const negAdj = h.negAdj||0;
     const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
     return {...h, totalScore, paceAdj};
-  }).sort((a,b)=>b.totalScore-a.totalScore).slice(0,7);
+  }).sort((a,b)=>b.totalScore-a.totalScore).slice(0, comment ? 6 : 8);
 
   const maxScore = Math.max(...ranked.map(h=>h.totalScore), 1);
 
