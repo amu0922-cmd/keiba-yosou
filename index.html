@@ -2423,6 +2423,9 @@ function renderAnalysis() {
   const top1Hensaichi = calcHensaichi(top1Score);
   const top2Hensaichi = calcHensaichi(top2Score);
   const dansoSa = top1Score - top2Score;
+  // 実績ベースの買い強度（スコア差20pt以上=強買い、10〜19=普通、<10=要注意）
+  const scoreDiff = dansoSa; // エイリアス（分析と合わせる）
+  const buyStrength = scoreDiff >= 20 ? 'strong' : scoreDiff >= 10 ? 'normal' : 'weak';
   
   // 鉄板判定
   let topLabel = '';
@@ -2540,26 +2543,34 @@ function renderAnalysis() {
   let recommendation = '';
   let buyStyle = '';
 
+  // スコア差ベースの買い強度ラベル
+  const strengthLabel = buyStrength === 'strong' ? '🔥🔥 強く買い推奨！' : buyStrength === 'normal' ? '🔥 買い推奨' : '⚠️ 要注意（スコア差小）';
+  const strengthNote = buyStrength === 'strong' ? `スコア差${scoreDiff}pt：軸は堅い` : buyStrength === 'normal' ? `スコア差${scoreDiff}pt：標準的な信頼度` : `スコア差${scoreDiff}pt：混戦気味・荒れる可能性あり`;
+
   if (top1Score >= 50 && dansoSa >= 10) {
-    formation = '【1強・不動陣形】';
+    formation = buyStrength === 'strong' ? '【1強・不動陣形】' : '【1強・不動陣形（スコア差注意）】';
     buyStyle = buildBuyStyle('tansho_wide');
-    recommendation = '🔥 買い推奨！';
+    recommendation = strengthLabel;
   } else if (top2Score >= 50 && dansoSa >= 5) {
-    formation = '【2強・鉄板陣形】';
+    formation = buyStrength === 'strong' ? '【2強・鉄板陣形】' : '【2強・拮抗陣形】';
     buyStyle = buildBuyStyle('box');
-    recommendation = '🔥 買い推奨！';
+    recommendation = strengthLabel;
   } else if (top1Score >= 50 && dansoSa >= 5) {
-    formation = '【1強・不動陣形】';
+    formation = '【1強・拮抗陣形】';
     buyStyle = buildBuyStyle('box');
-    recommendation = '🔥 買い推奨！';
+    recommendation = strengthLabel;
   } else if (top1Score < 40 && dansoSa >= 5) {
     formation = '【波乱・包囲陣形】';
     buyStyle = buildBuyStyle('box');
-    recommendation = '⚠️ 高リスク';
+    recommendation = '⚠️ 高リスク・少額推奨';
   } else if (dansoSa >= 5) {
     formation = '【通常・標準陣形】';
     buyStyle = buildBuyStyle('box');
-    recommendation = '💰 通常推奨';
+    recommendation = strengthLabel;
+  } else if (dansoSa <= 0) {
+    formation = '【混戦・見送り推奨】';
+    buyStyle = buildBuyStyle('box');
+    recommendation = '🚫 スコア差0pt：見送り推奨';
   } else if (top2Score >= 50) {
     formation = '【2強・鉄板陣形（見送り推奨）】';
     buyStyle = buildBuyStyle('tansho_wide');
@@ -2620,9 +2631,10 @@ function renderAnalysis() {
       <div style="font-weight: 900; color: #f39c12; margin-bottom: 8px;">🏇 偏差値分析</div>
       <div style="margin-bottom: 6px; color: #1a1a2e;">
         <strong>🥇 1位偏差値： ${top1Hensaichi}</strong> ${topLabel}<br>
-        <strong>🥈 2位偏差値： ${top2Hensaichi}</strong> 【上位断層： ${dansoSa}点】
+        <strong>🥈 2位偏差値： ${top2Hensaichi}</strong> 【上位断層： ${dansoSa}点】<br>
+        <span style="font-size:10px;">📊 スコア差: <strong style="color:${buyStrength==='strong'?'#34c759':buyStrength==='normal'?'#ff9500':'#ff3b30'}">${scoreDiff}pt</strong> ／ ${strengthNote}</span>
       </div>
-      <div style="background: #fff0e6; padding: 8px; border-radius: 4px; color: #d97706; font-weight: 700;">
+      <div style="background:${buyStrength==='strong'?'#e8f5e9':buyStrength==='normal'?'#fff0e6':'#fdecea'}; padding: 8px; border-radius: 4px; color: ${buyStrength==='strong'?'#1a6e00':buyStrength==='normal'?'#d97706':'#c00000'}; font-weight: 700;">
         💡 司令室通信： ${recommendation}
       </div>
       <div style="margin-top: 8px; font-size: 9px; color: #6080a0;">
