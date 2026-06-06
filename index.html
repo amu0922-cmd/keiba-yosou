@@ -2527,15 +2527,21 @@ function renderAnalysis() {
       lines.push(`《馬連 ${jikuNum}-${aiteStr}》`);
       lines.push(`《ワイド ${jikuNum}-${aiteStr}》`);
     }
-    // 三連複：軸-DB騎手-スコア上位
-    if (dbTop1 && scoreTop5.length > 0) {
-      const dbNum = dbJockeyScored[0].banum;
-      const nokori = scoreTop5.map(s=>s.replace('番','')).sort((a,b)=>a-b).join('・');
-      lines.push(`《三連複 ${jikuNum}-${dbNum}-${nokori}》`);
-    } else if (scoreTop5.length >= 2) {
-      const a1 = scoreTop5[0].replace('番','');
-      const nokori = scoreTop5.slice(1).map(s=>s.replace('番','')).sort((a,b)=>a-b).join('・');
-      lines.push(`《三連複 ${jikuNum}-${a1}-${nokori}》`);
+    // 三連複：◎1頭軸-相手4頭流し（○▲△×）
+    // DB騎手スコアあり：○=DB騎手、▲△×=スコア上位3頭
+    // DB騎手スコアなし：スコア上位4頭を相手に
+    {
+      let aite4 = [];
+      if (dbTop1) {
+        const dbNum = String(dbJockeyScored[0].banum);
+        const others = scoreTop5.map(s=>s.replace('番','')).filter(n=>n!==dbNum);
+        aite4 = [dbNum, ...others].slice(0,4);
+      } else {
+        aite4 = scoreTop5.slice(0,4).map(s=>s.replace('番',''));
+      }
+      const aite4str = aite4.sort((a,b)=>Number(a)-Number(b)).join('・');
+      const pts = aite4.length >= 2 ? (aite4.length===2?1:aite4.length===3?3:6) : 0;
+      lines.push(`《三連複 ${jikuNum}-${aite4str}（${pts}点）》`);
     }
     if (bestPurchase) {
       lines.push(`\n📊 成績最良: ${bestPurchase.name}（的中率${bestPurchase.rate}%）`);
@@ -4004,7 +4010,9 @@ function imgCalcBets() {
   if (dbTop1Num) {
     lines.push(`馬連  ${jikustr}-${dbTop1Num}${scoreTop5[0]?'.'+scoreTop5[0]:''}`);
     lines.push(`ワイド ${jikustr}-${dbTop1Num}${scoreTop5[0]?'.'+scoreTop5[0]:''}`);
-    lines.push(`三連複 ${jikustr}-${dbTop1Num}-${scoreTop5.sort((a,b)=>a-b).join('.')}`);
+    // 三連複：◎1頭軸-相手4頭流し
+    const aite4 = [dbTop1Num, ...scoreTop5.slice(0,3)].sort((a,b)=>a-b);
+    lines.push(`三連複 ${jikustr}-${aite4.join('.')}`);
   }
   return { ranked, jiku, jikustr, paceLabel, lines, topHorse: jiku[0] };
 }
