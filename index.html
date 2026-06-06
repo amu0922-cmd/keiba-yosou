@@ -4328,7 +4328,7 @@ function drawBetCards(ctx, lines, betLabels, betColors, hitTypes, x, y, w, type)
     const parts = cnt.split('-');
     parts.forEach((part, pi) => {
       if (pi > 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.fillStyle = '#ffffff';
         ctx.font = '700 14px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('-', bx + 6, cy + 23);
@@ -4336,7 +4336,7 @@ function drawBetCards(ctx, lines, betLabels, betColors, hitTypes, x, y, w, type)
       }
       part.split('.').forEach((n, ni) => {
         if (ni > 0) {
-          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          ctx.fillStyle = '#ffffff';
           ctx.font = '11px sans-serif';
           ctx.fillText('・', bx + 5, cy + 23);
           bx += 11;
