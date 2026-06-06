@@ -1861,7 +1861,7 @@ function updateRecord(idx) {
   const race = document.getElementById('record-race').value || '無名';
   const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
   const formation = document.getElementById('record-formation').value || '';
-  const purchase = pt.purchase || '';
+  const purchase = document.getElementById('record-purchase')?.value || '';
   const distance = document.getElementById('record-distance').value || '';
   const course = document.getElementById('record-course').value || '';
   const condition = document.getElementById('record-condition').value || '';
@@ -1873,7 +1873,13 @@ function updateRecord(idx) {
   
   if (invest === 0) { setStatus('❌ 金額を入力', 'err'); return; }
   
-  records[idx] = {id: records[idx].id, race, date, formation, purchase, distance, course, condition, rank, score, invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo};
+  // 既存データ（出馬表スナップショット・着順・買い目等）を引き継ぎ
+  const existing = records[idx];
+  records[idx] = {
+    ...existing,
+    race, date, formation, purchase, distance, course, condition, rank, score,
+    invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo
+  };
   
   localStorage.setItem('kp_records', JSON.stringify(records));
   renderRecordList();
