@@ -457,7 +457,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
           <option value="通常・混線">通常・混線</option>
           <option value="波乱">波乱</option>
         </select>
-
+        <input type="text" id="record-purchase" class="inp" placeholder="買い目（例: 単勝・ワイド）" style="font-size: 10px;">
       </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px;">
         <select id="record-distance" class="sel" style="font-size: 10px;">
@@ -1836,6 +1836,7 @@ function editRecord(idx) {
   document.getElementById('record-race').value = r.race;
   document.getElementById('record-date').value = r.date;
   document.getElementById('record-formation').value = r.formation || '';
+  document.getElementById('record-purchase').value = r.purchase || '';
   // record-purchase は削除済みのためスキップ
   document.getElementById('record-distance').value = r.distance || '';
   document.getElementById('record-course').value = r.course || '';
@@ -1892,6 +1893,7 @@ function resetRecordForm() {
   document.getElementById('record-race').value = '';
   document.getElementById('record-date').value = '';
   document.getElementById('record-formation').value = '';
+  document.getElementById('record-purchase').value = '';
 
   document.getElementById('record-distance').value = '';
   document.getElementById('record-course').value = '';
@@ -1907,7 +1909,7 @@ function addRecord() {
   const race = document.getElementById('record-race').value || '無名';
   const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
   const formation = document.getElementById('record-formation').value || '';
-  const purchase = '';
+  const purchase = document.getElementById('record-purchase')?.value || '';
   const distance = document.getElementById('record-distance').value || '';
   const course = document.getElementById('record-course').value || '';
   const condition = document.getElementById('record-condition').value || '';
