@@ -5243,7 +5243,7 @@ function transferToRecord() {
   } catch(e) {}
 
   // 的中した買い目からpurchaseを生成
-  const purchaseStr = hitLabels.length > 0 ? hitLabels.join('・') : '購入なし';
+  const purchaseStr = hitLabels.length > 0 ? hitLabels.join('・') : 'ハズレ';
 
   // グローバルに保存（addRecord時に参照）
   window._pendingTransfer = {
