@@ -1860,7 +1860,7 @@ function updateRecord(idx) {
   const race = document.getElementById('record-race').value || '無名';
   const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
   const formation = document.getElementById('record-formation').value || '';
-  const purchase = '';
+  const purchase = pt.purchase || '';
   const distance = document.getElementById('record-distance').value || '';
   const course = document.getElementById('record-course').value || '';
   const condition = document.getElementById('record-condition').value || '';
@@ -5234,10 +5234,14 @@ function transferToRecord() {
     }
   } catch(e) {}
 
+  // 的中した買い目からpurchaseを生成
+  const purchaseStr = hitLabels.length > 0 ? hitLabels.join('・') : '購入なし';
+
   // グローバルに保存（addRecord時に参照）
   window._pendingTransfer = {
     finishRanks: { rank1: r1, rank2: r2, rank3: r3 },
     betLines,
+    purchase: purchaseStr,
     hitLabels,
     horsesSnapshot: JSON.parse(JSON.stringify(horses)),
     dbSnapshot: JSON.parse(JSON.stringify(db)),
