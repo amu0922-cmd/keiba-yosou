@@ -2214,10 +2214,11 @@ function calcPaceFromHorses(horseList) {
   const senkouRatio = cnt['先行'] / total;
   const frontRatio = nigeRatio + senkouRatio;
 
-  // ハイペース: 逃げ2頭以上 or 前残り比率40%超
-  if (cnt['逃げ'] >= 2 || frontRatio > 0.40) return 'high';
-  // スロー: 逃げ0 or 先行も少ない
-  if (cnt['逃げ'] === 0 || (cnt['逃げ'] === 1 && frontRatio < 0.20)) return 'slow';
+  // ハイペース: 逃げ3頭以上
+  if (cnt['逃げ'] >= 3) return 'high';
+  // スロー: 逃げ0かつ差し・追い込みのみ（先行も0か1）
+  if (cnt['逃げ'] === 0 && cnt['先行'] <= 1) return 'slow';
+  // ミドル: 逃げ1〜2頭
   return 'mid';
 }
 
@@ -2306,7 +2307,7 @@ function renderPaceAnalysis() {
   html += '</div>';
 
   // --- 逃げ馬警告 ---
-  if (nigeHorses.length >= 2) {
+  if (nigeHorses.length >= 3) {
     html += `<div style="padding:8px;background:#fff0f0;border:1px solid #e94560;border-radius:6px;margin-bottom:10px;font-size:9px;">
       ⚠️ <strong style="color:#e94560;">逃げ馬競合！</strong> ${nigeHorses.map(h=>`${h.banum}番 ${h.name}`).join(' / ')} — ハイペース確率大。差し・追い込みが浮上しやすい展開。
     </div>`;
