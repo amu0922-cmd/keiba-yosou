@@ -1,4 +1,5 @@
 {
+  "id": "/analyzer/",
   "name": "DB ANALYZER | 競馬予想分析",
   "short_name": "DB分析",
   "description": "競馬予想アプリ用データ分析エンジン",
