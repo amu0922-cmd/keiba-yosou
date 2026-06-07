@@ -2516,17 +2516,27 @@ function renderAnalysis() {
     // 軸は常に1頭（スコア最上位）で固定
     const jiku1Num = jiku[0].banum;
     lines.push(`《単勝 ${jiku1Num}》`);
-    // 馬連・ワイド：軸1頭-相手（DB騎手あり→DB騎手+スコア1位、なし→スコア上位2頭）
+    // 馬連・ワイド：軸1頭-相手
+    // 軸2頭目がいる場合は相手の先頭に必ず入れる
+    const jiku2Num = jiku.length >= 2 ? String(jiku[1].banum) : null;
     if (dbTop1) {
-      const dbNum = dbJockeyScored[0].banum;
-      const aite2 = scoreTop5[0] ? scoreTop5[0].replace('番','') : '';
-      const aiteStr = aite2 ? `${dbNum}.${aite2}` : `${dbNum}`;
+      const dbNum = String(dbJockeyScored[0].banum);
+      // 軸2頭目とDB騎手が異なる場合は両方入れる
+      let aiteArr = jiku2Num && jiku2Num !== dbNum ? [jiku2Num, dbNum] : [dbNum];
+      const extra = scoreTop5[0] ? scoreTop5[0].replace('番','') : '';
+      if (extra && !aiteArr.includes(extra)) aiteArr.push(extra);
+      aiteArr = aiteArr.slice(0,2);
+      const aiteStr = aiteArr.join('.');
       lines.push(`《馬連 ${jiku1Num}-${aiteStr}》`);
       lines.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
     } else {
+      let aiteArr = jiku2Num ? [jiku2Num] : [];
       const a1 = scoreTop5[0] ? scoreTop5[0].replace('番','') : '';
       const a2 = scoreTop5[1] ? scoreTop5[1].replace('番','') : '';
-      const aiteStr = a2 ? `${a1}.${a2}` : a1;
+      if (a1 && !aiteArr.includes(a1)) aiteArr.push(a1);
+      if (a2 && !aiteArr.includes(a2) && aiteArr.length < 2) aiteArr.push(a2);
+      aiteArr = aiteArr.slice(0,2);
+      const aiteStr = aiteArr.join('.');
       lines.push(`《馬連 ${jiku1Num}-${aiteStr}》`);
       lines.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
     }
@@ -2535,12 +2545,15 @@ function renderAnalysis() {
     // DB騎手スコアなし：スコア上位4頭を相手に
     {
       let aite4 = [];
+      const jiku2forSan = jiku.length >= 2 ? String(jiku[1].banum) : null;
       if (dbTop1) {
         const dbNum = String(dbJockeyScored[0].banum);
-        const others = scoreTop5.map(s=>s.replace('番','')).filter(n=>n!==dbNum);
-        aite4 = [dbNum, ...others].slice(0,4);
+        const others = scoreTop5.map(s=>s.replace('番','')).filter(n=>n!==dbNum&&n!==jiku2forSan);
+        const base = jiku2forSan && jiku2forSan!==dbNum ? [jiku2forSan, dbNum] : [dbNum];
+        aite4 = [...base, ...others].slice(0,4);
       } else {
-        aite4 = scoreTop5.slice(0,4).map(s=>s.replace('番',''));
+        const others = scoreTop5.map(s=>s.replace('番','')).filter(n=>n!==jiku2forSan);
+        aite4 = jiku2forSan ? [jiku2forSan, ...others].slice(0,4) : others.slice(0,4);
       }
       const aite4str = aite4.sort((a,b)=>Number(a)-Number(b)).join('・');
       const pts = aite4.length >= 2 ? (aite4.length===2?1:aite4.length===3?3:6) : 0;
