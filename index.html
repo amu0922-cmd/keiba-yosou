@@ -2513,20 +2513,22 @@ function renderAnalysis() {
     const lines = [];
     const jikuNum = jiku.map(h=>h.banum).join('-');
     // 単勝：軸
-    lines.push(`《単勝 ${jikuNum}》`);
-    // 馬連・ワイド：軸-相手1.相手2（DB騎手あり→DB騎手+スコア1位、なし→スコア上位2頭）
+    // 軸は常に1頭（スコア最上位）で固定
+    const jiku1Num = jiku[0].banum;
+    lines.push(`《単勝 ${jiku1Num}》`);
+    // 馬連・ワイド：軸1頭-相手（DB騎手あり→DB騎手+スコア1位、なし→スコア上位2頭）
     if (dbTop1) {
       const dbNum = dbJockeyScored[0].banum;
       const aite2 = scoreTop5[0] ? scoreTop5[0].replace('番','') : '';
       const aiteStr = aite2 ? `${dbNum}.${aite2}` : `${dbNum}`;
-      lines.push(`《馬連 ${jikuNum}-${aiteStr}》`);
-      lines.push(`《ワイド ${jikuNum}-${aiteStr}》`);
+      lines.push(`《馬連 ${jiku1Num}-${aiteStr}》`);
+      lines.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
     } else {
       const a1 = scoreTop5[0] ? scoreTop5[0].replace('番','') : '';
       const a2 = scoreTop5[1] ? scoreTop5[1].replace('番','') : '';
       const aiteStr = a2 ? `${a1}.${a2}` : a1;
-      lines.push(`《馬連 ${jikuNum}-${aiteStr}》`);
-      lines.push(`《ワイド ${jikuNum}-${aiteStr}》`);
+      lines.push(`《馬連 ${jiku1Num}-${aiteStr}》`);
+      lines.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
     }
     // 三連複：◎1頭軸-相手4頭流し（○▲△×）
     // DB騎手スコアあり：○=DB騎手、▲△×=スコア上位3頭
@@ -2542,7 +2544,7 @@ function renderAnalysis() {
       }
       const aite4str = aite4.sort((a,b)=>Number(a)-Number(b)).join('・');
       const pts = aite4.length >= 2 ? (aite4.length===2?1:aite4.length===3?3:6) : 0;
-      lines.push(`《三連複 ${jikuNum}-${aite4str}（${pts}点）》`);
+      lines.push(`《三連複 ${jiku1Num}-${aite4str}（${pts}点）》`);
     }
     if (bestPurchase) {
       lines.push(`\n📊 成績最良: ${bestPurchase.name}（的中率${bestPurchase.rate}%）`);
