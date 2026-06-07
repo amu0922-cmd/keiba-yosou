@@ -314,7 +314,8 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">厩舎</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #2563eb;">傾向</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #27ae60;">補正</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #ff6b35;">ネガ補正</th>
+              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #ff6b35;">補正</th>
+              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #9b59b6;">🕶穴</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #e94560;">取消</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #e94560;">総合</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #f39c12;">期待値</th>
@@ -1446,15 +1447,19 @@ function renderTable() {
       <td style="font-weight: 900; color: #2563eb;">${Math.round(trendScore)}</td>
       <td style="font-weight: 700; color: #27ae60; font-size:8px;">調${chokyoScore>=0?'+':''}${chokyoScore} 厩${commentScore>=0?'+':''}${commentScore} 展${paceAdj>=0?'+':''}${paceAdj}</td>
       <td>
-        <select class="sel" style="width:52px;font-size:8px;color:${h.negAdj&&h.negAdj!==0?'#ff6b35':'#aaa'};" onchange="horses[${idx}].negAdj=parseInt(this.value); renderTable();">
+        <select class="sel" style="width:52px;font-size:8px;color:${h.negAdj>0?'#34c759':h.negAdj<0?'#ff6b35':'#aaa'};" onchange="horses[${idx}].negAdj=parseInt(this.value); renderTable();">
           <option value="0" ${(!h.negAdj||h.negAdj===0)?'selected':''}>なし</option>
+          <option value="15" ${h.negAdj===15?'selected':''}>弱+15</option>
+          <option value="30" ${h.negAdj===30?'selected':''}>中+30</option>
+          <option value="50" ${h.negAdj===50?'selected':''}>強+50</option>
           <option value="-15" ${h.negAdj===-15?'selected':''}>弱-15</option>
           <option value="-30" ${h.negAdj===-30?'selected':''}>中-30</option>
           <option value="-50" ${h.negAdj===-50?'selected':''}>強-50</option>
         </select>
       </td>
+      <td style="text-align:center;"><button onclick="horses[${idx}].blinker=!horses[${idx}].blinker;renderTable();" style="background:${h.blinker?'#9b59b6':'#e0e0e0'};color:${h.blinker?'#fff':'#999'};border:none;border-radius:4px;padding:2px 5px;font-size:11px;cursor:pointer;font-weight:${h.blinker?'900':'400'};">${h.blinker?'🕶ON':'OFF'}</button></td>
       <td><button onclick="horses.splice(${idx},1); renderTable();" style="background:#e94560;color:#fff;border:none;border-radius:4px;padding:2px 5px;font-size:9px;cursor:pointer;">取消</button></td>
-      <td style="font-weight: 900; color: ${negAdj<0?'#ff6b35':'#e94560'};">${totalScore}</td>
+      <td style="font-weight: 900; color: ${negAdj>0?'#34c759':negAdj<0?'#ff6b35':'#e94560'};">${totalScore}</td>
       <td style="font-weight:900;color:${evTextColor};font-size:10px;">${evLabel}</td>
     `;
     tbody.appendChild(row);
@@ -2702,7 +2707,23 @@ function renderAnalysis() {
       </small>
     </div>
   `;
-  
+
+  // ===== ブリンカー穴警戒買い目 =====
+  const blinkerHorses = ranked.filter(h => h.blinker);
+  if (blinkerHorses.length > 0) {
+    const blinkerLines = blinkerHorses.map(h => {
+      const fuku = `複勝: ${h.banum}番 (${h.name})`;
+      const wide = `ワイド: ${jiku[0].banum}番 × ${h.banum}番`;
+      return `${fuku}\n${wide}`;
+    }).join('\n');
+    html += `
+    <div style="padding:12px;background:#f5eeff;border-radius:6px;border-left:4px solid #9b59b6;margin-top:10px;">
+      <div style="font-weight:900;color:#9b59b6;font-size:12px;margin-bottom:8px;">🕶 穴警戒買い目（初ブリンカー）</div>
+      <div style="background:#fff;padding:10px;border-radius:4px;border:1px solid #9b59b6;font-weight:700;color:#1a1a2e;white-space:pre-line;font-size:11px;line-height:1.8;">${blinkerLines}</div>
+      <div style="font-size:9px;color:#7a4fb5;margin-top:6px;">⚠️ スコア外・少額保険として推奨</div>
+    </div>`;
+  }
+
   content.innerHTML = html;
 }
 
@@ -3558,6 +3579,18 @@ function generateBuyImage() {
     ? `<div style="margin:0 12px 12px;padding:9px 12px;background:${isDark?'rgba(255,255,255,0.05)':'rgba(201,168,76,0.08)'};border-radius:10px;border-left:3px solid ${accent};"><div style="font-size:10px;color:${textMain};line-height:1.6;">💬 ${userComment}</div></div>`
     : '';
 
+  // ブリンカー穴警戒（画像用）
+  const _blinkerHorsesImg = horses.filter(h => h.blinker);
+  let blinkerBlockImg = '';
+  if (_blinkerHorsesImg.length > 0) {
+    const _jiku1Banum = ranked[0]?.banum;
+    const _blinkerRows = _blinkerHorsesImg.map(h => {
+      return `<div style="font-size:10px;color:${isDark?'#e0b0ff':'#6a0dad'};line-height:2;font-weight:700;">🕶 複勝: ${banuBox(h.banum)}<span style="font-size:9px;margin-left:4px;">(${h.name})</span> ／ ワイド: ${banuBox(_jiku1Banum)} × ${banuBox(h.banum)}</div>`;
+    }).join('');
+    blinkerBlockImg = `<div style="margin:0 12px 12px;padding:9px 12px;background:${isDark?'rgba(155,89,182,0.15)':'rgba(155,89,182,0.08)'};border-radius:10px;border-left:3px solid #9b59b6;"><div style="font-size:9px;font-weight:900;color:#9b59b6;margin-bottom:4px;">🕶 穴警戒（初ブリンカー）</div>${_blinkerRows}</div>`;
+  }
+
+
   document.getElementById('buy-preview-area').style.cssText = 'padding:10px 0;';
   document.getElementById('buy-preview-area').innerHTML = `
   <div id="buy-card" style="width:100%;max-width:480px;background:${bg};border-radius:18px;overflow:hidden;font-family:'Noto Sans JP',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:block;text-align:left;">
@@ -3580,6 +3613,7 @@ function generateBuyImage() {
       ${betRows}
     </div>
     ${commentBlock}
+    ${blinkerBlockImg}
     <div style="padding:8px 16px;border-top:1px solid ${divider};display:flex;align-items:center;justify-content:space-between;background:${footerBg};">
       <div style="font-size:8px;color:${textSub};">※予想はエンタメ目的です。投票は自己責任で。</div>
       <div style="font-size:8px;font-weight:900;color:${logoColor};">⚡ RACE PREDICT PRO</div>
@@ -4141,6 +4175,43 @@ function imgGenerate(type) {
       drawPayout(ctx, payout, W, payY);
     }
 
+    // ── ブリンカー穴警戒（buy時のみ）──
+    let blinkerCanvasOffsetY = 0;
+    if (type === 'buy') {
+      const _blinkerHorses = horses.filter(h => h.blinker);
+      if (_blinkerHorses.length > 0) {
+        const _blinkerBaseY = 170 + lines.length * 44 + 8;
+        const _blinkerBoxH = 22 + _blinkerHorses.length * 24;
+        // 背景
+        ctx.save();
+        ctx.fillStyle = 'rgba(155,89,182,0.18)';
+        roundRect(ctx, 18, _blinkerBaseY, W - 36, _blinkerBoxH, 8);
+        ctx.fill();
+        ctx.strokeStyle = '#9b59b6';
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, 18, _blinkerBaseY, W - 36, _blinkerBoxH, 8);
+        ctx.stroke();
+        // 左アクセントバー
+        ctx.fillStyle = '#9b59b6';
+        roundRect(ctx, 18, _blinkerBaseY, 4, _blinkerBoxH, 8);
+        ctx.fill();
+        // タイトル
+        ctx.fillStyle = '#c39bde';
+        ctx.font = '700 11px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('🕶 穴警戒（初ブリンカー）', 30, _blinkerBaseY + 15);
+        // 各馬
+        _blinkerHorses.forEach((bh, bi) => {
+          const _ly = _blinkerBaseY + 22 + bi * 24;
+          ctx.fillStyle = '#e0b0ff';
+          ctx.font = '700 11px sans-serif';
+          ctx.fillText(`複勝: ${bh.banum}番(${bh.name}) ／ ワイド: ${jiku[0]?.banum}番 × ${bh.banum}番`, 30, _ly + 14);
+        });
+        ctx.restore();
+        blinkerCanvasOffsetY = _blinkerBoxH + 8;
+      }
+    }
+
     // ── コメント（買い目の直後）──
     if (comment) {
       let cy;
@@ -4148,7 +4219,7 @@ function imgGenerate(type) {
         const scoreRows = comment ? 6 : 8;
         cy = 102 + scoreRows * (66 + 4) + 10;
       } else if (type === 'buy') {
-        cy = 170 + lines.length * 44 + 8;
+        cy = 170 + lines.length * 44 + 8 + blinkerCanvasOffsetY;
       } else {
         cy = 120 + lines.length * 44 + 8;
       }
