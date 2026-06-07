@@ -154,6 +154,44 @@
   <div id="load-status" style="font-size:10px;margin-top:8px;text-align:center;"></div>
 </div>
 
+<!-- レース特化データ -->
+<div class="section">
+  <div class="section-title">🏆 レース特化データ <small>（重賞の過去傾向データを登録）</small></div>
+
+  <div style="background:rgba(249,200,66,0.08);border:1px solid rgba(249,200,66,0.25);border-radius:10px;padding:12px;margin-bottom:14px;">
+    <div style="font-size:10px;font-weight:900;color:var(--gold);margin-bottom:8px;">📄 レースデータPDF 一括インポート</div>
+    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">ウマニティ等の重賞データ分析PDFのテキストをコピーして貼り付け。脚質・枠順・人気・種牡馬の着別度数を自動抽出します</div>
+    <div class="inp-grid col3" style="margin-bottom:8px;">
+      <div>
+        <div class="inp-label">レース名</div>
+        <input class="inp" id="race-name-input" placeholder="例: 宝塚記念">
+      </div>
+      <div>
+        <div class="inp-label">対象コース</div>
+        <input class="inp" id="race-course-input" placeholder="例: 阪神芝2200">
+      </div>
+      <div>
+        <div class="inp-label">集計年数</div>
+        <select class="inp" id="race-years-input">
+          <option value="10">過去10年</option>
+          <option value="20" selected>過去20年</option>
+          <option value="5">過去5年</option>
+        </select>
+      </div>
+    </div>
+    <textarea id="race-pdf-area" placeholder="PDFからコピーしたテキストをここに貼り付け..." style="width:100%;height:100px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px;font-size:9px;font-family:'Noto Sans JP',sans-serif;resize:vertical;"></textarea>
+    <div class="btn-row" style="margin-top:6px;">
+      <button class="btn btn-gold btn-sm" onclick="importRacePDF()">⚡ 一括インポート</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('race-pdf-area').value=''">✕ クリア</button>
+    </div>
+    <div id="race-import-status" style="font-size:9px;margin-top:6px;"></div>
+  </div>
+
+  <!-- 登録済みレース一覧 -->
+  <div style="font-size:10px;font-weight:900;color:var(--text2);margin-bottom:6px;">登録済みレース</div>
+  <div id="race-list"></div>
+</div>
+
 <!-- JRA手動データ入力 -->
 <div class="section">
   <div class="section-title">📋 JRAデータ手動入力 <small>（集計済み成績を追加）</small></div>
@@ -207,6 +245,8 @@
     <div class="jra-tab" onclick="switchJraTab('kyakushitsu')">脚質傾向</div>
     <div class="jra-tab" onclick="switchJraTab('waku')">枠順傾向</div>
     <div class="jra-tab" onclick="switchJraTab('maeclass')">前走クラス</div>
+    <div class="jra-tab" onclick="switchJraTab('maejun')">前走着順</div>
+    <div class="jra-tab" onclick="switchJraTab('age')">年齢</div>
   </div>
 
   <!-- 騎手 -->
@@ -296,6 +336,54 @@
     </div>
     <button class="btn btn-green btn-sm" onclick="addJraEntry('maeclass')">＋ 追加</button>
     <div class="jra-list" id="list-maeclass"></div>
+  </div>
+
+  <!-- 前走着順 -->
+  <div class="jra-panel" id="panel-maejun">
+    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">前走着順別成績を入力してください（重賞ナビ等から）</div>
+    <div class="inp-grid col3">
+      <div><div class="inp-label">前走着順</div>
+        <select class="inp" id="mj-name">
+          <option value="1">1着</option>
+          <option value="2">2着</option>
+          <option value="3">3着</option>
+          <option value="4">4着</option>
+          <option value="5">5着</option>
+          <option value="6-9">6〜9着</option>
+          <option value="10-">10着以下</option>
+        </select>
+      </div>
+      <div><div class="inp-label">1着</div><input class="inp" type="number" id="mj-w" placeholder="例: 3"></div>
+      <div><div class="inp-label">2着</div><input class="inp" type="number" id="mj-2" placeholder="例: 2"></div>
+      <div><div class="inp-label">3着</div><input class="inp" type="number" id="mj-3" placeholder="例: 1"></div>
+      <div><div class="inp-label">着外</div><input class="inp" type="number" id="mj-out" placeholder="例: 4"></div>
+      <div><div class="inp-label">距離絞込（任意）</div><input class="inp" id="mj-dist" placeholder="例: 芝2200"></div>
+    </div>
+    <button class="btn btn-green btn-sm" onclick="addJraEntry('maejun')">＋ 追加</button>
+    <div class="jra-list" id="list-maejun"></div>
+  </div>
+
+  <!-- 年齢 -->
+  <div class="jra-panel" id="panel-age">
+    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">年齢別成績を入力してください（重賞ナビ等から）</div>
+    <div class="inp-grid col3">
+      <div><div class="inp-label">年齢</div>
+        <select class="inp" id="ag-name">
+          <option value="3">3歳</option>
+          <option value="4">4歳</option>
+          <option value="5">5歳</option>
+          <option value="6">6歳</option>
+          <option value="7">7歳以上</option>
+        </select>
+      </div>
+      <div><div class="inp-label">1着</div><input class="inp" type="number" id="ag-w" placeholder="例: 5"></div>
+      <div><div class="inp-label">2着</div><input class="inp" type="number" id="ag-2" placeholder="例: 4"></div>
+      <div><div class="inp-label">3着</div><input class="inp" type="number" id="ag-3" placeholder="例: 3"></div>
+      <div><div class="inp-label">着外</div><input class="inp" type="number" id="ag-out" placeholder="例: 46"></div>
+      <div><div class="inp-label">距離絞込（任意）</div><input class="inp" id="ag-dist" placeholder="例: 芝2200"></div>
+    </div>
+    <button class="btn btn-green btn-sm" onclick="addJraEntry('age')">＋ 追加</button>
+    <div class="jra-list" id="list-age"></div>
   </div>
 
   <div class="btn-row" style="margin-top:12px;">
@@ -399,7 +487,17 @@
       <div class="fmode" id="dm-dist" onclick="setDbMode('dist')">距離帯絞込</div>
       <div class="fmode" id="dm-exact" onclick="setDbMode('exact')">完全一致</div>
       <div class="fmode" id="dm-blend" onclick="setDbMode('blend')">🔀 ブレンド</div>
+      <div class="fmode" id="dm-race" onclick="setDbMode('race')">🏆 レース特化</div>
     </div>
+  </div>
+  <div id="db-race-row" style="display:none;margin-bottom:8px;">
+    <div class="filter-row">
+      <label>対象レース</label>
+      <select class="inp" id="db-race-select" style="font-size:10px;padding:5px 8px;">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+    <div class="blend-note" style="display:block;">🏆 レース特化モード：選択レースの脚質・枠順・人気データを優先使用し、JRAリーディングデータをブレンドします</div>
   </div>
   <div id="db-filter-sub" style="margin-bottom:8px;display:none;">
     <div class="filter-row" id="db-dist-row" style="display:none;">
@@ -455,12 +553,6 @@ let courses = new Set();
 let jraData = {}; // { jockey: [{name, w, r2, r3, out, dist, src}], ... }
 let filterMode = 'all';
 let dbMode = 'all';
-
-// ===== 初期化 =====
-window.addEventListener('load', () => {
-  const saved = localStorage.getItem('kp_analyzer_jra');
-  if (saved) { jraData = JSON.parse(saved); renderAllJraLists(); }
-});
 
 // ===== Supabase連携 =====
 const SB_URL = 'https://lttrqfbwhyktypddgtpn.supabase.co';
@@ -614,11 +706,12 @@ function setFilterMode(mode) {
 
 function setDbMode(mode) {
   dbMode = mode;
-  ['all','dist','exact','blend'].forEach(m => document.getElementById('dm-'+m).classList.toggle('active', m===mode));
-  document.getElementById('db-filter-sub').style.display = mode === 'all' ? 'none' : '';
+  ['all','dist','exact','blend','race'].forEach(m => document.getElementById('dm-'+m).classList.toggle('active', m===mode));
+  document.getElementById('db-filter-sub').style.display = (mode === 'all' || mode === 'race') ? 'none' : '';
   document.getElementById('db-dist-row').style.display = mode === 'dist' ? '' : 'none';
   document.getElementById('db-exact-row').style.display = mode === 'exact' ? '' : 'none';
   document.getElementById('blend-note').style.display = mode === 'blend' ? '' : 'none';
+  document.getElementById('db-race-row').style.display = mode === 'race' ? '' : 'none';
 }
 
 // ===== 馬データ取得（フィルター付き） =====
@@ -759,7 +852,14 @@ function generateDB() {
 
   cats.forEach(cat => {
     let horses;
-    if (dbMode === 'blend') {
+    if (dbMode === 'race') {
+      const raceName = document.getElementById('db-race-select').value;
+      if (!raceName) { alert('レースを選択してください'); return; }
+      // レース特化：レースデータ×5 + JRAリーディング×1
+      const raceHorses = getRaceAsHorses(raceName, cat);
+      const allHorses = getFilteredHorses('all').concat(getJraAsHorses(cat, null));
+      horses = [...raceHorses, ...raceHorses, ...raceHorses, ...raceHorses, ...raceHorses, ...allHorses];
+    } else if (dbMode === 'blend') {
       const course = document.getElementById('blend-course').value;
       const { dist: targetDist, surface: targetSurface } = parseCourseKey(course);
       const range = distRange(targetDist);
@@ -808,6 +908,149 @@ function generateDB() {
 
   document.getElementById('db-output').textContent = JSON.stringify(dbObj, null, 2);
   document.getElementById('db-output-wrap').style.display = '';
+}
+
+// ===== レース特化データ =====
+let raceData = {}; // { 宝塚記念: { course, years, kyakushitsu:{逃げ:{w,r2,r3,out}}, waku:{...}, ninki:{...}, sire:{...} } }
+
+window.addEventListener('load', () => {
+  const savedJra = localStorage.getItem('kp_analyzer_jra');
+  if (savedJra) { jraData = JSON.parse(savedJra); renderAllJraLists(); }
+  const savedRace = localStorage.getItem('kp_analyzer_race');
+  if (savedRace) { raceData = JSON.parse(savedRace); renderRaceList(); updateRaceSelect(); }
+});
+
+function importRacePDF() {
+  const raw = document.getElementById('race-pdf-area').value.trim();
+  const raceName = document.getElementById('race-name-input').value.trim();
+  const course = document.getElementById('race-course-input').value.trim();
+  const years = document.getElementById('race-years-input').value;
+  if (!raw) { setRaceImportStatus('⚠️ テキストを貼り付けてください', 'red'); return; }
+  if (!raceName) { setRaceImportStatus('⚠️ レース名を入力してください', 'red'); return; }
+
+  const entry = { course, years, kyakushitsu: {}, waku: {}, ninki: {}, sire: {} };
+  let extracted = 0;
+
+  // 脚質パース: 逃げ|先行|差し|追込 + 着別度数
+  // 例: "逃げ 2-2-3-13" or "逃げ　2-2-3-13"
+  const kyakuMap = { '逃げ':'逃げ', '先行':'先行', '差し':'差し', '追込':'追い込み', '追い込み':'追い込み' };
+  Object.keys(kyakuMap).forEach(k => {
+    const m = raw.match(new RegExp(k + '[\\s　]+([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)'));
+    if (m) {
+      entry.kyakushitsu[kyakuMap[k]] = { w:+m[1], r2:+m[2], r3:+m[3], out:+m[4] };
+      extracted++;
+    }
+  });
+
+  // 枠順パース: 1枠〜8枠 + 着別度数
+  for (let i = 1; i <= 8; i++) {
+    const m = raw.match(new RegExp(i + '枠[\\s　]+([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)'));
+    if (m) {
+      entry.waku[String(i)] = { w:+m[1], r2:+m[2], r3:+m[3], out:+m[4] };
+      extracted++;
+    }
+  }
+
+  // 人気パース: 1人〜 + 着別度数（6〜9人、10人〜も対応）
+  const ninkiPatterns = [
+    { key:'1', pat:/1[人⼈][　\s]+([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)/ },
+    { key:'2', pat:/2[人⼈][　\s]+([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)/ },
+    { key:'3', pat:/3[人⼈][　\s]+([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)/ },
+    { key:'4', pat:/4[人⼈][　\s]+([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)/ },
+    { key:'5', pat:/5[人⼈][　\s]+([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)/ },
+    { key:'6-9', pat:/6[〜～]9[人⼈][　\s]+([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)/ },
+    { key:'10-', pat:/10[人⼈][〜～][　\s]+([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)/ },
+  ];
+  ninkiPatterns.forEach(({ key, pat }) => {
+    const m = raw.match(pat);
+    if (m) { entry.ninki[key] = { w:+m[1], r2:+m[2], r3:+m[3], out:+m[4] }; extracted++; }
+  });
+
+  // 種牡馬パース: 「1 キズナ 5-7-3-34」形式
+  const sirePattern = /[0-9]+\s+([\u3040-\u30FF\u4E00-\u9FFF]+)\s+([0-9]+)-([0-9]+)-([0-9]+)-([0-9]+)\s+([0-9.]+)%/g;
+  let sm;
+  while ((sm = sirePattern.exec(raw)) !== null) {
+    const name = sm[1];
+    if (name && name.length >= 2) {
+      entry.sire[name] = { w:+sm[2], r2:+sm[3], r3:+sm[4], out:+sm[5] };
+      extracted++;
+    }
+  }
+
+  if (extracted === 0) {
+    setRaceImportStatus('❌ データを抽出できませんでした', 'red'); return;
+  }
+
+  raceData[raceName] = entry;
+  localStorage.setItem('kp_analyzer_race', JSON.stringify(raceData));
+  renderRaceList();
+  updateRaceSelect();
+  setRaceImportStatus(`✅ 「${raceName}」を登録しました（脚質${Object.keys(entry.kyakushitsu).length}件・枠順${Object.keys(entry.waku).length}件・人気${Object.keys(entry.ninki).length}件・種牡馬${Object.keys(entry.sire).length}件）`, 'green');
+  document.getElementById('race-pdf-area').value = '';
+}
+
+function setRaceImportStatus(msg, color) {
+  const el = document.getElementById('race-import-status');
+  el.textContent = msg;
+  el.style.color = color === 'red' ? 'var(--red)' : 'var(--green)';
+}
+
+function renderRaceList() {
+  const el = document.getElementById('race-list');
+  if (!el) return;
+  const keys = Object.keys(raceData);
+  if (keys.length === 0) { el.innerHTML = '<div style="font-size:9px;color:var(--text3);">未登録</div>'; return; }
+  el.innerHTML = keys.map(name => {
+    const d = raceData[name];
+    const counts = [
+      Object.keys(d.kyakushitsu||{}).length + '脚質',
+      Object.keys(d.waku||{}).length + '枠',
+      Object.keys(d.ninki||{}).length + '人気',
+      Object.keys(d.sire||{}).length + '種牡馬',
+    ].join('・');
+    return `<div class="jra-row">
+      <span class="key">${name}</span>
+      <span class="info">${d.course || ''} 過去${d.years || '?'}年 / ${counts}</span>
+      <button class="del" onclick="deleteRaceData('${name}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteRaceData(name) {
+  delete raceData[name];
+  localStorage.setItem('kp_analyzer_race', JSON.stringify(raceData));
+  renderRaceList();
+  updateRaceSelect();
+}
+
+function updateRaceSelect() {
+  const sel = document.getElementById('db-race-select');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">選択してください</option>';
+  Object.keys(raceData).forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name + (raceData[name].course ? '（' + raceData[name].course + '）' : '');
+    if (name === cur) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+// レース特化データをhorse形式に変換
+function getRaceAsHorses(raceName, cat) {
+  const rd = raceData[raceName];
+  if (!rd) return [];
+  const catMap = { kyakushitsu: rd.kyakushitsu, waku: rd.waku, ninki: rd.ninki, sire: rd.sire };
+  const source = catMap[cat];
+  if (!source) return [];
+  const horses = [];
+  Object.entries(source).forEach(([key, v]) => {
+    for (let i = 0; i < v.w; i++) horses.push({ [cat]: key, _rank: 1, _race: true });
+    for (let i = 0; i < v.r2; i++) horses.push({ [cat]: key, _rank: 2, _race: true });
+    for (let i = 0; i < v.r3; i++) horses.push({ [cat]: key, _rank: 3, _race: true });
+    for (let i = 0; i < v.out; i++) horses.push({ [cat]: key, _rank: 99, _race: true });
+  });
+  return horses;
 }
 
 // ===== PDF一括インポート（種牡馬リーディング） =====
@@ -986,7 +1229,7 @@ function importJockeyPDF() {
 // ===== JRA手動入力 =====
 function switchJraTab(tab) {
   document.querySelectorAll('.jra-tab').forEach((el, i) => {
-    const tabs = ['jockey','sire','kyakushitsu','waku','maeclass'];
+    const tabs = ['jockey','sire','kyakushitsu','waku','maeclass','maejun','age'];
     el.classList.toggle('active', tabs[i] === tab);
   });
   document.querySelectorAll('.jra-panel').forEach(el => el.classList.remove('active'));
@@ -994,7 +1237,7 @@ function switchJraTab(tab) {
 }
 
 function addJraEntry(cat) {
-  const prefixes = { jockey:'j', sire:'s', kyakushitsu:'k', waku:'w', maeclass:'mc' };
+  const prefixes = { jockey:'j', sire:'s', kyakushitsu:'k', waku:'w', maeclass:'mc', maejun:'mj', age:'ag' };
   const p = prefixes[cat];
   const name = document.getElementById(p+'-name').value.trim();
   const w = parseInt(document.getElementById(p+'-w').value) || 0;
@@ -1033,7 +1276,7 @@ function renderJraList(cat) {
 }
 
 function renderAllJraLists() {
-  ['jockey','sire','kyakushitsu','waku','maeclass'].forEach(cat => renderJraList(cat));
+  ['jockey','sire','kyakushitsu','waku','maeclass','maejun','age'].forEach(cat => renderJraList(cat));
 }
 
 function removeJraEntry(cat, idx) {
