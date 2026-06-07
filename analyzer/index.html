@@ -121,6 +121,7 @@
       <div class="header-sub">RACE PREDICT PRO — データ分析エンジン</div>
     </div>
     <div class="badge" id="record-badge">0 RACES</div>
+    <button onclick="updateApp()" style="background:none;border:1px solid rgba(255,255,255,0.2);color:var(--text2);border-radius:8px;padding:4px 10px;font-size:9px;cursor:pointer;margin-left:6px;">🔄 更新</button>
   </div>
 </header>
 <!-- データ確認モーダル -->
@@ -1122,6 +1123,21 @@ function renderModalList() {
       </div>
     </div>`;
   }).join('');
+}
+</script>
+<script>
+function updateApp() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      Promise.all(regs.map(r => r.unregister())).then(() => {
+        caches.keys().then(keys =>
+          Promise.all(keys.map(k => caches.delete(k)))
+        ).then(() => location.reload(true));
+      });
+    });
+  } else {
+    location.reload(true);
+  }
 }
 </script>
 <script>
