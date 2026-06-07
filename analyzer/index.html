@@ -1,1 +1,1116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DB ANALYZER | 競馬予想分析</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+  :root {
+    --bg:#0a0a0f; --surface:#12121a; --surface2:#1a1a28; --border:rgba(255,255,255,0.08);
+    --red:#e94560; --gold:#f5c842; --green:#2ecc71; --blue:#3b82f6; --purple:#9b59b6;
+    --text:#f0f0f0; --text2:#888; --text3:#444;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;overflow-x:hidden;}
+  header{background:linear-gradient(135deg,#0d0d18,#1a0a2e);border-bottom:2px solid var(--red);padding:14px 16px;position:sticky;top:0;z-index:100;}
+  .header-inner{display:flex;align-items:center;gap:10px;}
+  .logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--gold);line-height:1;}
+  .logo span{color:var(--red);}
+  .header-sub{font-size:9px;color:var(--text2);letter-spacing:1px;}
+  .badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:900;padding:3px 8px;border-radius:10px;}
+  main{padding:16px;max-width:800px;margin:0 auto;}
+  .section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;}
+  .section-title{font-size:11px;font-weight:900;color:var(--gold);letter-spacing:2px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .section-title small{font-size:9px;color:var(--text2);font-weight:400;letter-spacing:0;}
+  .upload-zone{border:2px dashed rgba(249,200,66,0.3);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:rgba(249,200,66,0.04);}
+  .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2;}
+  .upload-icon{font-size:32px;margin-bottom:8px;}
+  .upload-text{font-size:12px;color:var(--text2);}
+  .upload-text strong{color:var(--gold);}
+  .stats-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .stat-chip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;flex:1;min-width:70px;}
+  .stat-chip .val{font-size:20px;font-weight:900;color:var(--gold);}
+  .stat-chip .lbl{font-size:9px;color:var(--text2);margin-top:2px;}
+  .filter-row{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+  .filter-row label{font-size:10px;color:var(--text2);white-space:nowrap;}
+  .filter-row select,.filter-row input[type=text],.filter-row input[type=number]{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:10px;font-family:'Noto Sans JP',sans-serif;}
+  .tbl-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:10px;}
+  th{background:var(--surface2);color:var(--text2);font-weight:700;padding:8px 6px;text-align:center;border-bottom:1px solid var(--border);white-space:nowrap;}
+  td{padding:7px 6px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.04);}
+  tr:hover td{background:rgba(255,255,255,0.03);}
+  .key-col{text-align:left;font-weight:700;color:var(--text);padding-left:10px;}
+  .good{color:var(--green);font-weight:900;} .bad{color:var(--red);} .mid{color:var(--gold);font-weight:700;} .dim{color:var(--text3);font-size:9px;}
+  .score-bar-wrap{display:flex;align-items:center;gap:4px;justify-content:center;}
+  .score-bar{height:6px;border-radius:3px;min-width:2px;}
+  .db-output{background:#0d0d18;border:1px solid rgba(249,200,66,0.3);border-radius:8px;padding:12px;font-family:monospace;font-size:10px;color:#a8e6cf;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;}
+  .btn{padding:10px 18px;border:none;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer;transition:all 0.15s;font-family:'Noto Sans JP',sans-serif;}
+  .btn-gold{background:var(--gold);color:#1a0a00;} .btn-gold:hover{background:#ffd700;transform:translateY(-1px);}
+  .btn-red{background:var(--red);color:#fff;} .btn-red:hover{background:#ff2d55;}
+  .btn-green{background:var(--green);color:#0a1a0a;} .btn-green:hover{background:#27ae60;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2);}
+  .btn-outline:hover{border-color:var(--gold);color:var(--gold);}
+  .btn-sm{padding:5px 10px;font-size:9px;}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .empty{text-align:center;padding:40px 16px;color:var(--text3);font-size:12px;}
+  .empty .icon{font-size:36px;margin-bottom:8px;}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--surface2);border:1px solid var(--gold);color:var(--gold);padding:10px 20px;border-radius:20px;font-size:11px;font-weight:700;transition:transform 0.3s;z-index:999;}
+  #toast.show{transform:translateX(-50%) translateY(0);}
 
+  /* データ確認モーダル */
+  #data-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;overflow-y:auto;}
+  .modal-inner{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin:20px 12px;padding:16px;}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+  .modal-title{font-size:13px;font-weight:900;color:var(--gold);}
+  .modal-close{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 4px;}
+  .modal-close:hover{color:var(--red);}
+  .modal-tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap;}
+  .modal-tab{padding:5px 12px;font-size:9px;font-weight:700;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text2);cursor:pointer;}
+  .modal-tab.active{background:var(--gold);border-color:var(--gold);color:#1a0a00;}
+  .modal-search{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-size:11px;font-family:'Noto Sans JP',sans-serif;margin-bottom:10px;}
+  .modal-search:focus{outline:none;border-color:var(--gold);}
+  .data-card{background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .data-card .name{font-weight:900;color:var(--text);font-size:11px;flex:1;min-width:80px;}
+  .data-stat{text-align:center;min-width:44px;}
+  .data-stat .v{font-size:13px;font-weight:900;}
+  .data-stat .l{font-size:8px;color:var(--text2);}
+  .data-bar{width:100%;height:4px;background:var(--border);border-radius:2px;margin-top:6px;}
+  .data-bar-fill{height:100%;border-radius:2px;transition:width 0.4s;}
+
+  /* JRA手動入力 */
+  .jra-tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap;}
+  .jra-tab{padding:6px 14px;font-size:10px;font-weight:700;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text2);cursor:pointer;transition:all 0.15s;}
+  .jra-tab.active{background:var(--purple);border-color:var(--purple);color:#fff;}
+  .jra-panel{display:none;} .jra-panel.active{display:block;}
+  .inp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+  .inp-grid.col3{grid-template-columns:1fr 1fr 1fr;}
+  .inp-label{font-size:9px;color:var(--text2);margin-bottom:3px;}
+  .inp{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:11px;font-family:'Noto Sans JP',sans-serif;width:100%;}
+  .inp:focus{outline:none;border-color:var(--purple);}
+  .jra-list{margin-top:12px;}
+  .jra-row{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--surface2);border-radius:6px;margin-bottom:4px;font-size:10px;}
+  .jra-row .key{font-weight:700;color:var(--text);flex:1;}
+  .jra-row .info{color:var(--text2);font-size:9px;}
+  .jra-row .del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px;}
+  .jra-row .del:hover{color:var(--red);}
+  .source-tag{font-size:8px;padding:1px 5px;border-radius:3px;font-weight:700;}
+  .src-jra{background:rgba(59,130,246,0.2);color:var(--blue);border:1px solid rgba(59,130,246,0.3);}
+  .src-own{background:rgba(46,204,113,0.2);color:var(--green);border:1px solid rgba(46,204,113,0.3);}
+
+  /* フィルターモード */
+  .filter-mode-btns{display:flex;gap:4px;flex-wrap:wrap;}
+  .fmode{padding:4px 10px;font-size:9px;font-weight:700;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text2);cursor:pointer;}
+  .fmode.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+
+  .blend-note{font-size:9px;color:var(--text2);margin-top:6px;padding:6px 8px;background:rgba(59,130,246,0.08);border-radius:6px;border-left:3px solid var(--blue);}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="logo">DB<span>ANALYZER</span></div>
+      <div class="header-sub">RACE PREDICT PRO — データ分析エンジン</div>
+    </div>
+    <div class="badge" id="record-badge">0 RACES</div>
+  </div>
+</header>
+<!-- データ確認モーダル -->
+<div id="data-modal">
+  <div class="modal-inner">
+    <div class="modal-header">
+      <div class="modal-title">📊 インポートデータ確認</div>
+      <button class="modal-close" onclick="closeDataModal()">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <div class="modal-tab active" onclick="switchModalTab('jockey')">騎手</div>
+      <div class="modal-tab" onclick="switchModalTab('sire')">種牡馬</div>
+    </div>
+    <input class="modal-search" id="modal-search" placeholder="名前で検索..." oninput="renderModalList()">
+    <div id="modal-list"></div>
+  </div>
+</div>
+
+<main>
+
+<!-- アップロード -->
+<div class="section">
+  <div class="section-title">📂 バックアップJSON読み込み</div>
+  <div class="upload-zone" id="upload-zone">
+    <input type="file" accept=".json" id="file-input">
+    <div class="upload-icon">📁</div>
+    <div class="upload-text"><strong>バックアップJSONをドロップ</strong> またはタップして選択<br>（予想アプリ上部の「<strong>保存</strong>」ボタンで出力した全体バックアップファイル）</div>
+  </div>
+  <div id="load-status" style="font-size:10px;margin-top:8px;text-align:center;"></div>
+</div>
+
+<!-- JRA手動データ入力 -->
+<div class="section">
+  <div class="section-title">📋 JRAデータ手動入力 <small>（集計済み成績を追加）</small></div>
+
+  <!-- PDF一括インポート -->
+  <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:10px;padding:12px;margin-bottom:14px;">
+    <div style="font-size:10px;font-weight:900;color:var(--blue);margin-bottom:6px;">📄 種牡馬リーディングPDF 一括インポート</div>
+    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">netkeibaの種牡馬リーディングページをPDF保存し、PDFのテキストをコピーしてここに貼り付けてください</div>
+    <div class="filter-row" style="margin-bottom:8px;">
+      <label>年度</label>
+      <select id="sire-pdf-year" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:10px;">
+        <option value="2026">2026年</option>
+        <option value="2025">2025年</option>
+        <option value="2024">2024年</option>
+        <option value="2023">2023年</option>
+        <option value="2022">2022年</option>
+      </select>
+    </div>
+    <textarea id="pdf-paste-area" placeholder="PDFからコピーしたテキストをここに貼り付け..." style="width:100%;height:90px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px;font-size:9px;font-family:'Noto Sans JP',sans-serif;resize:vertical;"></textarea>
+    <div class="btn-row" style="margin-top:6px;">
+      <button class="btn btn-outline btn-sm" onclick="importSirePDF()">⚡ 一括インポート</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('pdf-paste-area').value=''">✕ クリア</button>
+    </div>
+    <div id="pdf-import-status" style="font-size:9px;margin-top:6px;"></div>
+  </div>
+
+  <!-- 騎手PDF一括インポート -->
+  <div style="background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.25);border-radius:10px;padding:12px;margin-bottom:14px;">
+    <div style="font-size:10px;font-weight:900;color:var(--green);margin-bottom:6px;">📄 騎手リーディングPDF 一括インポート <span style="font-size:8px;font-weight:400;color:var(--text2);">（JRA公式・1着〜3着込み）</span></div>
+    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">JRA公式の騎手リーディングPDFのテキストをコピーして貼り付け。複数ページ分まとめてOK</div>
+    <div class="filter-row" style="margin-bottom:8px;">
+      <label>年度</label>
+      <select id="jockey-pdf-year" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:10px;">
+        <option value="2026">2026年</option>
+        <option value="2025">2025年</option>
+        <option value="2024">2024年</option>
+        <option value="2023">2023年</option>
+        <option value="2022">2022年</option>
+      </select>
+    </div>
+    <textarea id="jockey-pdf-area" placeholder="PDFからコピーしたテキストをここに貼り付け..." style="width:100%;height:90px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px;font-size:9px;font-family:'Noto Sans JP',sans-serif;resize:vertical;"></textarea>
+    <div class="btn-row" style="margin-top:6px;">
+      <button class="btn btn-outline btn-sm" onclick="importJockeyPDF()">⚡ 一括インポート</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('jockey-pdf-area').value=''">✕ クリア</button>
+    </div>
+    <div id="jockey-import-status" style="font-size:9px;margin-top:6px;"></div>
+  </div>
+  <div class="jra-tabs">
+    <div class="jra-tab active" onclick="switchJraTab('jockey')">騎手成績</div>
+    <div class="jra-tab" onclick="switchJraTab('sire')">種牡馬成績</div>
+    <div class="jra-tab" onclick="switchJraTab('kyakushitsu')">脚質傾向</div>
+    <div class="jra-tab" onclick="switchJraTab('waku')">枠順傾向</div>
+    <div class="jra-tab" onclick="switchJraTab('maeclass')">前走クラス</div>
+  </div>
+
+  <!-- 騎手 -->
+  <div class="jra-panel active" id="panel-jockey">
+    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">JRAサイトの騎手別成績ページの数値を入力してください</div>
+    <div class="inp-grid col3">
+      <div><div class="inp-label">騎手名</div><input class="inp" id="j-name" placeholder="例: ルメール"></div>
+      <div><div class="inp-label">着度数（1着）</div><input class="inp" type="number" id="j-w" placeholder="例: 45"></div>
+      <div><div class="inp-label">着度数（2着）</div><input class="inp" type="number" id="j-2" placeholder="例: 38"></div>
+      <div><div class="inp-label">着度数（3着）</div><input class="inp" type="number" id="j-3" placeholder="例: 30"></div>
+      <div><div class="inp-label">着外</div><input class="inp" type="number" id="j-out" placeholder="例: 120"></div>
+      <div><div class="inp-label">距離絞込（任意）</div><input class="inp" id="j-dist" placeholder="例: 芝1600 または 空白=全体"></div>
+    </div>
+    <button class="btn btn-green btn-sm" onclick="addJraEntry('jockey')">＋ 追加</button>
+    <div class="jra-list" id="list-jockey"></div>
+  </div>
+
+  <!-- 種牡馬 -->
+  <div class="jra-panel" id="panel-sire">
+    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">種牡馬別産駒成績を入力してください</div>
+    <div class="inp-grid col3">
+      <div><div class="inp-label">種牡馬名</div><input class="inp" id="s-name" placeholder="例: キズナ"></div>
+      <div><div class="inp-label">1着</div><input class="inp" type="number" id="s-w" placeholder="例: 80"></div>
+      <div><div class="inp-label">2着</div><input class="inp" type="number" id="s-2" placeholder="例: 70"></div>
+      <div><div class="inp-label">3着</div><input class="inp" type="number" id="s-3" placeholder="例: 60"></div>
+      <div><div class="inp-label">着外</div><input class="inp" type="number" id="s-out" placeholder="例: 300"></div>
+      <div><div class="inp-label">距離絞込（任意）</div><input class="inp" id="s-dist" placeholder="例: 芝1600"></div>
+    </div>
+    <button class="btn btn-green btn-sm" onclick="addJraEntry('sire')">＋ 追加</button>
+    <div class="jra-list" id="list-sire"></div>
+  </div>
+
+  <!-- 脚質 -->
+  <div class="jra-panel" id="panel-kyakushitsu">
+    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">コース・距離別の脚質傾向を入力してください</div>
+    <div class="inp-grid col3">
+      <div><div class="inp-label">脚質</div>
+        <select class="inp" id="k-name">
+          <option>逃げ</option><option>先行</option><option>差し</option><option>追い込み</option><option>自在</option>
+        </select>
+      </div>
+      <div><div class="inp-label">1着</div><input class="inp" type="number" id="k-w" placeholder="例: 20"></div>
+      <div><div class="inp-label">2着</div><input class="inp" type="number" id="k-2" placeholder="例: 18"></div>
+      <div><div class="inp-label">3着</div><input class="inp" type="number" id="k-3" placeholder="例: 15"></div>
+      <div><div class="inp-label">着外</div><input class="inp" type="number" id="k-out" placeholder="例: 80"></div>
+      <div><div class="inp-label">距離絞込（任意）</div><input class="inp" id="k-dist" placeholder="例: 芝2200"></div>
+    </div>
+    <button class="btn btn-green btn-sm" onclick="addJraEntry('kyakushitsu')">＋ 追加</button>
+    <div class="jra-list" id="list-kyakushitsu"></div>
+  </div>
+
+  <!-- 枠順 -->
+  <div class="jra-panel" id="panel-waku">
+    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">枠順別成績を入力してください</div>
+    <div class="inp-grid col3">
+      <div><div class="inp-label">枠番</div>
+        <select class="inp" id="w-name">
+          <option>1</option><option>2</option><option>3</option><option>4</option>
+          <option>5</option><option>6</option><option>7</option><option>8</option>
+        </select>
+      </div>
+      <div><div class="inp-label">1着</div><input class="inp" type="number" id="w-w" placeholder="例: 15"></div>
+      <div><div class="inp-label">2着</div><input class="inp" type="number" id="w-2" placeholder="例: 12"></div>
+      <div><div class="inp-label">3着</div><input class="inp" type="number" id="w-3" placeholder="例: 10"></div>
+      <div><div class="inp-label">着外</div><input class="inp" type="number" id="w-out" placeholder="例: 80"></div>
+      <div><div class="inp-label">距離絞込（任意）</div><input class="inp" id="w-dist" placeholder="例: 阪神芝2200"></div>
+    </div>
+    <button class="btn btn-green btn-sm" onclick="addJraEntry('waku')">＋ 追加</button>
+    <div class="jra-list" id="list-waku"></div>
+  </div>
+
+  <!-- 前走クラス -->
+  <div class="jra-panel" id="panel-maeclass">
+    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">前走クラス別成績を入力してください</div>
+    <div class="inp-grid col3">
+      <div><div class="inp-label">前走クラス</div>
+        <select class="inp" id="mc-name">
+          <option>GI</option><option>GII</option><option>GIII</option><option>OP</option>
+          <option>L</option><option>3勝</option><option>2勝</option><option>1勝</option>
+        </select>
+      </div>
+      <div><div class="inp-label">1着</div><input class="inp" type="number" id="mc-w" placeholder="例: 30"></div>
+      <div><div class="inp-label">2着</div><input class="inp" type="number" id="mc-2" placeholder="例: 25"></div>
+      <div><div class="inp-label">3着</div><input class="inp" type="number" id="mc-3" placeholder="例: 20"></div>
+      <div><div class="inp-label">着外</div><input class="inp" type="number" id="mc-out" placeholder="例: 100"></div>
+      <div><div class="inp-label">距離絞込（任意）</div><input class="inp" id="mc-dist" placeholder="例: 芝2200"></div>
+    </div>
+    <button class="btn btn-green btn-sm" onclick="addJraEntry('maeclass')">＋ 追加</button>
+    <div class="jra-list" id="list-maeclass"></div>
+  </div>
+
+  <div class="btn-row" style="margin-top:12px;">
+    <button class="btn btn-gold btn-sm" onclick="openDataModal()">🔍 インポートデータ確認</button>
+    <button class="btn btn-outline btn-sm" onclick="saveJraData()">💾 JRAデータを保存</button>
+    <button class="btn btn-outline btn-sm" onclick="clearJraData()">🗑 JRAデータをクリア</button>
+  </div>
+</div>
+
+<!-- 統計 -->
+<div class="section" id="stats-section" style="display:none;">
+  <div class="section-title">📊 読み込みデータ概要</div>
+  <div class="stats-bar" id="stats-bar"></div>
+</div>
+
+<!-- 分析テーブル -->
+<div class="section" id="analysis-section" style="display:none;">
+  <div class="section-title">🔍 傾向分析マトリクス</div>
+  <div class="filter-row">
+    <label>カテゴリ</label>
+    <select id="cat-select" onchange="renderMatrix()">
+      <option value="jockey">騎手</option>
+      <option value="sire">種牡馬</option>
+      <option value="kyakushitsu">脚質</option>
+      <option value="waku">枠順</option>
+      <option value="maeclass">前走クラス</option>
+      <option value="maejun">前走着順</option>
+      <option value="age">年齢</option>
+    </select>
+    <label>最小サンプル</label>
+    <select id="min-sample" onchange="renderMatrix()">
+      <option value="1">1件〜</option>
+      <option value="2" selected>2件〜</option>
+      <option value="3">3件〜</option>
+      <option value="5">5件〜</option>
+    </select>
+  </div>
+  <div class="filter-row">
+    <label>コースフィルター</label>
+    <div class="filter-mode-btns">
+      <div class="fmode active" id="fm-all" onclick="setFilterMode('all')">全コース</div>
+      <div class="fmode" id="fm-dist" onclick="setFilterMode('dist')">距離帯</div>
+      <div class="fmode" id="fm-exact" onclick="setFilterMode('exact')">完全一致</div>
+    </div>
+  </div>
+  <div id="filter-sub" style="margin-bottom:10px;display:none;">
+    <div class="filter-row" id="dist-filter-row" style="display:none;">
+      <label>距離帯</label>
+      <select id="dist-range" onchange="renderMatrix()">
+        <option value="sprint">短距離（〜1400m）</option>
+        <option value="mile">マイル（1400〜1800m）</option>
+        <option value="inter">中距離（1800〜2200m）</option>
+        <option value="long">長距離（2200m〜）</option>
+      </select>
+      <label>芝/ダート</label>
+      <select id="surface-filter" onchange="renderMatrix()">
+        <option value="all">両方</option>
+        <option value="芝">芝</option>
+        <option value="ダ">ダート</option>
+      </select>
+    </div>
+    <div class="filter-row" id="exact-filter-row" style="display:none;">
+      <label>コース</label>
+      <select id="course-filter" onchange="renderMatrix()">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+  </div>
+  <div class="tbl-wrap" id="matrix-wrap">
+    <div class="empty"><div class="icon">📭</div>データなし</div>
+  </div>
+</div>
+
+<!-- DB JSON生成 -->
+<div class="section" id="db-section" style="display:none;">
+  <div class="section-title">⚙️ DB設定JSON自動生成</div>
+  <div class="filter-row">
+    <label>スコア算出方式</label>
+    <select id="score-method">
+      <option value="win">勝率ベース</option>
+      <option value="rentai" selected>連対率ベース</option>
+      <option value="fukusho">複勝率ベース</option>
+    </select>
+    <label>スケール</label>
+    <select id="score-scale">
+      <option value="20">最大20pt</option>
+      <option value="25" selected>最大25pt</option>
+      <option value="30">最大30pt</option>
+    </select>
+    <label>最小サンプル</label>
+    <select id="db-min-sample">
+      <option value="1">1件〜</option>
+      <option value="2" selected>2件〜</option>
+      <option value="3">3件〜</option>
+    </select>
+  </div>
+  <div class="filter-row">
+    <label>データ合成</label>
+    <div class="filter-mode-btns">
+      <div class="fmode active" id="dm-all" onclick="setDbMode('all')">全データ</div>
+      <div class="fmode" id="dm-dist" onclick="setDbMode('dist')">距離帯絞込</div>
+      <div class="fmode" id="dm-exact" onclick="setDbMode('exact')">完全一致</div>
+      <div class="fmode" id="dm-blend" onclick="setDbMode('blend')">🔀 ブレンド</div>
+    </div>
+  </div>
+  <div id="db-filter-sub" style="margin-bottom:8px;display:none;">
+    <div class="filter-row" id="db-dist-row" style="display:none;">
+      <label>距離帯</label>
+      <select id="db-dist-range">
+        <option value="sprint">短距離（〜1400m）</option>
+        <option value="mile">マイル（1400〜1800m）</option>
+        <option value="inter">中距離（1800〜2200m）</option>
+        <option value="long">長距離（2200m〜）</option>
+      </select>
+      <label>芝/ダート</label>
+      <select id="db-surface">
+        <option value="all">両方</option>
+        <option value="芝">芝</option>
+        <option value="ダ">ダート</option>
+      </select>
+    </div>
+    <div class="filter-row" id="db-exact-row" style="display:none;">
+      <label>コース完全一致</label>
+      <select id="db-exact-course">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+  </div>
+  <div id="blend-note" class="blend-note" style="display:none;">
+    🔀 ブレンドモード：完全一致データを重み3倍、距離帯データを重み2倍、全データを重み1倍で合算します。<br>
+    <div class="filter-row" style="margin-top:6px;margin-bottom:0;">
+      <label>対象コース</label>
+      <select id="blend-course">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-gold" onclick="generateDB()">⚡ DB設定JSONを生成</button>
+  </div>
+  <div id="db-output-wrap" style="margin-top:12px;display:none;">
+    <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">↓ このJSONを予想アプリのDB設定「JSONを貼り付け」欄にペースト</div>
+    <div class="db-output" id="db-output"></div>
+    <div class="btn-row">
+      <button class="btn btn-gold" onclick="copyDB()">📋 コピー</button>
+      <button class="btn btn-outline" onclick="downloadDB()">💾 ダウンロード</button>
+    </div>
+  </div>
+</div>
+
+</main>
+<div id="toast">✅ コピーしました</div>
+
+<script>
+let allRecords = [];
+let courses = new Set();
+let jraData = {}; // { jockey: [{name, w, r2, r3, out, dist, src}], ... }
+let filterMode = 'all';
+let dbMode = 'all';
+
+// ===== 初期化 =====
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('kp_analyzer_jra');
+  if (saved) { jraData = JSON.parse(saved); renderAllJraLists(); }
+});
+
+// ===== ファイル読み込み =====
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) loadFile(file);
+});
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.records && Array.isArray(data.records)) {
+        const valid = data.records.filter(r => r.horsesSnapshot && r.finishRanks);
+        if (valid.length === 0) {
+          showStatus('⚠️ 有効なレース記録が0件です。レース後に「記録に転送」したデータが必要です', 'red'); return;
+        }
+        processData(data.records);
+        showStatus(`✅ ${valid.length}件の有効レース記録を読み込みました（全${data.records.length}件中）`, 'green');
+        return;
+      }
+      if (data.horses && Array.isArray(data.horses)) {
+        showStatus('⚠️ 単体レースJSONでは分析できません。予想アプリ「保存」ボタンの全体バックアップJSONを使用してください', 'red'); return;
+      }
+      showStatus('❌ 対応していないJSON形式です', 'red');
+    } catch (err) { showStatus('❌ JSON解析エラー: ' + err.message, 'red'); }
+  };
+  reader.readAsText(file);
+}
+
+function showStatus(msg, color) {
+  const el = document.getElementById('load-status');
+  el.textContent = msg;
+  el.style.color = color === 'red' ? 'var(--red)' : 'var(--green)';
+}
+
+function processData(records) {
+  allRecords = records.filter(r => r.horsesSnapshot && Array.isArray(r.horsesSnapshot) && r.finishRanks);
+  courses = new Set();
+  allRecords.forEach(r => { const c = buildCourseKey(r); if (c) courses.add(c); });
+
+  // コースセレクト更新
+  ['course-filter', 'db-exact-course', 'blend-course'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">選択してください</option>';
+    [...courses].sort().forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      if (c === cur) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  });
+
+  document.getElementById('record-badge').textContent = allRecords.length + ' RACES';
+  renderStats();
+  ['stats-section','analysis-section','db-section'].forEach(id => document.getElementById(id).style.display = '');
+  renderMatrix();
+}
+
+function buildCourseKey(r) {
+  const name = r.race || '';
+  const m = name.match(/[（(]([^）)]+)[）)]/);
+  if (m) return m[1];
+  if (r.course && r.distance) return r.course + r.distance;
+  return null;
+}
+
+function parseCourseKey(key) {
+  if (!key) return { surface: null, dist: null };
+  // 例: "東京芝1600m" "阪神ダ1800m"
+  const m = key.match(/(芝|ダ|ダート)(\d+)/);
+  if (m) return { surface: m[1] === 'ダ' ? 'ダ' : m[1], dist: parseInt(m[2]) };
+  return { surface: null, dist: null };
+}
+
+function distRange(dist) {
+  if (!dist) return null;
+  if (dist <= 1400) return 'sprint';
+  if (dist <= 1800) return 'mile';
+  if (dist <= 2200) return 'inter';
+  return 'long';
+}
+
+// ===== 統計 =====
+function renderStats() {
+  const total = allRecords.length;
+  let totalHorses = 0;
+  const jockeySet = new Set(), sireSet = new Set();
+  let hitCount = 0;
+  allRecords.forEach(r => {
+    const hs = r.horsesSnapshot || [];
+    totalHorses += hs.length;
+    hs.forEach(h => { if (h.jockey) jockeySet.add(h.jockey); if (h.sire) sireSet.add(h.sire); });
+    if (r.hitLabels && r.hitLabels.length > 0) hitCount++;
+  });
+  document.getElementById('stats-bar').innerHTML = [
+    { val: total, lbl: 'レース数' },
+    { val: totalHorses, lbl: '馬データ数' },
+    { val: jockeySet.size, lbl: '騎手種類' },
+    { val: sireSet.size, lbl: '種牡馬種類' },
+    { val: total > 0 ? Math.round(hitCount/total*100)+'%' : '-', lbl: '的中率' },
+  ].map(s => `<div class="stat-chip"><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div></div>`).join('');
+}
+
+// ===== フィルターモード =====
+function setFilterMode(mode) {
+  filterMode = mode;
+  ['all','dist','exact'].forEach(m => document.getElementById('fm-'+m).classList.toggle('active', m===mode));
+  document.getElementById('filter-sub').style.display = mode === 'all' ? 'none' : '';
+  document.getElementById('dist-filter-row').style.display = mode === 'dist' ? '' : 'none';
+  document.getElementById('exact-filter-row').style.display = mode === 'exact' ? '' : 'none';
+  renderMatrix();
+}
+
+function setDbMode(mode) {
+  dbMode = mode;
+  ['all','dist','exact','blend'].forEach(m => document.getElementById('dm-'+m).classList.toggle('active', m===mode));
+  document.getElementById('db-filter-sub').style.display = mode === 'all' ? 'none' : '';
+  document.getElementById('db-dist-row').style.display = mode === 'dist' ? '' : 'none';
+  document.getElementById('db-exact-row').style.display = mode === 'exact' ? '' : 'none';
+  document.getElementById('blend-note').style.display = mode === 'blend' ? '' : 'none';
+}
+
+// ===== 馬データ取得（フィルター付き） =====
+function getFilteredHorses(mode, opts) {
+  mode = mode || filterMode;
+  let records = allRecords;
+
+  if (mode === 'dist') {
+    const range = (opts && opts.distRange) || document.getElementById('dist-range').value;
+    const surface = (opts && opts.surface) || document.getElementById('surface-filter').value;
+    records = records.filter(r => {
+      const ck = buildCourseKey(r);
+      const { surface: s, dist: d } = parseCourseKey(ck);
+      const rangeOk = distRange(d) === range;
+      const surfaceOk = surface === 'all' || s === surface || (surface === 'ダ' && s === 'ダート');
+      return rangeOk && surfaceOk;
+    });
+  } else if (mode === 'exact') {
+    const course = (opts && opts.course) || document.getElementById('course-filter').value;
+    if (course) records = records.filter(r => buildCourseKey(r) === course);
+  }
+
+  const horses = [];
+  records.forEach(r => {
+    const fr = r.finishRanks || {};
+    (r.horsesSnapshot || []).forEach(h => {
+      const banum = Number(h.banum);
+      let rank = null;
+      if (Number(fr.rank1) === banum) rank = 1;
+      else if (Number(fr.rank2) === banum) rank = 2;
+      else if (Number(fr.rank3) === banum) rank = 3;
+      else if (fr.rank1 || fr.rank2 || fr.rank3) rank = 99;
+      horses.push({ ...h, _rank: rank, _course: buildCourseKey(r) });
+    });
+  });
+  return horses;
+}
+
+// JRAデータをhorse形式に変換（仮想出走データとして追加）
+function getJraAsHorses(cat, distFilter) {
+  const entries = (jraData[cat] || []).filter(e => {
+    if (!distFilter || distFilter === 'all') return true;
+    if (!e.dist) return true;
+    // distFilterは「芝全体」「ダート全体」等、年度サフィックスなしで比較
+    const baseDist = e.dist.replace(/_\d{4}$/, '');
+    return baseDist === distFilter || !e.dist;
+  });
+  const horses = [];
+  entries.forEach(e => {
+    const w = parseInt(e.w) || 0;
+    const r2 = parseInt(e.r2) || 0;
+    const r3 = parseInt(e.r3) || 0;
+    const out = parseInt(e.out) || 0;
+    // 1着をw頭、2着をr2頭...仮想馬として展開
+    for (let i = 0; i < w; i++) horses.push({ [cat]: e.name, _rank: 1, _jra: true });
+    for (let i = 0; i < r2; i++) horses.push({ [cat]: e.name, _rank: 2, _jra: true });
+    for (let i = 0; i < r3; i++) horses.push({ [cat]: e.name, _rank: 3, _jra: true });
+    for (let i = 0; i < out; i++) horses.push({ [cat]: e.name, _rank: 99, _jra: true });
+  });
+  return horses;
+}
+
+function calcStats(horses) {
+  const total = horses.filter(h => h._rank !== null).length;
+  const win = horses.filter(h => h._rank === 1).length;
+  const rentai = horses.filter(h => h._rank <= 2).length;
+  const fukusho = horses.filter(h => h._rank <= 3).length;
+  return { total, win, winRate: total>0?win/total:0, rentai, rentaiRate: total>0?rentai/total:0, fukusho, fukushoRate: total>0?fukusho/total:0 };
+}
+
+// ===== マトリクス表示 =====
+function renderMatrix() {
+  if (allRecords.length === 0) return;
+  const cat = document.getElementById('cat-select').value;
+  const minSample = parseInt(document.getElementById('min-sample').value);
+  let horses = getFilteredHorses();
+  // JRAデータをマージ
+  horses = horses.concat(getJraAsHorses(cat, null));
+
+  const groups = {};
+  horses.forEach(h => {
+    let key = h[cat];
+    if (key === undefined || key === null || key === '') return;
+    key = String(key);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(h);
+  });
+
+  const rows = Object.entries(groups)
+    .map(([key, hs]) => ({ key, stats: calcStats(hs) }))
+    .filter(r => r.stats.total >= minSample)
+    .sort((a, b) => b.stats.rentaiRate - a.stats.rentaiRate);
+
+  if (rows.length === 0) {
+    document.getElementById('matrix-wrap').innerHTML = '<div class="empty"><div class="icon">📭</div>条件に合うデータがありません</div>';
+    return;
+  }
+  const maxRentai = Math.max(...rows.map(r => r.stats.rentaiRate));
+  const html = `<table><thead><tr>
+    <th style="text-align:left;padding-left:10px;">${catLabel(cat)}</th>
+    <th>出走数</th><th>勝率</th><th>連対率</th><th>複勝率</th><th>推奨pt</th>
+  </tr></thead><tbody>${rows.map(r => {
+    const s = r.stats;
+    const wP = (s.winRate*100).toFixed(0), rP = (s.rentaiRate*100).toFixed(0), fP = (s.fukushoRate*100).toFixed(0);
+    const pt = calcRecommendedPt(s, 25);
+    const ptCls = pt>10?'good':pt>0?'mid':pt<0?'bad':'';
+    const bW = maxRentai>0 ? Math.round(s.rentaiRate/maxRentai*60) : 0;
+    return `<tr>
+      <td class="key-col">${r.key}</td>
+      <td class="dim">${s.total}</td>
+      <td class="${wP>=20?'good':wP>=10?'mid':'dim'}">${wP}%</td>
+      <td><div class="score-bar-wrap"><div class="score-bar" style="width:${bW}px;background:${s.rentaiRate>=0.4?'var(--green)':s.rentaiRate>=0.2?'var(--gold)':'var(--red)'};"></div><span class="${rP>=40?'good':rP>=20?'mid':'dim'}">${rP}%</span></div></td>
+      <td class="${fP>=50?'good':fP>=30?'mid':'dim'}">${fP}%</td>
+      <td class="${ptCls}">${pt>0?'+':''}${pt}</td>
+    </tr>`;
+  }).join('')}</tbody></table>`;
+  document.getElementById('matrix-wrap').innerHTML = html;
+}
+
+function catLabel(cat) {
+  return {jockey:'騎手',sire:'種牡馬',kyakushitsu:'脚質',waku:'枠順',maeclass:'前走クラス',maejun:'前走着順',age:'年齢'}[cat]||cat;
+}
+
+function calcRecommendedPt(stats, scale) {
+  const base = 0.33;
+  const diff = stats.rentaiRate - base;
+  const pt = Math.round(diff * scale * 3);
+  return Math.max(-scale, Math.min(scale, pt));
+}
+
+// ===== DB生成 =====
+function generateDB() {
+  const method = document.getElementById('score-method').value;
+  const scale = parseInt(document.getElementById('score-scale').value);
+  const minSample = parseInt(document.getElementById('db-min-sample').value);
+  const cats = ['jockey','sire','kyakushitsu','waku','maeclass','maejun','age'];
+  const dbObj = {};
+
+  cats.forEach(cat => {
+    let horses;
+    if (dbMode === 'blend') {
+      const course = document.getElementById('blend-course').value;
+      const { dist: targetDist, surface: targetSurface } = parseCourseKey(course);
+      const range = distRange(targetDist);
+      // ブレンド：完全一致×3、距離帯×2、全体×1
+      const exact = getFilteredHorses('exact', { course }).concat(getJraAsHorses(cat, course));
+      const distH = getFilteredHorses('dist', { distRange: range, surface: targetSurface||'all' }).concat(getJraAsHorses(cat, null));
+      const allH = getFilteredHorses('all').concat(getJraAsHorses(cat, null));
+      // 重みづけ：exactを3倍、distを2倍、allを1倍展開して合算
+      horses = [...exact, ...exact, ...exact, ...distH, ...distH, ...allH];
+    } else if (dbMode === 'dist') {
+      horses = getFilteredHorses('dist').concat(getJraAsHorses(cat, null));
+    } else if (dbMode === 'exact') {
+      const course = document.getElementById('db-exact-course').value;
+      horses = getFilteredHorses('exact', { course }).concat(getJraAsHorses(cat, course));
+    } else {
+      horses = getFilteredHorses('all').concat(getJraAsHorses(cat, null));
+    }
+
+    const groups = {};
+    horses.forEach(h => {
+      let key = h[cat];
+      if (key === undefined || key === null || key === '') return;
+      key = String(key);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(h);
+    });
+
+    const catScores = {};
+    Object.entries(groups).forEach(([key, hs]) => {
+      const s = calcStats(hs);
+      if (s.total < minSample) return;
+      let rate = method === 'win' ? s.winRate : method === 'fukusho' ? s.fukushoRate : s.rentaiRate;
+      const base = method === 'win' ? 0.15 : method === 'fukusho' ? 0.40 : 0.30;
+      const pt = Math.round((rate - base) * scale * 3);
+      catScores[key] = Math.max(-scale, Math.min(scale, pt));
+    });
+
+    if (Object.keys(catScores).length > 0) dbObj[cat] = catScores;
+  });
+
+  document.getElementById('db-output').textContent = JSON.stringify(dbObj, null, 2);
+  document.getElementById('db-output-wrap').style.display = '';
+}
+
+// ===== PDF一括インポート（種牡馬リーディング） =====
+function importSirePDF() {
+  const raw = document.getElementById('pdf-paste-area').value.trim();
+  if (!raw) { setPdfStatus('⚠️ テキストを貼り付けてください', 'red'); return; }
+
+  // netkeibaの種牡馬リーディングのテキスト構造をパース
+  // 行例: "1 キタサンブラック 165 43 382 48 39 6 92 12 251 30 263 36 102 9 .261 ..."
+  // または馬名と数値が別行になるケースも対応
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+  const results = [];
+  const numPattern = /^(\d+)\s+(.+?)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/;
+
+  // 結合行・分割行両方対応のためテキスト全体を正規化
+  const fullText = lines.join(' ');
+  // 「順位 馬名 数字の羅列」パターンで抽出
+  // 列: 順位 馬名 出走頭数 勝馬頭数 出走回数 勝利回数 重賞出 重賞勝 特別出 特別勝 平場出 平場勝 芝出 芝勝 ダ出 ダ勝 勝馬率...
+  const rowPattern = /(\d+)\s+([\u3040-\u30FF\u4E00-\u9FFF\uFF41-\uFF5A\uFF21-\uFF3Aa-zA-Zａ-ｚＡ-Ｚ・ー]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/g;
+
+  let match;
+  while ((match = rowPattern.exec(fullText)) !== null) {
+    const name = match[2].trim();
+    // 芝出走=match[13], 芝勝利=match[14], ダ出走=match[15], ダ勝利=match[16]
+    const shukkouKaisuu = parseInt(match[5]);  // 総出走回数
+    const katsuKaisuu   = parseInt(match[6]);  // 総勝利回数
+    const shibaShukkou  = parseInt(match[13]); // 芝出走
+    const shibaKatsu    = parseInt(match[14]); // 芝勝利
+    const daShukkou     = parseInt(match[15]); // ダート出走
+    const daKatsu       = parseInt(match[16]); // ダート勝利
+
+    // 2着・3着は出走-勝利から近似（リーディングには2・3着列がないので連対率から推定）
+    // 勝馬率から全体の連対を計算できないため、芝・ダ別に1着のみ使用
+    // 着外 = 出走 - 勝利（2・3着含む）として扱い、r2=r3=0で近似
+    // ※2着3着データがないので勝率のみで計算する旨を明示
+
+    if (name && shukkouKaisuu > 0) {
+      results.push({
+        name,
+        totalRuns: shukkouKaisuu,
+        totalWins: katsuKaisuu,
+        shibaRuns: shibaShukkou,
+        shibaWins: shibaKatsu,
+        daRuns: daShukkou,
+        daWins: daKatsu,
+      });
+    }
+  }
+
+  if (results.length === 0) {
+    // フォールバック：シンプルな行パース
+    lines.forEach(line => {
+      const m = line.match(/^(\d+)\s+([\u3040-\u30FF\u4E00-\u9FFFa-zA-Z・ー]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/);
+      if (m) {
+        results.push({
+          name: m[2].trim(),
+          totalRuns: parseInt(m[5]),
+          totalWins: parseInt(m[6]),
+          shibaRuns: 0, shibaWins: 0, daRuns: 0, daWins: 0,
+        });
+      }
+    });
+  }
+
+  if (results.length === 0) {
+    setPdfStatus('❌ データを抽出できませんでした。PDFのテキストをそのままコピーしてください', 'red');
+    return;
+  }
+
+  const year = document.getElementById('sire-pdf-year').value;
+  if (!jraData.sire) jraData.sire = [];
+  let added = 0, updated = 0;
+
+  results.forEach(r => {
+    // 芝データ
+    if (r.shibaRuns > 0) {
+      const distKey = `芝全体_${year}`;
+      const out = Math.max(0, r.shibaRuns - r.shibaWins);
+      const existing = jraData.sire.findIndex(e => e.name === r.name && e.dist === distKey);
+      const entry = { name: r.name, w: r.shibaWins, r2: 0, r3: 0, out, dist: distKey, src: 'jra', year };
+      if (existing >= 0) { jraData.sire[existing] = entry; updated++; }
+      else { jraData.sire.push(entry); added++; }
+    }
+    // ダートデータ
+    if (r.daRuns > 0) {
+      const distKey = `ダート全体_${year}`;
+      const out = Math.max(0, r.daRuns - r.daWins);
+      const existing = jraData.sire.findIndex(e => e.name === r.name && e.dist === distKey);
+      const entry = { name: r.name, w: r.daWins, r2: 0, r3: 0, out, dist: distKey, src: 'jra', year };
+      if (existing >= 0) { jraData.sire[existing] = entry; updated++; }
+      else { jraData.sire.push(entry); added++; }
+    }
+    // 総合（芝ダ不明）
+    if (r.shibaRuns === 0 && r.daRuns === 0 && r.totalRuns > 0) {
+      const distKey = `全体_${year}`;
+      const out = Math.max(0, r.totalRuns - r.totalWins);
+      const existing = jraData.sire.findIndex(e => e.name === r.name && e.dist === distKey);
+      const entry = { name: r.name, w: r.totalWins, r2: 0, r3: 0, out, dist: distKey, src: 'jra', year };
+      if (existing >= 0) { jraData.sire[existing] = entry; updated++; }
+      else { jraData.sire.push(entry); added++; }
+    }
+  });
+
+  renderJraList('sire');
+  saveJraData();
+  setPdfStatus(`✅ ${year}年 ${results.length}頭分インポート完了（新規${added}件・更新${updated}件）`, 'green');
+  document.getElementById('pdf-paste-area').value = '';
+}
+
+function setPdfStatus(msg, color) {
+  const el = document.getElementById('pdf-import-status');
+  el.textContent = msg;
+  el.style.color = color === 'red' ? 'var(--red)' : 'var(--green)';
+}
+
+function setJockeyImportStatus(msg, color) {
+  const el = document.getElementById('jockey-import-status');
+  el.textContent = msg;
+  el.style.color = color === 'red' ? 'var(--red)' : 'var(--green)';
+}
+
+function importJockeyPDF() {
+  const raw = document.getElementById('jockey-pdf-area').value.trim();
+  if (!raw) { setJockeyImportStatus('⚠️ テキストを貼り付けてください', 'red'); return; }
+
+  // 行単位パース（メイン）
+  // 列: 順位 騎手名 1着 2着 3着 4着 5着 着外 特別勝利 騎乗回数 勝率 連対率 着内率 通算勝利 総賞金
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const results = [];
+
+  lines.forEach(line => {
+    // 「注釈」「（注釈）」を除去
+    const clean = line.replace(/（注釈）|\(注釈\)/g, '').trim();
+    // 順位(数字) 名前(非数字) 1着 2着 3着 4着 5着 着外 特別勝利 騎乗回数 ...
+    const m = clean.match(/^(\d{1,3})\s+(.+?)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/);
+    if (!m) return;
+    const name = m[2].trim().replace(/\s+/g, ' ');
+    // 名前に数字が含まれていたらスキップ
+    if (/^\d/.test(name) || name.length < 1) return;
+    // 日本語またはアルファベットが含まれているか確認
+    if (!/[\u3040-\u30FF\u4E00-\u9FFF]|[A-Za-z]/.test(name)) return;
+    const w   = parseInt(m[3]);
+    const r2  = parseInt(m[4]);
+    const r3  = parseInt(m[5]);
+    const r4  = parseInt(m[6]);
+    const r5  = parseInt(m[7]);
+    const out = parseInt(m[8]); // 着外列
+    const runs = parseInt(m[10]); // 騎乗回数
+    if (runs > 0) results.push({ name, w, r2, r3, out, runs });
+  });
+
+  if (results.length === 0) {
+    setJockeyImportStatus('❌ データを抽出できませんでした。PDFのテキストをそのままコピーしてください', 'red');
+    return;
+  }
+
+  const year = document.getElementById('jockey-pdf-year').value;
+  if (!jraData.jockey) jraData.jockey = [];
+  let added = 0, updated = 0;
+
+  results.forEach(r => {
+    const distKey = `全国全体_${year}`;
+    const existing = jraData.jockey.findIndex(e => e.name === r.name && e.dist === distKey);
+    const entry = { name: r.name, w: r.w, r2: r.r2, r3: r.r3, out: r.out, dist: distKey, src: 'jra', year };
+    if (existing >= 0) { jraData.jockey[existing] = entry; updated++; }
+    else { jraData.jockey.push(entry); added++; }
+  });
+
+  renderJraList('jockey');
+  saveJraData();
+  setJockeyImportStatus(`✅ ${year}年 ${results.length}人分インポート完了（新規${added}件・更新${updated}件）`, 'green');
+  document.getElementById('jockey-pdf-area').value = '';
+}
+
+// ===== JRA手動入力 =====
+function switchJraTab(tab) {
+  document.querySelectorAll('.jra-tab').forEach((el, i) => {
+    const tabs = ['jockey','sire','kyakushitsu','waku','maeclass'];
+    el.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.jra-panel').forEach(el => el.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+function addJraEntry(cat) {
+  const prefixes = { jockey:'j', sire:'s', kyakushitsu:'k', waku:'w', maeclass:'mc' };
+  const p = prefixes[cat];
+  const name = document.getElementById(p+'-name').value.trim();
+  const w = parseInt(document.getElementById(p+'-w').value) || 0;
+  const r2 = parseInt(document.getElementById(p+'-2').value) || 0;
+  const r3 = parseInt(document.getElementById(p+'-3').value) || 0;
+  const out = parseInt(document.getElementById(p+'-out').value) || 0;
+  const dist = document.getElementById(p+'-dist').value.trim();
+  if (!name) { showToast('⚠️ 名前を入力してください'); return; }
+  if (w+r2+r3+out === 0) { showToast('⚠️ 着度数を入力してください'); return; }
+  if (!jraData[cat]) jraData[cat] = [];
+  jraData[cat].push({ name, w, r2, r3, out, dist, src: 'jra' });
+  // クリア
+  [p+'-w', p+'-2', p+'-3', p+'-out', p+'-dist'].forEach(id => document.getElementById(id).value = '');
+  renderJraList(cat);
+  showToast('✅ ' + name + ' を追加しました');
+}
+
+function renderJraList(cat) {
+  const list = document.getElementById('list-' + cat);
+  if (!list) return;
+  const entries = jraData[cat] || [];
+  if (entries.length === 0) { list.innerHTML = ''; return; }
+  list.innerHTML = entries.map((e, i) => {
+    const total = e.w + e.r2 + e.r3 + e.out;
+    const winR = total > 0 ? (e.w/total*100).toFixed(0) : 0;
+    const rentaiR = total > 0 ? ((e.w+e.r2)/total*100).toFixed(0) : 0;
+    return `<div class="jra-row">
+      <span class="key">${e.name}</span>
+      <span class="info">${e.w}-${e.r2}-${e.r3}-${e.out} 勝率${winR}% 連対${rentaiR}%</span>
+      ${e.year ? `<span style="font-size:8px;color:var(--gold);font-weight:700;">${e.year}年</span>` : ''}
+      ${e.dist ? `<span style="font-size:8px;color:var(--blue);">${e.dist.replace(/_\d{4}$/,'')}</span>` : ''}
+      <span class="source-tag src-jra">JRA</span>
+      <button class="del" onclick="removeJraEntry('${cat}',${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function renderAllJraLists() {
+  ['jockey','sire','kyakushitsu','waku','maeclass'].forEach(cat => renderJraList(cat));
+}
+
+function removeJraEntry(cat, idx) {
+  jraData[cat].splice(idx, 1);
+  renderJraList(cat);
+}
+
+function saveJraData() {
+  localStorage.setItem('kp_analyzer_jra', JSON.stringify(jraData));
+  showToast('💾 JRAデータを保存しました');
+}
+
+function clearJraData() {
+  if (!confirm('JRAデータをすべて削除しますか？')) return;
+  jraData = {};
+  renderAllJraLists();
+  localStorage.removeItem('kp_analyzer_jra');
+  showToast('🗑 クリアしました');
+}
+
+// ===== ユーティリティ =====
+function copyDB() {
+  navigator.clipboard.writeText(document.getElementById('db-output').textContent).then(() => showToast('📋 コピーしました'));
+}
+function downloadDB() {
+  const text = document.getElementById('db-output').textContent;
+  const blob = new Blob([text], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'db_settings_'+new Date().toISOString().split('T')[0]+'.json';
+  a.click(); URL.revokeObjectURL(url);
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ===== データ確認モーダル =====
+let modalCat = 'jockey';
+
+function openDataModal() {
+  document.getElementById('data-modal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  renderModalList();
+}
+
+function closeDataModal() {
+  document.getElementById('data-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function switchModalTab(cat) {
+  modalCat = cat;
+  document.querySelectorAll('.modal-tab').forEach((el, i) => {
+    el.classList.toggle('active', ['jockey','sire'][i] === cat);
+  });
+  document.getElementById('modal-search').value = '';
+  renderModalList();
+}
+
+function renderModalList() {
+  const q = document.getElementById('modal-search').value.trim().toLowerCase();
+  const entries = (jraData[modalCat] || []).filter(e => !q || e.name.toLowerCase().includes(q));
+
+  // 名前ごとに集計（複数年・芝ダート含め合算）
+  const byName = {};
+  entries.forEach(e => {
+    if (!byName[e.name]) byName[e.name] = { name: e.name, w: 0, r2: 0, r3: 0, out: 0, years: [], dists: [] };
+    byName[e.name].w   += e.w || 0;
+    byName[e.name].r2  += e.r2 || 0;
+    byName[e.name].r3  += e.r3 || 0;
+    byName[e.name].out += e.out || 0;
+    if (e.year && !byName[e.name].years.includes(e.year)) byName[e.name].years.push(e.year);
+    // 芝・ダート・年度のラベルを収集
+    const baseDist = (e.dist || '').replace(/_\d{4}$/, '');
+    if (baseDist && !byName[e.name].dists.includes(baseDist)) byName[e.name].dists.push(baseDist);
+  });
+
+  const rows = Object.values(byName).sort((a, b) => {
+    const aTotal = a.w + a.r2 + a.r3 + a.out;
+    const bTotal = b.w + b.r2 + b.r3 + b.out;
+    const aRate = aTotal > 0 ? (a.w + a.r2) / aTotal : 0;
+    const bRate = bTotal > 0 ? (b.w + b.r2) / bTotal : 0;
+    return bRate - aRate;
+  });
+
+  if (rows.length === 0) {
+    document.getElementById('modal-list').innerHTML = '<div class="empty"><div class="icon">📭</div>データなし</div>';
+    return;
+  }
+
+  const maxRentai = Math.max(...rows.map(r => {
+    const t = r.w + r.r2 + r.r3 + r.out;
+    return t > 0 ? (r.w + r.r2) / t : 0;
+  }));
+
+  document.getElementById('modal-list').innerHTML = rows.map(r => {
+    const total = r.w + r.r2 + r.r3 + r.out;
+    const winR  = total > 0 ? (r.w / total * 100).toFixed(1) : '-';
+    const renR  = total > 0 ? ((r.w + r.r2) / total * 100).toFixed(1) : '-';
+    const fukR  = total > 0 ? ((r.w + r.r2 + r.r3) / total * 100).toFixed(1) : '-';
+    const renVal = total > 0 ? (r.w + r.r2) / total : 0;
+    const barW  = maxRentai > 0 ? Math.round(renVal / maxRentai * 100) : 0;
+    const barColor = renVal >= 0.4 ? 'var(--green)' : renVal >= 0.25 ? 'var(--gold)' : 'var(--red)';
+    const yearsLabel = r.years.sort().join('・') || '-';
+    const distsLabel = r.dists.join('・');
+    return `<div class="data-card">
+      <div class="name">${r.name}<div style="font-size:8px;color:var(--text2);font-weight:400;margin-top:2px;">${yearsLabel}年${distsLabel ? ' / ' + distsLabel : ''} / ${total}回</div></div>
+      <div class="data-stat"><div class="v" style="color:var(--green);">${winR}%</div><div class="l">勝率</div></div>
+      <div class="data-stat"><div class="v" style="color:var(--gold);">${renR}%</div><div class="l">連対率</div></div>
+      <div class="data-stat"><div class="v" style="color:var(--blue);">${fukR}%</div><div class="l">複勝率</div></div>
+      <div style="width:100%;">
+        <div class="data-bar"><div class="data-bar-fill" style="width:${barW}%;background:${barColor};"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
