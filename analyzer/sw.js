@@ -1,13 +1,6 @@
-const CACHE = 'db-analyzer-v1';
-const ASSETS = [
-  '/analyzer/',
-  '/analyzer/index.html',
-];
+const CACHE = 'db-analyzer-v2';
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {})
-  );
   self.skipWaiting();
 });
 
@@ -21,7 +14,6 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // ネットワーク優先、失敗時にキャッシュ
   e.respondWith(
     fetch(e.request)
       .then(res => {
