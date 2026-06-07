@@ -190,6 +190,143 @@
   <!-- 登録済みレース一覧 -->
   <div style="font-size:10px;font-weight:900;color:var(--text2);margin-bottom:6px;">登録済みレース</div>
   <div id="race-list"></div>
+
+  <!-- レース特化手動追加 -->
+  <div id="race-manual-area" style="display:none;margin-top:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;">
+    <div style="font-size:10px;font-weight:900;color:var(--gold);margin-bottom:10px;">✏️ <span id="race-manual-name"></span> に手動追加</div>
+    <div class="jra-tabs" style="margin-bottom:10px;">
+      <div class="jra-tab active" onclick="switchRaceManualTab('maejun')">前走着順</div>
+      <div class="jra-tab" onclick="switchRaceManualTab('age')">年齢</div>
+      <div class="jra-tab" onclick="switchRaceManualTab('maeclass')">前走クラス</div>
+      <div class="jra-tab" onclick="switchRaceManualTab('kyakushitsu')">脚質</div>
+      <div class="jra-tab" onclick="switchRaceManualTab('waku')">枠順</div>
+      <div class="jra-tab" onclick="switchRaceManualTab('ninki')">人気</div>
+      <div class="jra-tab" onclick="switchRaceManualTab('sire')">種牡馬</div>
+    </div>
+
+    <!-- 前走着順 -->
+    <div class="jra-panel active" id="rm-panel-maejun">
+      <div class="inp-grid col3">
+        <div><div class="inp-label">前走着順</div>
+          <select class="inp" id="rm-maejun-key">
+            <option value="1">1着</option><option value="2">2着</option><option value="3">3着</option>
+            <option value="4">4着</option><option value="5">5着</option>
+            <option value="6-9">6〜9着</option><option value="10-">10着以下</option>
+          </select>
+        </div>
+        <div><div class="inp-label">1着</div><input class="inp" type="number" id="rm-maejun-w"></div>
+        <div><div class="inp-label">2着</div><input class="inp" type="number" id="rm-maejun-2"></div>
+        <div><div class="inp-label">3着</div><input class="inp" type="number" id="rm-maejun-3"></div>
+        <div><div class="inp-label">着外</div><input class="inp" type="number" id="rm-maejun-out"></div>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="addRaceManual('maejun')">＋ 追加</button>
+      <div id="rm-list-maejun" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- 年齢 -->
+    <div class="jra-panel" id="rm-panel-age">
+      <div class="inp-grid col3">
+        <div><div class="inp-label">年齢</div>
+          <select class="inp" id="rm-age-key">
+            <option value="3">3歳</option><option value="4">4歳</option><option value="5">5歳</option>
+            <option value="6">6歳</option><option value="7">7歳以上</option>
+          </select>
+        </div>
+        <div><div class="inp-label">1着</div><input class="inp" type="number" id="rm-age-w"></div>
+        <div><div class="inp-label">2着</div><input class="inp" type="number" id="rm-age-2"></div>
+        <div><div class="inp-label">3着</div><input class="inp" type="number" id="rm-age-3"></div>
+        <div><div class="inp-label">着外</div><input class="inp" type="number" id="rm-age-out"></div>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="addRaceManual('age')">＋ 追加</button>
+      <div id="rm-list-age" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- 前走クラス -->
+    <div class="jra-panel" id="rm-panel-maeclass">
+      <div class="inp-grid col3">
+        <div><div class="inp-label">前走クラス</div>
+          <select class="inp" id="rm-maeclass-key">
+            <option value="GI">GI</option><option value="GII">GII</option><option value="GIII">GIII</option>
+            <option value="OP">OP</option><option value="3勝">3勝</option><option value="2勝">2勝</option>
+          </select>
+        </div>
+        <div><div class="inp-label">1着</div><input class="inp" type="number" id="rm-maeclass-w"></div>
+        <div><div class="inp-label">2着</div><input class="inp" type="number" id="rm-maeclass-2"></div>
+        <div><div class="inp-label">3着</div><input class="inp" type="number" id="rm-maeclass-3"></div>
+        <div><div class="inp-label">着外</div><input class="inp" type="number" id="rm-maeclass-out"></div>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="addRaceManual('maeclass')">＋ 追加</button>
+      <div id="rm-list-maeclass" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- 脚質 -->
+    <div class="jra-panel" id="rm-panel-kyakushitsu">
+      <div class="inp-grid col3">
+        <div><div class="inp-label">脚質</div>
+          <select class="inp" id="rm-kyakushitsu-key">
+            <option>逃げ</option><option>先行</option><option>差し</option><option>追い込み</option><option>自在</option>
+          </select>
+        </div>
+        <div><div class="inp-label">1着</div><input class="inp" type="number" id="rm-kyakushitsu-w"></div>
+        <div><div class="inp-label">2着</div><input class="inp" type="number" id="rm-kyakushitsu-2"></div>
+        <div><div class="inp-label">3着</div><input class="inp" type="number" id="rm-kyakushitsu-3"></div>
+        <div><div class="inp-label">着外</div><input class="inp" type="number" id="rm-kyakushitsu-out"></div>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="addRaceManual('kyakushitsu')">＋ 追加</button>
+      <div id="rm-list-kyakushitsu" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- 枠順 -->
+    <div class="jra-panel" id="rm-panel-waku">
+      <div class="inp-grid col3">
+        <div><div class="inp-label">枠番</div>
+          <select class="inp" id="rm-waku-key">
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option>
+          </select>
+        </div>
+        <div><div class="inp-label">1着</div><input class="inp" type="number" id="rm-waku-w"></div>
+        <div><div class="inp-label">2着</div><input class="inp" type="number" id="rm-waku-2"></div>
+        <div><div class="inp-label">3着</div><input class="inp" type="number" id="rm-waku-3"></div>
+        <div><div class="inp-label">着外</div><input class="inp" type="number" id="rm-waku-out"></div>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="addRaceManual('waku')">＋ 追加</button>
+      <div id="rm-list-waku" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- 人気 -->
+    <div class="jra-panel" id="rm-panel-ninki">
+      <div class="inp-grid col3">
+        <div><div class="inp-label">人気</div>
+          <select class="inp" id="rm-ninki-key">
+            <option value="1">1番人気</option><option value="2">2番人気</option><option value="3">3番人気</option>
+            <option value="4">4番人気</option><option value="5">5番人気</option>
+            <option value="6-9">6〜9番人気</option><option value="10-">10番人気以下</option>
+          </select>
+        </div>
+        <div><div class="inp-label">1着</div><input class="inp" type="number" id="rm-ninki-w"></div>
+        <div><div class="inp-label">2着</div><input class="inp" type="number" id="rm-ninki-2"></div>
+        <div><div class="inp-label">3着</div><input class="inp" type="number" id="rm-ninki-3"></div>
+        <div><div class="inp-label">着外</div><input class="inp" type="number" id="rm-ninki-out"></div>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="addRaceManual('ninki')">＋ 追加</button>
+      <div id="rm-list-ninki" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- 種牡馬 -->
+    <div class="jra-panel" id="rm-panel-sire">
+      <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">このレース特化の種牡馬成績を入力（ウマニティ等の同コース種牡馬別成績）</div>
+      <div class="inp-grid col3">
+        <div><div class="inp-label">種牡馬名</div><input class="inp" id="rm-sire-key" placeholder="例: キズナ"></div>
+        <div><div class="inp-label">1着</div><input class="inp" type="number" id="rm-sire-w"></div>
+        <div><div class="inp-label">2着</div><input class="inp" type="number" id="rm-sire-2"></div>
+        <div><div class="inp-label">3着</div><input class="inp" type="number" id="rm-sire-3"></div>
+        <div><div class="inp-label">着外</div><input class="inp" type="number" id="rm-sire-out"></div>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="addRaceManualSire()">＋ 追加</button>
+      <div id="rm-list-sire" style="margin-top:8px;"></div>
+    </div>
+  </div>
 </div>
 
 <!-- JRA手動データ入力 -->
@@ -1011,6 +1148,7 @@ function renderRaceList() {
     return `<div class="jra-row">
       <span class="key">${name}</span>
       <span class="info">${d.course || ''} 過去${d.years || '?'}年 / ${counts}</span>
+      <button class="btn btn-outline btn-sm" style="font-size:8px;padding:3px 7px;" onclick="openRaceManual('${name}')">✏️ 手動追加</button>
       <button class="del" onclick="deleteRaceData('${name}')">✕</button>
     </div>`;
   }).join('');
@@ -1021,6 +1159,90 @@ function deleteRaceData(name) {
   localStorage.setItem('kp_analyzer_race', JSON.stringify(raceData));
   renderRaceList();
   updateRaceSelect();
+  // 手動追加エリアを閉じる
+  document.getElementById('race-manual-area').style.display = 'none';
+}
+
+let currentEditRace = null;
+
+function openRaceManual(name) {
+  currentEditRace = name;
+  document.getElementById('race-manual-name').textContent = name;
+  document.getElementById('race-manual-area').style.display = '';
+  renderAllRaceManualLists();
+  // スクロール
+  document.getElementById('race-manual-area').scrollIntoView({ behavior: 'smooth' });
+}
+
+function switchRaceManualTab(cat) {
+  const cats = ['maejun','age','maeclass','kyakushitsu','waku','ninki','sire'];
+  document.querySelectorAll('#race-manual-area .jra-tab').forEach((el, i) => {
+    el.classList.toggle('active', cats[i] === cat);
+  });
+  document.querySelectorAll('#race-manual-area .jra-panel').forEach(el => el.classList.remove('active'));
+  document.getElementById('rm-panel-' + cat).classList.add('active');
+}
+
+function addRaceManual(cat) {
+  if (!currentEditRace || !raceData[currentEditRace]) return;
+  const key = document.getElementById('rm-' + cat + '-key').value;
+  const w   = parseInt(document.getElementById('rm-' + cat + '-w').value) || 0;
+  const r2  = parseInt(document.getElementById('rm-' + cat + '-2').value) || 0;
+  const r3  = parseInt(document.getElementById('rm-' + cat + '-3').value) || 0;
+  const out = parseInt(document.getElementById('rm-' + cat + '-out').value) || 0;
+  if (w + r2 + r3 + out === 0) { showToast('⚠️ 着度数を入力してください'); return; }
+  if (!raceData[currentEditRace][cat]) raceData[currentEditRace][cat] = {};
+  raceData[currentEditRace][cat][key] = { w, r2, r3, out };
+  localStorage.setItem('kp_analyzer_race', JSON.stringify(raceData));
+  renderRaceManualList(cat);
+  // 入力欄クリア
+  ['w','2','3','out'].forEach(f => document.getElementById('rm-' + cat + '-' + f).value = '');
+  showToast(`✅ ${key} を追加しました`);
+}
+
+function renderRaceManualList(cat) {
+  const el = document.getElementById('rm-list-' + cat);
+  if (!el || !currentEditRace) return;
+  const data = (raceData[currentEditRace] || {})[cat] || {};
+  if (Object.keys(data).length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = Object.entries(data).map(([key, v]) => {
+    const total = v.w + v.r2 + v.r3 + v.out;
+    const renR = total > 0 ? ((v.w + v.r2) / total * 100).toFixed(0) : 0;
+    return `<div class="jra-row">
+      <span class="key">${key}</span>
+      <span class="info">${v.w}-${v.r2}-${v.r3}-${v.out} 連対${renR}%</span>
+      <button class="del" onclick="deleteRaceManual('${cat}','${key}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteRaceManual(cat, key) {
+  if (!currentEditRace) return;
+  delete raceData[currentEditRace][cat][key];
+  localStorage.setItem('kp_analyzer_race', JSON.stringify(raceData));
+  renderRaceManualList(cat);
+}
+
+function addRaceManualSire() {
+  if (!currentEditRace || !raceData[currentEditRace]) return;
+  const key = document.getElementById('rm-sire-key').value.trim();
+  if (!key) { showToast('⚠️ 種牡馬名を入力してください'); return; }
+  const w   = parseInt(document.getElementById('rm-sire-w').value) || 0;
+  const r2  = parseInt(document.getElementById('rm-sire-2').value) || 0;
+  const r3  = parseInt(document.getElementById('rm-sire-3').value) || 0;
+  const out = parseInt(document.getElementById('rm-sire-out').value) || 0;
+  if (w + r2 + r3 + out === 0) { showToast('⚠️ 着度数を入力してください'); return; }
+  if (!raceData[currentEditRace].sire) raceData[currentEditRace].sire = {};
+  raceData[currentEditRace].sire[key] = { w, r2, r3, out };
+  localStorage.setItem('kp_analyzer_race', JSON.stringify(raceData));
+  renderRaceManualList('sire');
+  document.getElementById('rm-sire-key').value = '';
+  ['w','2','3','out'].forEach(f => document.getElementById('rm-sire-' + f).value = '');
+  showToast(`✅ ${key} を追加しました`);
+}
+
+function renderAllRaceManualLists() {
+  ['maejun','age','maeclass','kyakushitsu','waku','ninki','sire'].forEach(cat => renderRaceManualList(cat));
 }
 
 function updateRaceSelect() {
