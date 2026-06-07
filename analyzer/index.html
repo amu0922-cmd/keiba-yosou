@@ -716,7 +716,7 @@ function catLabel(cat) {
 function calcRecommendedPt(stats, scale) {
   const base = 0.13; // 連対率の平均基準値（競馬全体）
   const diff = stats.rentaiRate - base;
-  const pt = Math.round(diff * scale * 3);
+  const pt = Math.round(diff * scale * 5);
   return Math.max(-scale, Math.min(scale, pt));
 }
 
@@ -764,9 +764,13 @@ function generateDB() {
     Object.entries(groups).forEach(([key, hs]) => {
       const s = calcStats(hs);
       if (s.total < minSample) return;
+      // 前走クラスの休養系・不明系は除外
+      if (cat === 'maeclass' && /休養|不明|休み/.test(key)) return;
       let rate = method === 'win' ? s.winRate : method === 'fukusho' ? s.fukushoRate : s.rentaiRate;
       const base = method === 'win' ? 0.06 : method === 'fukusho' ? 0.22 : 0.13;
-      const pt = Math.round((rate - base) * scale * 3);
+      // 勝率は値域が小さい(0〜30%程度)ので係数を大きく、連対率・複勝率は中程度
+      const multiplier = method === 'win' ? 8 : method === 'fukusho' ? 4 : 3;
+      const pt = Math.round((rate - base) * scale * multiplier);
       catScores[key] = Math.max(-scale, Math.min(scale, pt));
     });
 
