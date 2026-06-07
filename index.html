@@ -4536,20 +4536,21 @@ function drawScoreRanking(ctx, W, imgH, tc, comment) {
   ctx.fillStyle = tc.logo;
   ctx.font = '700 11px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('RACE PREDICT PRO', 18, 48);
+  ctx.textAlign = 'center';
+  ctx.fillText('RACE PREDICT PRO', W/2, 22);
   ctx.fillStyle = tc.race;
-  ctx.font = '900 20px sans-serif';
-  ctx.fillText(currentRaceName || 'レース', 18, 74);
+  ctx.font = '900 28px sans-serif';
+  ctx.fillText(currentRaceName || 'レース', W/2, 52);
   ctx.fillStyle = tc.pace;
-  ctx.font = '700 11px sans-serif';
-  ctx.fillText('⚡ ' + paceLabel + '　📊 スコアランキング', 18, 90);
+  ctx.font = '700 12px sans-serif';
+  ctx.fillText('⚡ ' + paceLabel + '　📊 スコアランキング', W/2, 70);
   ctx.restore();
 
   // ── 各行 ──
   const PAD   = 14;
   const rowH  = 66;
   const gap   = 4;
-  const startY = 102;
+  const startY = 86;
 
   const RANK_W  = 22;     // 順位幅
   const WAKU_W  = 28;     // 枠番ボックス幅
