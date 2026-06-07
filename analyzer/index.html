@@ -145,6 +145,7 @@
 <!-- アップロード -->
 <div class="section">
   <div class="section-title">📂 バックアップJSON読み込み</div>
+  <button id="cloud-load-btn" onclick="loadFromCloud()" style="width:100%;padding:14px;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(59,130,246,0.4);border-radius:10px;color:#60a5fa;font-size:12px;font-weight:900;cursor:pointer;margin-bottom:10px;font-family:'Noto Sans JP',sans-serif;">☁️ クラウドから読み込む（予想アプリと同期）</button>
   <div class="upload-zone" id="upload-zone">
     <input type="file" accept=".json" id="file-input">
     <div class="upload-icon">📁</div>
@@ -460,6 +461,33 @@ window.addEventListener('load', () => {
   const saved = localStorage.getItem('kp_analyzer_jra');
   if (saved) { jraData = JSON.parse(saved); renderAllJraLists(); }
 });
+
+// ===== Supabase連携 =====
+const SB_URL = 'https://lttrqfbwhyktypddgtpn.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0dHJxZmJ3aHlrdHlwZGRndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMjY1MDMsImV4cCI6MjA5NTgwMjUwM30.SKn7Okr9UGR5jKapPmD3IAoVW_NThZL4FoXl09wkgCU';
+
+async function loadFromCloud() {
+  const btn = document.getElementById('cloud-load-btn');
+  btn.textContent = '⏳ 読込中...';
+  btn.disabled = true;
+  try {
+    const res = await fetch(SB_URL + '/rest/v1/race_data?id=eq.main', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    if (!res.ok) throw new Error('通信エラー');
+    const rows = await res.json();
+    if (!rows || rows.length === 0) throw new Error('データなし');
+    const data = rows[0].data;
+    if (!data.records || data.records.length === 0) throw new Error('記録データなし');
+    processData(data.records);
+    const valid = data.records.filter(r => r.horsesSnapshot && r.finishRanks);
+    showStatus(`☁️ クラウドから${valid.length}件読み込みました（最終保存: ${data.savedAt ? new Date(data.savedAt).toLocaleString('ja-JP') : '不明'}）`, 'green');
+  } catch(e) {
+    showStatus('❌ ' + e.message, 'red');
+  }
+  btn.textContent = '☁️ クラウドから読み込む';
+  btn.disabled = false;
+}
 
 // ===== ファイル読み込み =====
 document.getElementById('file-input').addEventListener('change', e => {
