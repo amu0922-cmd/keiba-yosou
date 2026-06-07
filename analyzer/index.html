@@ -714,7 +714,7 @@ function catLabel(cat) {
 }
 
 function calcRecommendedPt(stats, scale) {
-  const base = 0.33;
+  const base = 0.13; // 連対率の平均基準値（競馬全体）
   const diff = stats.rentaiRate - base;
   const pt = Math.round(diff * scale * 3);
   return Math.max(-scale, Math.min(scale, pt));
@@ -754,6 +754,8 @@ function generateDB() {
       let key = h[cat];
       if (key === undefined || key === null || key === '') return;
       key = String(key);
+      // 騎手名の名寄せ：スペース・全角スペースを除去して正規化
+      if (cat === 'jockey') key = key.replace(/[\s\u3000　]/g, '');
       if (!groups[key]) groups[key] = [];
       groups[key].push(h);
     });
@@ -763,7 +765,7 @@ function generateDB() {
       const s = calcStats(hs);
       if (s.total < minSample) return;
       let rate = method === 'win' ? s.winRate : method === 'fukusho' ? s.fukushoRate : s.rentaiRate;
-      const base = method === 'win' ? 0.15 : method === 'fukusho' ? 0.40 : 0.30;
+      const base = method === 'win' ? 0.06 : method === 'fukusho' ? 0.22 : 0.13;
       const pt = Math.round((rate - base) * scale * 3);
       catScores[key] = Math.max(-scale, Math.min(scale, pt));
     });
