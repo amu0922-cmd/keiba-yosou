@@ -316,6 +316,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #27ae60;">補正</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #ff6b35;">補正</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #9b59b6;">🕶穴</th>
+              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #27ae60;">⬆乗替</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #e94560;">取消</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #e94560;">総合</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #f39c12;">期待値</th>
@@ -375,6 +376,12 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <div style="border: 1px solid #2563eb; border-radius: 6px; padding: 8px; background: #f0f8ff; min-width: 0;">
           <div style="font-weight: 900; font-size: 11px; margin-bottom: 6px; color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 4px;">👨 騎手</div>
           <div id="db-jockey-list" style="max-height: 180px; overflow-y: auto; font-size: 9px;"></div>
+        </div>
+
+        <!-- 汎用トップ騎手（全幅） -->
+        <div style="border: 1px solid #7c3aed; border-radius: 6px; padding: 8px; background: #f5f0ff; min-width: 0; grid-column: 1 / -1;">
+          <div style="font-weight: 900; font-size: 11px; margin-bottom: 4px; color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 4px;">🌟 汎用トップ騎手 <span style="font-size:8px;font-weight:400;color:#888;">（全レース共通加点・レース固有DB騎手と重複可）</span></div>
+          <div id="db-topJockey-list" style="display:flex;flex-wrap:wrap;gap:4px;font-size:9px;max-height:120px;overflow-y:auto;"></div>
         </div>
 
         <!-- 種牡馬 -->
@@ -1284,7 +1291,7 @@ function calcAllScores() {
   const _bonusMap = paceBonus[_pace];
   return horses.map((h, idx) => {
     const _paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
-    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+_paddockPt;
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+(db.topJockey?.[h.jockey]||0)+_paddockPt;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = _bonusMap[h.kyakushitsu]||0;
@@ -1354,7 +1361,7 @@ function renderTable() {
   const jirushiMap = getJirushiMap();
   // 期待値計算用に全馬スコアを先に計算
   const allScoresForEV = horses.map(h => {
-    const ts = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
+    const ts = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+(db.topJockey?.[h.jockey]||0);
     const cs = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const ms = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const pa = _bonusMap[h.kyakushitsu]||0;
@@ -1374,7 +1381,7 @@ function renderTable() {
 
   horses.forEach((h, idx) => {
     const paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
-    const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0) + (db.baju?.[h.baju] || 0) + paddockPt;
+    const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0) + (db.baju?.[h.baju] || 0) + (db.topJockey?.[h.jockey] || 0) + paddockPt;
     const chokyoScore = ({'A': 20, 'B': 0, 'C': -20}[h.chokyoFinal] || 0) + ({'A': 20, 'B': 0, 'C': -20}[h.chokyoPrev] || 0);
     const commentScore = {'◎': 20, '◯': 0, '△': -20, '×': -20}[h.comment] || 0;
     const paceAdj = _bonusMap[h.kyakushitsu] || 0;
@@ -1458,6 +1465,7 @@ function renderTable() {
         </select>
       </td>
       <td style="text-align:center;"><button onclick="horses[${idx}].blinker=!horses[${idx}].blinker;renderTable();" style="background:${h.blinker?'#9b59b6':'#e0e0e0'};color:${h.blinker?'#fff':'#999'};border:none;border-radius:4px;padding:2px 5px;font-size:11px;cursor:pointer;font-weight:${h.blinker?'900':'400'};">${h.blinker?'🕶ON':'OFF'}</button></td>
+      <td style="text-align:center;"><button onclick="horses[${idx}].upJockey=!horses[${idx}].upJockey;renderTable();" style="background:${h.upJockey?'#27ae60':'#e0e0e0'};color:${h.upJockey?'#fff':'#999'};border:none;border-radius:4px;padding:2px 5px;font-size:11px;cursor:pointer;font-weight:${h.upJockey?'900':'400'};">${h.upJockey?'⬆ON':'OFF'}</button></td>
       <td><button onclick="horses.splice(${idx},1); renderTable();" style="background:#e94560;color:#fff;border:none;border-radius:4px;padding:2px 5px;font-size:9px;cursor:pointer;">取消</button></td>
       <td style="font-weight: 900; color: ${negAdj>0?'#34c759':negAdj<0?'#ff6b35':'#e94560'};">${totalScore}</td>
       <td style="font-weight:900;color:${evTextColor};font-size:10px;">${evLabel}</td>
@@ -1470,6 +1478,23 @@ function loadDBPreset() {
   db = {"jockey": {"ルメール": 25, "岩田望": 20}, "sire": {"ディープインパクト": 20}, "age": {"4": 10}, "kyakushitsu": {"差し": 15}, "maejun": {"1": 10}, "maeclass": {"GI": 10}, "waku": {"4": 5}, "timdev": {"75～": 20}};
   renderDBSection();
   setStatus('✅ プリセット読込', 'ok');
+}
+
+function renderTopJockey() {
+  const items = db.topJockey || {};
+  const tags = Object.entries(items).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `
+    <div style="display:inline-flex;align-items:center;gap:3px;background:#ede9fe;border:1px solid #7c3aed;border-radius:12px;padding:2px 6px;">
+      <span style="font-size:9px;color:#4c1d95;font-weight:700;">${k}</span>
+      <input type="text" value="${v}" style="width:28px;font-size:8px;border:none;background:transparent;color:#7c3aed;font-weight:900;text-align:center;" onchange="db.topJockey['${k}']=parseInt(this.value)||0; saveDB(); renderTable();">
+      <button style="background:none;border:none;color:#a78bfa;font-size:9px;cursor:pointer;padding:0;line-height:1;" onclick="delete db.topJockey['${k}']; saveDB(); renderDBSection(); renderTable();">✕</button>
+    </div>
+  `).join('');
+  const addBtn = `<div style="display:inline-flex;align-items:center;gap:3px;">
+    <input id="tj-add-name" placeholder="騎手名" style="width:60px;font-size:9px;border:1px solid #7c3aed;border-radius:4px;padding:2px 4px;">
+    <input id="tj-add-score" placeholder="pt" type="number" style="width:32px;font-size:9px;border:1px solid #7c3aed;border-radius:4px;padding:2px 4px;">
+    <button style="font-size:9px;background:#7c3aed;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;" onclick="(()=>{const n=document.getElementById('tj-add-name').value.trim();const s=parseInt(document.getElementById('tj-add-score').value)||10;if(!n)return;if(!db.topJockey)db.topJockey={};db.topJockey[n]=s;saveDB();renderDBSection();renderTable();})()">＋追加</button>
+  </div>`;
+  return (tags || '<span style="color:#999;font-size:9px;">未設定</span>') + addBtn;
 }
 
 function renderDBSection() {
@@ -1489,6 +1514,7 @@ function renderDBSection() {
   
   // 人気は常に固定値（1番人気=25点から5点刻み）
   db.ninki = {"1":25,"2":20,"3":15,"4":10,"5":5,"6":0,"7":-5,"8":-10,"9":-15,"10":-15,"11":-15,"12":-15,"13":-15,"14":-15,"15":-15,"16":-15,"17":-15,"18":-15};
+  db.topJockey = db.topJockey || {"ルメール": 15, "川田将雅": 12, "戸崎圭太": 10, "横山武史": 10, "武豊": 10, "岩田望来": 8, "松山弘平": 8, "坂井瑠星": 8, "田辺裕信": 6, "吉田豊": 6};
   db.timdev = db.timdev || {};
   db.baju = db.baju || {};
   if (Object.keys(db.timdev).length === 0) {
@@ -1499,6 +1525,7 @@ function renderDBSection() {
   }
 
   document.getElementById('db-jockey-list').innerHTML = renderKeyValues('jockey');
+  document.getElementById('db-topJockey-list').innerHTML = renderTopJockey();
   document.getElementById('db-sire-list').innerHTML = renderKeyValues('sire');
   document.getElementById('db-kyakushitsu-list').innerHTML = renderKeyValues('kyakushitsu');
   document.getElementById('db-age-list').innerHTML = renderKeyValues('age');
@@ -2266,7 +2293,7 @@ function renderPaceAnalysis() {
   // 各馬の展開ボーナス込みスコア
   const ranked = horses.map(h => {
     const _paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
-    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+_paddockPt;
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+(db.topJockey?.[h.jockey]||0)+_paddockPt;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const baseTotal = trendScore + chokyoScore + commentScore;
@@ -2351,7 +2378,7 @@ function renderPaceAnalysis() {
   ['high','mid','slow'].forEach(p => {
     const bmap = paceBonus[p];
     const scenarioRanked = [...horses].map(h => {
-      const base = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
+      const base = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+(db.topJockey?.[h.jockey]||0);
       const adj = bmap[h.kyakushitsu]||0;
       return { ...h, paceTotal: base+adj+({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0)+({'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0) };
     }).sort((a,b)=>b.paceTotal-a.paceTotal);
@@ -2724,6 +2751,22 @@ function renderAnalysis() {
     </div>`;
   }
 
+  // ===== 格上乗替穴警戒買い目 =====
+  const upJockeyHorses = ranked.filter(h => h.upJockey);
+  if (upJockeyHorses.length > 0) {
+    const upLines = upJockeyHorses.map(h => {
+      const fuku = `複勝: ${h.banum}番 (${h.name} / ${h.jockey})`;
+      const wide = `ワイド: ${jiku[0].banum}番 × ${h.banum}番`;
+      return `${fuku}\n${wide}`;
+    }).join('\n');
+    html += `
+    <div style="padding:12px;background:#f0fff4;border-radius:6px;border-left:4px solid #27ae60;margin-top:8px;">
+      <div style="font-weight:900;color:#27ae60;font-size:12px;margin-bottom:8px;">⬆️ 穴警戒買い目（格上乗替）</div>
+      <div style="background:#fff;padding:10px;border-radius:4px;border:1px solid #27ae60;font-weight:700;color:#1a1a2e;white-space:pre-line;font-size:11px;line-height:1.8;">${upLines}</div>
+      <div style="font-size:9px;color:#1a7a40;margin-top:6px;">⚠️ スコア外・少額保険として推奨</div>
+    </div>`;
+  }
+
   content.innerHTML = html;
 }
 
@@ -3042,7 +3085,7 @@ function analyzeResult() {
 
   // 予想スコアを計算
   const scored = horses.map(h => {
-    const ts = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
+    const ts = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+(db.topJockey?.[h.jockey]||0);
     const cs = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const ms = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const pa = bonusMap[h.kyakushitsu]||0;
@@ -3351,7 +3394,7 @@ function generateXPostImage() {
   const bonusMap = paceBonus[pace];
   const ranked = horses.map(h => {
     const _paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
-    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+_paddockPt;
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+(db.topJockey?.[h.jockey]||0)+_paddockPt;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
@@ -3457,7 +3500,7 @@ function generateBuyImage() {
   const ranked = horses.map(h => {
     const nk = String(h.ninki);
     const paddockScore = h.paddock==='A'?20:h.paddock==='B'?0:h.paddock==='C'?-15:0;
-    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+paddockScore;
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+(db.topJockey?.[h.jockey]||0)+paddockScore;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
@@ -3640,7 +3683,7 @@ function generateResultImage(isHit) {
   const ranked = horses.map(h => {
     const nk = String(h.ninki);
     const paddockScore = h.paddock==='A'?20:h.paddock==='B'?0:h.paddock==='C'?-15:0;
-    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+paddockScore;
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+(db.topJockey?.[h.jockey]||0)+paddockScore;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
@@ -4038,7 +4081,7 @@ function imgCalcBets() {
   const ranked = horses.map(h => {
     const nk = String(h.ninki);
     const paddockScore = h.paddock==='A'?20:h.paddock==='B'?0:h.paddock==='C'?-15:0;
-    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+paddockScore;
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+(db.topJockey?.[h.jockey]||0)+paddockScore;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
@@ -4212,6 +4255,39 @@ function imgGenerate(type) {
       }
     }
 
+    // ── 格上乗替穴警戒（buy時のみ）──
+    let upJockeyCanvasOffsetY = 0;
+    if (type === 'buy') {
+      const _upJockeyHorses = horses.filter(h => h.upJockey);
+      if (_upJockeyHorses.length > 0) {
+        const _upBaseY = 170 + lines.length * 44 + 8 + blinkerCanvasOffsetY;
+        const _upBoxH = 22 + _upJockeyHorses.length * 24;
+        ctx.save();
+        ctx.fillStyle = 'rgba(39,174,96,0.15)';
+        roundRect(ctx, 18, _upBaseY, W - 36, _upBoxH, 8);
+        ctx.fill();
+        ctx.strokeStyle = '#27ae60';
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, 18, _upBaseY, W - 36, _upBoxH, 8);
+        ctx.stroke();
+        ctx.fillStyle = '#27ae60';
+        roundRect(ctx, 18, _upBaseY, 4, _upBoxH, 8);
+        ctx.fill();
+        ctx.fillStyle = '#a8e6c0';
+        ctx.font = '700 11px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('⬆ 穴警戒（格上乗替）', 30, _upBaseY + 15);
+        _upJockeyHorses.forEach((uh, ui) => {
+          const _ly = _upBaseY + 22 + ui * 24;
+          ctx.fillStyle = '#a8e6c0';
+          ctx.font = '700 11px sans-serif';
+          ctx.fillText(`複勝: ${uh.banum}番(${uh.name}) ／ ワイド: ${jiku[0]?.banum}番 × ${uh.banum}番`, 30, _ly + 14);
+        });
+        ctx.restore();
+        upJockeyCanvasOffsetY = _upBoxH + 8;
+      }
+    }
+
     // ── コメント（買い目の直後）──
     if (comment) {
       let cy;
@@ -4219,7 +4295,7 @@ function imgGenerate(type) {
         const scoreRows = comment ? 6 : 8;
         cy = 102 + scoreRows * (66 + 4) + 10;
       } else if (type === 'buy') {
-        cy = 170 + lines.length * 44 + 8 + blinkerCanvasOffsetY;
+        cy = 170 + lines.length * 44 + 8 + blinkerCanvasOffsetY + upJockeyCanvasOffsetY;
       } else {
         cy = 120 + lines.length * 44 + 8;
       }
@@ -4591,7 +4667,7 @@ function drawScoreRanking(ctx, W, imgH, tc, comment) {
   const ranked = horses.map(h => {
     const nk = String(h.ninki);
     const paddockScore = h.paddock==='A'?20:h.paddock==='B'?0:h.paddock==='C'?-15:0;
-    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+paddockScore;
+    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+(db.topJockey?.[h.jockey]||0)+paddockScore;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
