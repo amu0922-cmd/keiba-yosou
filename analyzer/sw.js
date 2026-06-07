@@ -1,4 +1,4 @@
-const CACHE = 'db-analyzer-v2';
+const CACHE = 'db-analyzer-v3';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -14,6 +14,8 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  // /analyzer/ 配下のリクエストのみ処理
+  if (!e.request.url.includes('/analyzer/')) return;
   e.respondWith(
     fetch(e.request)
       .then(res => {
