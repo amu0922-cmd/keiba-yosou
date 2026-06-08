@@ -201,7 +201,13 @@
   </div>
 
   <!-- 登録済みレース一覧 -->
-  <div style="font-size:10px;font-weight:900;color:var(--text2);margin-bottom:6px;">登録済みレース</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+    <div style="font-size:10px;font-weight:900;color:var(--text2);">登録済みレース</div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('race-import-file').click()">📥 JSONインポート</button>
+      <input type="file" id="race-import-file" accept=".json" style="display:none;" onchange="importRaceDataFile(event)">
+    </div>
+  </div>
   <div id="race-list"></div>
 
   <!-- レース特化手動追加 -->
@@ -1223,6 +1229,7 @@ function renderRaceList() {
     return `<div class="jra-row">
       <span class="key">${name}</span>
       <span class="info">${d.course || ''} 過去${d.years || '?'}年 / ${counts}</span>
+      <button class="btn btn-outline btn-sm" style="font-size:8px;padding:3px 7px;" onclick="exportRaceData('${name}')">📤</button>
       <button class="btn btn-outline btn-sm" style="font-size:8px;padding:3px 7px;" onclick="openRaceManual('${name}')">✏️ 手動追加</button>
       <button class="del" onclick="deleteRaceData('${name}')">✕</button>
     </div>`;
@@ -1234,8 +1241,65 @@ function deleteRaceData(name) {
   localStorage.setItem('kp_analyzer_race', JSON.stringify(raceData));
   renderRaceList();
   updateRaceSelect();
-  // 手動追加エリアを閉じる
   document.getElementById('race-manual-area').style.display = 'none';
+}
+
+function exportRaceData(name) {
+  const d = raceData[name];
+  if (!d) return;
+  const payload = { version: '1.0', raceName: name, exportDate: new Date().toISOString(), data: d };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name + '_' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📤 ' + name + ' をエクスポートしました');
+}
+
+function importRaceDataFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      // 単体レースJSON
+      if (parsed.raceName && parsed.data) {
+        const name = parsed.raceName;
+        const existing = raceData[name];
+        if (existing) {
+          // 既存データとマージ（上書き確認）
+          if (confirm(`「${name}」は既に登録されています。上書きしますか？\nキャンセルでマージします。`)) {
+            raceData[name] = parsed.data;
+          } else {
+            // マージ：各カテゴリを統合
+            const cats = ['kyakushitsu','waku','ninki','sire','maejun','age','maeclass','weight'];
+            cats.forEach(cat => {
+              if (!parsed.data[cat]) return;
+              if (!raceData[name][cat]) raceData[name][cat] = {};
+              Object.assign(raceData[name][cat], parsed.data[cat]);
+            });
+          }
+        } else {
+          raceData[name] = parsed.data;
+        }
+        localStorage.setItem('kp_analyzer_race', JSON.stringify(raceData));
+        renderRaceList();
+        updateRaceSelect();
+        showToast(`✅ 「${name}」を読み込みました`);
+        // 自動で手動追加パネルを開く
+        openRaceManual(name);
+      } else {
+        showToast('❌ 対応していないJSON形式です');
+      }
+    } catch (err) {
+      showToast('❌ 読み込みエラー: ' + err.message);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
 }
 
 let currentEditRace = null;
