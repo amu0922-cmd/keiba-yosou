@@ -13,16 +13,16 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;700;900&display=swap');
   :root {
-    --bg:#0a0a0f; --surface:#12121a; --surface2:#1a1a28; --border:rgba(255,255,255,0.08);
-    --red:#e94560; --gold:#f5c842; --green:#2ecc71; --blue:#3b82f6; --purple:#9b59b6;
-    --text:#f0f0f0; --text2:#888; --text3:#444;
+    --bg:#f5f5f0; --surface:#ffffff; --surface2:#f0f0ea; --border:rgba(0,0,0,0.1);
+    --red:#e94560; --gold:#c8860a; --green:#1a8a4a; --blue:#2563eb; --purple:#7c3aed;
+    --text:#1a1a2e; --text2:#666; --text3:#aaa;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;overflow-x:hidden;}
-  header{background:linear-gradient(135deg,#0d0d18,#1a0a2e);border-bottom:2px solid var(--red);padding:14px 16px;position:sticky;top:0;z-index:100;}
+  header{background:#ffffff;border-bottom:2px solid var(--red);padding:14px 16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
   .header-inner{display:flex;align-items:center;gap:10px;}
-  .logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--gold);line-height:1;}
-  .logo span{color:var(--red);}
+  .logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--red);line-height:1;}
+  .logo span{color:var(--gold);}
   .header-sub{font-size:9px;color:var(--text2);letter-spacing:1px;}
   .badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:900;padding:3px 8px;border-radius:10px;}
   main{padding:16px;max-width:800px;margin:0 auto;}
@@ -41,17 +41,17 @@
   .stat-chip .lbl{font-size:9px;color:var(--text2);margin-top:2px;}
   .filter-row{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
   .filter-row label{font-size:10px;color:var(--text2);white-space:nowrap;}
-  .filter-row select,.filter-row input[type=text],.filter-row input[type=number]{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:10px;font-family:'Noto Sans JP',sans-serif;}
+  .filter-row select,.filter-row input[type=text],.filter-row input[type=number]{background:#fff;border:1px solid #ddd;color:var(--text);border-radius:6px;padding:5px 8px;font-size:10px;font-family:'Noto Sans JP',sans-serif;}
   .tbl-wrap{overflow-x:auto;}
   table{width:100%;border-collapse:collapse;font-size:10px;}
   th{background:var(--surface2);color:var(--text2);font-weight:700;padding:8px 6px;text-align:center;border-bottom:1px solid var(--border);white-space:nowrap;}
-  td{padding:7px 6px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.04);}
-  tr:hover td{background:rgba(255,255,255,0.03);}
+  td{padding:7px 6px;text-align:center;border-bottom:1px solid rgba(0,0,0,0.03);}
+  tr:hover td{background:rgba(0,0,0,0.02);}
   .key-col{text-align:left;font-weight:700;color:var(--text);padding-left:10px;}
   .good{color:var(--green);font-weight:900;} .bad{color:var(--red);} .mid{color:var(--gold);font-weight:700;} .dim{color:var(--text3);font-size:9px;}
   .score-bar-wrap{display:flex;align-items:center;gap:4px;justify-content:center;}
   .score-bar{height:6px;border-radius:3px;min-width:2px;}
-  .db-output{background:#0d0d18;border:1px solid rgba(249,200,66,0.3);border-radius:8px;padding:12px;font-family:monospace;font-size:10px;color:#a8e6cf;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;}
+  .db-output{background:#f0fff4;border:1px solid rgba(26,138,74,0.3);border-radius:8px;padding:12px;font-family:monospace;font-size:10px;color:#1a5c3a;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;}
   .btn{padding:10px 18px;border:none;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer;transition:all 0.15s;font-family:'Noto Sans JP',sans-serif;}
   .btn-gold{background:var(--gold);color:#1a0a00;} .btn-gold:hover{background:#ffd700;transform:translateY(-1px);}
   .btn-red{background:var(--red);color:#fff;} .btn-red:hover{background:#ff2d55;}
@@ -62,12 +62,12 @@
   .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
   .empty{text-align:center;padding:40px 16px;color:var(--text3);font-size:12px;}
   .empty .icon{font-size:36px;margin-bottom:8px;}
-  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--surface2);border:1px solid var(--gold);color:var(--gold);padding:10px 20px;border-radius:20px;font-size:11px;font-weight:700;transition:transform 0.3s;z-index:999;}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--red);border:none;color:#fff;padding:10px 20px;border-radius:20px;font-size:11px;font-weight:700;transition:transform 0.3s;z-index:999;}
   #toast.show{transform:translateX(-50%) translateY(0);}
 
   /* データ確認モーダル */
-  #data-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;overflow-y:auto;}
-  .modal-inner{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin:20px 12px;padding:16px;}
+  #data-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;overflow-y:auto;}
+  .modal-inner{background:#fff;border:1px solid #ddd;border-radius:16px;margin:20px 12px;padding:16px;box-shadow:0 8px 32px rgba(0,0,0,0.15);}
   .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
   .modal-title{font-size:13px;font-weight:900;color:var(--gold);}
   .modal-close{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 4px;}
@@ -75,9 +75,9 @@
   .modal-tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap;}
   .modal-tab{padding:5px 12px;font-size:9px;font-weight:700;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text2);cursor:pointer;}
   .modal-tab.active{background:var(--gold);border-color:var(--gold);color:#1a0a00;}
-  .modal-search{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-size:11px;font-family:'Noto Sans JP',sans-serif;margin-bottom:10px;}
+  .modal-search{width:100%;background:#fff;border:1px solid #ddd;color:var(--text);border-radius:6px;padding:7px 10px;font-size:11px;font-family:'Noto Sans JP',sans-serif;margin-bottom:10px;}
   .modal-search:focus{outline:none;border-color:var(--gold);}
-  .data-card{background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .data-card{background:#f5f5f0;border:1px solid #e8e8e0;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .data-card .name{font-weight:900;color:var(--text);font-size:11px;flex:1;min-width:80px;}
   .data-stat{text-align:center;min-width:44px;}
   .data-stat .v{font-size:13px;font-weight:900;}
@@ -93,10 +93,10 @@
   .inp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
   .inp-grid.col3{grid-template-columns:1fr 1fr 1fr;}
   .inp-label{font-size:9px;color:var(--text2);margin-bottom:3px;}
-  .inp{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:11px;font-family:'Noto Sans JP',sans-serif;width:100%;}
+  .inp{background:#fff;border:1px solid #ddd;color:var(--text);border-radius:6px;padding:6px 8px;font-size:11px;font-family:'Noto Sans JP',sans-serif;width:100%;}
   .inp:focus{outline:none;border-color:var(--purple);}
   .jra-list{margin-top:12px;}
-  .jra-row{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--surface2);border-radius:6px;margin-bottom:4px;font-size:10px;}
+  .jra-row{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#f5f5f0;border:1px solid #e8e8e0;border-radius:6px;margin-bottom:4px;font-size:10px;}
   .jra-row .key{font-weight:700;color:var(--text);flex:1;}
   .jra-row .info{color:var(--text2);font-size:9px;}
   .jra-row .del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 4px;}
@@ -202,6 +202,7 @@
       <div class="jra-tab" onclick="switchRaceManualTab('waku')">枠順</div>
       <div class="jra-tab" onclick="switchRaceManualTab('ninki')">人気</div>
       <div class="jra-tab" onclick="switchRaceManualTab('sire')">種牡馬</div>
+      <div class="jra-tab" onclick="switchRaceManualTab('weight')">馬体重</div>
     </div>
 
     <!-- 前走着順 -->
@@ -325,6 +326,29 @@
       </div>
       <button class="btn btn-gold btn-sm" onclick="addRaceManualSire()">＋ 追加</button>
       <div id="rm-list-sire" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- 馬体重 -->
+    <div class="jra-panel" id="rm-panel-weight">
+      <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">馬体重帯別成績を入力（例: 460-479、480-499、520-）</div>
+      <div class="inp-grid col3">
+        <div><div class="inp-label">馬体重帯</div>
+          <select class="inp" id="rm-weight-key">
+            <option value="〜419">〜419kg</option>
+            <option value="420〜439">420〜439kg</option>
+            <option value="440〜459">440〜459kg</option>
+            <option value="460〜479">460〜479kg</option>
+            <option value="480〜499">480〜499kg</option>
+            <option value="500〜">500kg〜</option>
+          </select>
+        </div>
+        <div><div class="inp-label">1着</div><input class="inp" type="number" id="rm-weight-w"></div>
+        <div><div class="inp-label">2着</div><input class="inp" type="number" id="rm-weight-2"></div>
+        <div><div class="inp-label">3着</div><input class="inp" type="number" id="rm-weight-3"></div>
+        <div><div class="inp-label">着外</div><input class="inp" type="number" id="rm-weight-out"></div>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="addRaceManual('weight')">＋ 追加</button>
+      <div id="rm-list-weight" style="margin-top:8px;"></div>
     </div>
   </div>
 </div>
@@ -1175,7 +1199,7 @@ function openRaceManual(name) {
 }
 
 function switchRaceManualTab(cat) {
-  const cats = ['maejun','age','maeclass','kyakushitsu','waku','ninki','sire'];
+  const cats = ['maejun','age','maeclass','kyakushitsu','waku','ninki','sire','weight'];
   document.querySelectorAll('#race-manual-area .jra-tab').forEach((el, i) => {
     el.classList.toggle('active', cats[i] === cat);
   });
@@ -1242,7 +1266,7 @@ function addRaceManualSire() {
 }
 
 function renderAllRaceManualLists() {
-  ['maejun','age','maeclass','kyakushitsu','waku','ninki','sire'].forEach(cat => renderRaceManualList(cat));
+  ['maejun','age','maeclass','kyakushitsu','waku','ninki','sire','weight'].forEach(cat => renderRaceManualList(cat));
 }
 
 function updateRaceSelect() {
@@ -1262,7 +1286,7 @@ function updateRaceSelect() {
 function getRaceAsHorses(raceName, cat) {
   const rd = raceData[raceName];
   if (!rd) return [];
-  const catMap = { kyakushitsu: rd.kyakushitsu, waku: rd.waku, ninki: rd.ninki, sire: rd.sire };
+  const catMap = { kyakushitsu: rd.kyakushitsu, waku: rd.waku, ninki: rd.ninki, sire: rd.sire, maejun: rd.maejun, age: rd.age, maeclass: rd.maeclass, weight: rd.weight };
   const source = catMap[cat];
   if (!source) return [];
   const horses = [];
