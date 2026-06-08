@@ -1630,8 +1630,16 @@ function downloadDB() {
   const blob = new Blob([text], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'db_settings_'+new Date().toISOString().split('T')[0]+'.json';
-  a.click(); URL.revokeObjectURL(url);
+  a.href = url;
+  const date = new Date().toISOString().split('T')[0];
+  if (dbMode === 'race') {
+    const raceName = document.getElementById('db-race-select').value;
+    a.download = raceName ? raceName.replace(/[\/\\:*?"<>|]/g, '') + '_' + date + '.json' : date + '.json';
+  } else {
+    a.download = date + '.json';
+  }
+  a.click();
+  URL.revokeObjectURL(url);
 }
 function showToast(msg) {
   const t = document.getElementById('toast');
