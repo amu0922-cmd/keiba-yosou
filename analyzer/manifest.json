@@ -1,0 +1,26 @@
+{
+  "id": "/analyzer/",
+  "name": "DB ANALYZER | 競馬予想分析",
+  "short_name": "DB分析",
+  "description": "競馬予想アプリ用データ分析エンジン",
+  "start_url": "/analyzer/",
+  "scope": "/analyzer/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/analyzer/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/analyzer/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
