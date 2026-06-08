@@ -1296,23 +1296,24 @@ function importRaceDataFile(event) {
       const dbCats = ['jockey','sire','kyakushitsu','waku','maeclass','maejun','age','ninki','weight'];
       const isDbJson = dbCats.some(k => parsed[k] && typeof parsed[k] === 'object');
       if (isDbJson) {
-        // ファイル名からレース名を推定（例: 宝塚記念_2026-06-08.json → 宝塚記念）
+        // ファイル名からレース名を推定
         const fileNameBase = file.name.replace(/\.json$/,'').replace(/_\d{4}-\d{2}-\d{2}$/, '');
-        const name = prompt(`レース名を入力してください`, fileNameBase || 'インポートレース');
-        if (!name) return;
-        // DB設定JSONをレース特化データ形式に変換
-        const data = { course: '', years: '?' };
-        dbCats.forEach(cat => {
-          if (!parsed[cat]) return;
-          // スコアから着別度数は復元できないのでそのままスコアとして保存
-          data[cat] = parsed[cat];
-        });
-        raceData[name] = data;
-        localStorage.setItem('kp_analyzer_race', JSON.stringify(raceData));
-        renderRaceList();
-        updateRaceSelect();
-        showToast(`✅ 「${name}」としてDB設定JSONを読み込みました`);
-        openRaceManual(name);
+        const name = fileNameBase || 'インポートDB';
+        const entry = {
+          id: Date.now(),
+          name,
+          date: new Date().toLocaleDateString('ja-JP'),
+          method: 'import',
+          json: JSON.stringify(parsed, null, 2),
+        };
+        const idx = dbHistory.findIndex(h => h.name === name);
+        if (idx >= 0) { dbHistory[idx] = entry; }
+        else { dbHistory.unshift(entry); }
+        localStorage.setItem('kp_analyzer_db_history', JSON.stringify(dbHistory));
+        renderDBHistory();
+        showToast(`✅ 「${name}」をDB履歴に追加しました`);
+        // DB履歴セクションにスクロール
+        document.getElementById('db-history-section').scrollIntoView({ behavior: 'smooth' });
         return;
       }
 
