@@ -1034,7 +1034,7 @@ function generateDB() {
   const method = document.getElementById('score-method').value;
   const scale = parseInt(document.getElementById('score-scale').value);
   const minSample = parseInt(document.getElementById('db-min-sample').value);
-  const cats = ['jockey','sire','kyakushitsu','waku','maeclass','maejun','age'];
+  const cats = ['jockey','sire','kyakushitsu','waku','maeclass','maejun','age','ninki','weight'];
   const dbObj = {};
 
   cats.forEach(cat => {
@@ -1042,10 +1042,10 @@ function generateDB() {
     if (dbMode === 'race') {
       const raceName = document.getElementById('db-race-select').value;
       if (!raceName) { alert('レースを選択してください'); return; }
-      // レース特化：レースデータ×5 + JRAリーディング×1
+      // レース特化：レースデータ×5 + JRAリーディング×1（自分データは混ぜない）
       const raceHorses = getRaceAsHorses(raceName, cat);
-      const allHorses = getFilteredHorses('all').concat(getJraAsHorses(cat, null));
-      horses = [...raceHorses, ...raceHorses, ...raceHorses, ...raceHorses, ...raceHorses, ...allHorses];
+      const jraHorses = getJraAsHorses(cat, null);
+      horses = [...raceHorses, ...raceHorses, ...raceHorses, ...raceHorses, ...raceHorses, ...jraHorses];
     } else if (dbMode === 'blend') {
       const course = document.getElementById('blend-course').value;
       const { dist: targetDist, surface: targetSurface } = parseCourseKey(course);
