@@ -1136,6 +1136,8 @@ window.addEventListener('load', () => {
   const savedRace = localStorage.getItem('kp_analyzer_race');
   if (savedRace) { raceData = JSON.parse(savedRace); renderRaceList(); updateRaceSelect(); }
   renderDBHistory();
+  // 起動時に自動でクラウドから読み込む
+  loadFromCloud();
 });
 
 function importRacePDF() {
