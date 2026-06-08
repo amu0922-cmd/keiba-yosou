@@ -944,6 +944,32 @@ function calcStats(horses) {
 }
 
 // ===== マトリクス表示 =====
+function normalizeKey(cat, key) {
+  key = String(key);
+  if (cat === 'jockey') {
+    key = key.replace(/[\s\u3000　]/g, '')
+             .replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+             .replace(/⽥/g,'田').replace(/⼾/g,'戸').replace(/⻄/g,'西')
+             .replace(/⼩/g,'小').replace(/⾈/g,'舟').replace(/⾼/g,'高')
+             .replace(/⼤/g,'大').replace(/⼀/g,'一').replace(/⼆/g,'二')
+             .replace(/⼭/g,'山').replace(/⾺/g,'馬').replace(/⿓/g,'龍');
+    const JOCKEY_MAP = {
+      'レーン':'D.レーン','ディー':'D.レーン','Dレーン':'D.レーン',
+      'ルメール':'C.ルメール','Cルメール':'C.ルメール','Rキング':'R.キング',
+      '川田':'川田将雅','横山武':'横山武史','横山和':'横山和生',
+      '松山':'松山弘平','岩田望':'岩田望来','戸崎圭':'戸崎圭太',
+      '北村友':'北村友一','坂井':'坂井瑠星','西村淳':'西村淳也',
+      '丹内':'丹内祐次','鮫島駿':'鮫島克駿','浜中':'浜中俊',
+      '高杉':'高杉吏麒','幸':'幸英明','池添':'池添謙一',
+      '三浦':'三浦皇成','団野':'団野大成','佐々木':'佐々木大輔',
+      '吉村':'吉村誠之助','田辺':'田辺裕信','田口':'田口貫太',
+      '岩田康':'岩田康誠','横山典':'横山典弘','菅原明':'菅原明良',
+    };
+    key = JOCKEY_MAP[key] || key;
+  }
+  return key;
+}
+
 function renderMatrix() {
   if (allRecords.length === 0) return;
   const cat = document.getElementById('cat-select').value;
@@ -956,7 +982,7 @@ function renderMatrix() {
   horses.forEach(h => {
     let key = h[cat];
     if (key === undefined || key === null || key === '') return;
-    key = String(key);
+    key = normalizeKey(cat, key);
     if (!groups[key]) groups[key] = [];
     groups[key].push(h);
   });
@@ -1043,13 +1069,10 @@ function generateDB() {
     horses.forEach(h => {
       let key = h[cat];
       if (key === undefined || key === null || key === '') return;
-      key = String(key);
-      // 騎手名の名寄せ：スペース・全角スペースを除去して正規化
-      if (cat === 'jockey') key = key.replace(/[\s\u3000　]/g, '');
+      key = normalizeKey(cat, key);
       if (!groups[key]) groups[key] = [];
       groups[key].push(h);
     });
-
     const catScores = {};
     Object.entries(groups).forEach(([key, hs]) => {
       const s = calcStats(hs);
