@@ -549,8 +549,12 @@
 
   <div class="btn-row" style="margin-top:12px;">
     <button class="btn btn-gold btn-sm" onclick="openDataModal()">🔍 インポートデータ確認</button>
-    <button class="btn btn-outline btn-sm" onclick="saveJraData()">💾 JRAデータを保存</button>
-    <button class="btn btn-outline btn-sm" onclick="clearJraData()">🗑 JRAデータをクリア</button>
+    <button class="btn btn-gold btn-sm" onclick="openDataModal()">🔍 インポートデータ確認</button>
+    <button class="btn btn-outline btn-sm" onclick="saveJraData()">💾 保存</button>
+    <button class="btn btn-outline btn-sm" onclick="exportJraData()">📤 エクスポート</button>
+    <button class="btn btn-outline btn-sm" onclick="document.getElementById('jra-import-file').click()">📥 インポート</button>
+    <input type="file" id="jra-import-file" accept=".json" style="display:none;" onchange="importJraDataFile(event)">
+    <button class="btn btn-outline btn-sm" onclick="clearJraData()">🗑 クリア</button>
   </div>
 </div>
 
@@ -1556,6 +1560,47 @@ function removeJraEntry(cat, idx) {
 function saveJraData() {
   localStorage.setItem('kp_analyzer_jra', JSON.stringify(jraData));
   showToast('💾 JRAデータを保存しました');
+}
+
+function exportJraData() {
+  const payload = { version: '1.0', exportDate: new Date().toISOString(), jraData };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'jra_data_' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📤 エクスポートしました');
+}
+
+function importJraDataFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      const data = parsed.jraData || parsed;
+      if (typeof data !== 'object') throw new Error('不正なフォーマット');
+      ['jockey','sire','kyakushitsu','waku','maeclass','maejun','age'].forEach(cat => {
+        if (!data[cat]) return;
+        if (!jraData[cat]) jraData[cat] = [];
+        data[cat].forEach(newEntry => {
+          const idx = jraData[cat].findIndex(e => e.name === newEntry.name && e.dist === newEntry.dist);
+          if (idx >= 0) jraData[cat][idx] = newEntry;
+          else jraData[cat].push(newEntry);
+        });
+      });
+      saveJraData();
+      renderAllJraLists();
+      showToast('📥 インポート完了');
+    } catch (err) {
+      showToast('❌ 読み込みエラー: ' + err.message);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
 }
 
 function clearJraData() {
