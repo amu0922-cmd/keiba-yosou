@@ -1808,6 +1808,8 @@ function loadDBHistory(id) {
   if (!h) return;
   document.getElementById('db-output').textContent = h.json;
   document.getElementById('db-output-wrap').style.display = '';
+  // DB設定セクションが非表示の場合も表示する
+  document.getElementById('db-section').style.display = '';
   document.getElementById('db-output').scrollIntoView({ behavior: 'smooth' });
 }
 
