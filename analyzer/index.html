@@ -1847,12 +1847,5 @@ function updateApp() {
   }
 }
 </script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/analyzer/sw.js', { scope: '/analyzer/' }).catch(() => {});
-  });
-}
-</script>
 </body>
 </html>
