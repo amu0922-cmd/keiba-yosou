@@ -1265,16 +1265,15 @@ function importRaceDataFile(event) {
   reader.onload = e => {
     try {
       const parsed = JSON.parse(e.target.result);
-      // 単体レースJSON
+
+      // 単体レースJSON（raceName・dataキーあり）
       if (parsed.raceName && parsed.data) {
         const name = parsed.raceName;
         const existing = raceData[name];
         if (existing) {
-          // 既存データとマージ（上書き確認）
           if (confirm(`「${name}」は既に登録されています。上書きしますか？\nキャンセルでマージします。`)) {
             raceData[name] = parsed.data;
           } else {
-            // マージ：各カテゴリを統合
             const cats = ['kyakushitsu','waku','ninki','sire','maejun','age','maeclass','weight'];
             cats.forEach(cat => {
               if (!parsed.data[cat]) return;
@@ -1289,11 +1288,35 @@ function importRaceDataFile(event) {
         renderRaceList();
         updateRaceSelect();
         showToast(`✅ 「${name}」を読み込みました`);
-        // 自動で手動追加パネルを開く
         openRaceManual(name);
-      } else {
-        showToast('❌ 対応していないJSON形式です');
+        return;
       }
+
+      // DB設定JSON（jockey・sire等のキーが直接ある形式）
+      const dbCats = ['jockey','sire','kyakushitsu','waku','maeclass','maejun','age','ninki','weight'];
+      const isDbJson = dbCats.some(k => parsed[k] && typeof parsed[k] === 'object');
+      if (isDbJson) {
+        // ファイル名からレース名を推定（例: 宝塚記念_2026-06-08.json → 宝塚記念）
+        const fileNameBase = file.name.replace(/\.json$/,'').replace(/_\d{4}-\d{2}-\d{2}$/, '');
+        const name = prompt(`レース名を入力してください`, fileNameBase || 'インポートレース');
+        if (!name) return;
+        // DB設定JSONをレース特化データ形式に変換
+        const data = { course: '', years: '?' };
+        dbCats.forEach(cat => {
+          if (!parsed[cat]) return;
+          // スコアから着別度数は復元できないのでそのままスコアとして保存
+          data[cat] = parsed[cat];
+        });
+        raceData[name] = data;
+        localStorage.setItem('kp_analyzer_race', JSON.stringify(raceData));
+        renderRaceList();
+        updateRaceSelect();
+        showToast(`✅ 「${name}」としてDB設定JSONを読み込みました`);
+        openRaceManual(name);
+        return;
+      }
+
+      showToast('❌ 対応していないJSON形式です');
     } catch (err) {
       showToast('❌ 読み込みエラー: ' + err.message);
     }
