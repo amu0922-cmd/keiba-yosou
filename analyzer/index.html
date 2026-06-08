@@ -716,8 +716,15 @@
     <div class="db-output" id="db-output"></div>
     <div class="btn-row">
       <button class="btn btn-gold" onclick="copyDB()">📋 コピー</button>
+      <button class="btn btn-outline" onclick="saveDBHistory()">💾 履歴に保存</button>
     </div>
   </div>
+</div>
+
+<!-- DB履歴 -->
+<div class="section" id="db-history-section">
+  <div class="section-title">📚 DB設定履歴</div>
+  <div id="db-history-list"><div style="font-size:9px;color:var(--text3);">まだ保存された履歴がありません</div></div>
 </div>
 
 </main>
@@ -1122,6 +1129,7 @@ window.addEventListener('load', () => {
   if (savedJra) { jraData = JSON.parse(savedJra); renderAllJraLists(); }
   const savedRace = localStorage.getItem('kp_analyzer_race');
   if (savedRace) { raceData = JSON.parse(savedRace); renderRaceList(); updateRaceSelect(); }
+  renderDBHistory();
 });
 
 function importRacePDF() {
@@ -1630,6 +1638,96 @@ function clearJraData() {
 // ===== ユーティリティ =====
 function copyDB() {
   navigator.clipboard.writeText(document.getElementById('db-output').textContent).then(() => showToast('📋 コピーしました'));
+}
+
+// ===== DB設定履歴 =====
+let dbHistory = JSON.parse(localStorage.getItem('kp_analyzer_db_history') || '[]');
+
+function saveDBHistory() {
+  const json = document.getElementById('db-output').textContent;
+  if (!json) return;
+
+  // 名前を決定
+  let name = '';
+  if (dbMode === 'race') {
+    const raceName = document.getElementById('db-race-select').value;
+    name = raceName || '未設定';
+  } else if (dbMode === 'blend') {
+    const course = document.getElementById('blend-course').value;
+    name = course ? 'ブレンド_' + course : 'ブレンド';
+  } else if (dbMode === 'exact') {
+    const course = document.getElementById('db-exact-course').value;
+    name = course ? '完全一致_' + course : '完全一致';
+  } else if (dbMode === 'dist') {
+    name = '距離帯絞込';
+  } else {
+    name = '全データ';
+  }
+
+  const entry = {
+    id: Date.now(),
+    name,
+    date: new Date().toLocaleDateString('ja-JP'),
+    method: document.getElementById('score-method').value,
+    json,
+  };
+
+  // 同名の既存履歴は上書き
+  const idx = dbHistory.findIndex(h => h.name === name);
+  if (idx >= 0) {
+    dbHistory[idx] = entry;
+    showToast('🔄 ' + name + ' を上書き保存しました');
+  } else {
+    dbHistory.unshift(entry);
+    showToast('💾 ' + name + ' を保存しました');
+  }
+
+  localStorage.setItem('kp_analyzer_db_history', JSON.stringify(dbHistory));
+  renderDBHistory();
+}
+
+function renderDBHistory() {
+  const el = document.getElementById('db-history-list');
+  if (!el) return;
+  if (dbHistory.length === 0) {
+    el.innerHTML = '<div style="font-size:9px;color:var(--text3);">まだ保存された履歴がありません</div>';
+    return;
+  }
+  const methodLabel = { win:'勝率', rentai:'連対率', fukusho:'複勝率' };
+  el.innerHTML = dbHistory.map(h => `
+    <div style="background:#f5f5f0;border:1px solid #e8e8e0;border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-weight:900;font-size:11px;color:var(--text);flex:1;">📋 ${h.name}</span>
+        <span style="font-size:8px;color:var(--text2);">${h.date} / ${methodLabel[h.method]||h.method}ベース</span>
+        <button onclick="deleteDBHistory(${h.id})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;">✕</button>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-gold btn-sm" onclick="copyDBHistory(${h.id})">📋 コピー</button>
+        <button class="btn btn-outline btn-sm" onclick="loadDBHistory(${h.id})">👁 表示</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function copyDBHistory(id) {
+  const h = dbHistory.find(h => h.id === id);
+  if (!h) return;
+  navigator.clipboard.writeText(h.json).then(() => showToast('📋 ' + h.name + ' をコピーしました'));
+}
+
+function loadDBHistory(id) {
+  const h = dbHistory.find(h => h.id === id);
+  if (!h) return;
+  document.getElementById('db-output').textContent = h.json;
+  document.getElementById('db-output-wrap').style.display = '';
+  document.getElementById('db-output').scrollIntoView({ behavior: 'smooth' });
+}
+
+function deleteDBHistory(id) {
+  dbHistory = dbHistory.filter(h => h.id !== id);
+  localStorage.setItem('kp_analyzer_db_history', JSON.stringify(dbHistory));
+  renderDBHistory();
+  showToast('🗑 削除しました');
 }
 function downloadDB() {
   const text = document.getElementById('db-output').textContent;
