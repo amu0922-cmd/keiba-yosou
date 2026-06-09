@@ -111,6 +111,14 @@
   .fmode.active{background:var(--blue);border-color:var(--blue);color:#fff;}
 
   .blend-note{font-size:9px;color:var(--text2);margin-top:6px;padding:6px 8px;background:rgba(59,130,246,0.08);border-radius:6px;border-left:3px solid var(--blue);}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;}
+  .tab{padding:6px 14px;font-size:10px;font-weight:700;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text2);cursor:pointer;}
+  .tab.active{background:var(--red);border-color:var(--red);color:#fff;}
+  .graph-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .graph-label{font-size:9px;color:var(--text);min-width:80px;text-align:right;}
+  .graph-bar-wrap{flex:1;background:var(--surface2);border-radius:4px;height:18px;position:relative;}
+  .graph-bar-fill{height:100%;border-radius:4px;transition:width 0.4s;}
+  .graph-val{font-size:9px;font-weight:700;min-width:40px;}
 </style>
 </head>
 <body>
@@ -723,6 +731,7 @@
     <div class="btn-row" style="flex-direction:column;">
       <button class="btn btn-gold" onclick="copyDB()" style="width:100%;">📋 コピー</button>
       <button class="btn btn-outline" onclick="saveDBHistory()" style="width:100%;">💾 履歴に保存</button>
+      <button class="btn btn-green" onclick="applyDBToApp()" style="width:100%;">🚀 予想アプリに適用</button>
     </div>
   </div>
 </div>
@@ -731,6 +740,17 @@
 <div class="section" id="db-history-section">
   <div class="section-title">📚 DB設定履歴</div>
   <div id="db-history-list"><div style="font-size:9px;color:var(--text3);">まだ保存された履歴がありません</div></div>
+</div>
+
+<!-- 成績グラフ -->
+<div class="section" id="graph-section" style="display:none;">
+  <div class="section-title">📈 成績分析グラフ</div>
+  <div class="tabs" style="margin-bottom:12px;">
+    <div class="tab active" id="gtab-monthly" onclick="switchGraphTab('monthly')">月別</div>
+    <div class="tab" id="gtab-course" onclick="switchGraphTab('course')">コース別</div>
+    <div class="tab" id="gtab-jockey" onclick="switchGraphTab('jockey')">騎手別</div>
+  </div>
+  <div id="graph-wrap"></div>
 </div>
 
 </main>
@@ -834,8 +854,9 @@ function processData(records) {
 
   document.getElementById('record-badge').textContent = allRecords.length + ' RACES';
   renderStats();
-  ['stats-section','analysis-section','db-section'].forEach(id => document.getElementById(id).style.display = '');
+  ['stats-section','analysis-section','db-section','graph-section'].forEach(id => document.getElementById(id).style.display = '');
   renderMatrix();
+  renderGraph();
 }
 
 function buildCourseKey(r) {
@@ -1127,7 +1148,131 @@ function generateDB() {
   document.getElementById('db-output-wrap').style.display = '';
 }
 
-// ===== レース特化データ =====
+// ===== 成績グラフ =====
+let currentGraphTab = 'monthly';
+
+function switchGraphTab(tab) {
+  currentGraphTab = tab;
+  ['monthly','course','jockey'].forEach(t => {
+    document.getElementById('gtab-' + t).classList.toggle('active', t === tab);
+  });
+  renderGraph();
+}
+
+function renderGraph() {
+  if (allRecords.length === 0) return;
+  const el = document.getElementById('graph-wrap');
+  if (!el) return;
+
+  if (currentGraphTab === 'monthly') renderMonthlyGraph(el);
+  else if (currentGraphTab === 'course') renderCategoryGraph(el, 'course');
+  else if (currentGraphTab === 'jockey') renderJockeyGraph(el);
+}
+
+function renderMonthlyGraph(el) {
+  const monthly = {};
+  allRecords.forEach(r => {
+    const d = r.date || '';
+    const m = d.match(/(\d{4})[\/\-年](\d{1,2})/);
+    const key = m ? `${m[1]}/${m[2].padStart(2,'0')}` : '不明';
+    if (!monthly[key]) monthly[key] = { invest: 0, ret: 0, count: 0, hit: 0 };
+    monthly[key].invest += parseFloat(r.invest) || 0;
+    monthly[key].ret    += parseFloat(r.return) || 0;
+    monthly[key].count++;
+    if (r.hitLabels && r.hitLabels.length > 0) monthly[key].hit++;
+  });
+
+  const sorted = Object.entries(monthly).sort((a,b) => a[0].localeCompare(b[0]));
+  el.innerHTML = renderBarGraph(sorted.map(([k,v]) => ({
+    label: k,
+    value: v.invest > 0 ? Math.round(v.ret / v.invest * 100) : 0,
+    sub: `${v.count}レース / 的中${v.hit}回`,
+    color: v.ret >= v.invest ? 'var(--green)' : 'var(--red)',
+  })), '回収率(%)', 100);
+}
+
+function renderCategoryGraph(el, cat) {
+  const groups = {};
+  allRecords.forEach(r => {
+    const key = buildCourseKey(r) || '不明';
+    if (!groups[key]) groups[key] = { invest: 0, ret: 0, count: 0, hit: 0 };
+    groups[key].invest += parseFloat(r.invest) || 0;
+    groups[key].ret    += parseFloat(r.return) || 0;
+    groups[key].count++;
+    if (r.hitLabels && r.hitLabels.length > 0) groups[key].hit++;
+  });
+
+  const sorted = Object.entries(groups)
+    .sort((a,b) => b[1].count - a[1].count)
+    .slice(0, 15);
+
+  el.innerHTML = renderBarGraph(sorted.map(([k,v]) => ({
+    label: k,
+    value: v.invest > 0 ? Math.round(v.ret / v.invest * 100) : 0,
+    sub: `${v.count}レース`,
+    color: v.ret >= v.invest ? 'var(--green)' : 'var(--red)',
+  })), '回収率(%)', 100);
+}
+
+function renderJockeyGraph(el) {
+  const groups = {};
+  allRecords.forEach(r => {
+    const hs = r.horsesSnapshot || [];
+    const fr = r.finishRanks || {};
+    const winner = hs.find(h => Number(h.banum) === Number(fr.rank1));
+    if (!winner || !winner.jockey) return;
+    const key = winner.jockey;
+    if (!groups[key]) groups[key] = { wins: 0, total: 0 };
+    groups[key].wins++;
+    // 出走回数（その騎手が出走した全レース）
+    hs.forEach(h => {
+      if (normalizeKey('jockey', h.jockey || '') === normalizeKey('jockey', key)) {
+        if (!groups[key]._counted) groups[key].total++;
+      }
+    });
+  });
+
+  // 出走回数を正確に集計
+  const jockeyRuns = {};
+  allRecords.forEach(r => {
+    (r.horsesSnapshot || []).forEach(h => {
+      if (!h.jockey) return;
+      const k = normalizeKey('jockey', h.jockey);
+      jockeyRuns[k] = (jockeyRuns[k] || 0) + 1;
+    });
+  });
+
+  const sorted = Object.entries(groups)
+    .map(([k, v]) => {
+      const nk = normalizeKey('jockey', k);
+      const runs = jockeyRuns[nk] || 1;
+      return { label: k, wins: v.wins, runs, rate: Math.round(v.wins / runs * 100) };
+    })
+    .filter(v => v.runs >= 3)
+    .sort((a,b) => b.wins - a.wins)
+    .slice(0, 15);
+
+  el.innerHTML = renderBarGraph(sorted.map(v => ({
+    label: v.label,
+    value: v.wins,
+    sub: `${v.runs}回中${v.wins}勝 勝率${v.rate}%`,
+    color: 'var(--gold)',
+  })), '勝利数', Math.max(...sorted.map(v => v.wins), 1));
+}
+
+function renderBarGraph(items, unit, maxVal) {
+  if (items.length === 0) return '<div class="empty"><div class="icon">📭</div>データなし</div>';
+  return `<div style="font-size:9px;color:var(--text2);margin-bottom:8px;">${unit}</div>` +
+    items.map(item => `
+    <div class="graph-bar-row">
+      <div class="graph-label">${item.label}</div>
+      <div class="graph-bar-wrap">
+        <div class="graph-bar-fill" style="width:${Math.max(2, Math.round(Math.abs(item.value) / maxVal * 100))}%;background:${item.color};"></div>
+      </div>
+      <div class="graph-val" style="color:${item.color};">${item.value}</div>
+      <div style="font-size:8px;color:var(--text2);min-width:80px;">${item.sub}</div>
+    </div>`).join('');
+}
 let raceData = {}; // { 宝塚記念: { course, years, kyakushitsu:{逃げ:{w,r2,r3,out}}, waku:{...}, ninki:{...}, sire:{...} } }
 
 window.addEventListener('load', () => {
@@ -1728,6 +1873,46 @@ function clearJraData() {
 // ===== ユーティリティ =====
 function copyDB() {
   navigator.clipboard.writeText(document.getElementById('db-output').textContent).then(() => showToast('📋 コピーしました'));
+}
+
+async function applyDBToApp() {
+  const json = document.getElementById('db-output').textContent;
+  if (!json) { showToast('⚠️ 先にDB設定JSONを生成してください'); return; }
+  let newDb;
+  try { newDb = JSON.parse(json); } catch(e) { showToast('❌ JSON形式エラー'); return; }
+
+  if (!confirm('予想アプリのDB設定を上書きします。よろしいですか？')) return;
+
+  showToast('⏳ 適用中...');
+  try {
+    // 現在のSupabaseデータを取得
+    const getRes = await fetch(SB_URL + '/rest/v1/race_data?id=eq.main', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    const rows = await getRes.json();
+    if (!rows || rows.length === 0) throw new Error('予想アプリのデータが見つかりません');
+    const current = rows[0].data;
+
+    // DB設定のみ上書き
+    current.db = newDb;
+    current.savedAt = new Date().toISOString();
+
+    // Supabaseに保存
+    const saveRes = await fetch(SB_URL + '/rest/v1/race_data?id=eq.main', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify([{ id: 'main', data: current, updated_at: new Date().toISOString() }])
+    });
+    if (!saveRes.ok) throw new Error('保存エラー');
+    showToast('✅ 予想アプリにDB設定を適用しました！');
+  } catch(e) {
+    showToast('❌ ' + e.message);
+  }
 }
 
 // ===== DB設定履歴 =====
