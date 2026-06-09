@@ -1183,12 +1183,14 @@ function renderMonthlyGraph(el) {
   });
 
   const sorted = Object.entries(monthly).sort((a,b) => a[0].localeCompare(b[0]));
-  el.innerHTML = renderBarGraph(sorted.map(([k,v]) => ({
+  const mItems = sorted.map(([k,v]) => ({
     label: k,
     value: v.invest > 0 ? Math.round(v.ret / v.invest * 100) : 0,
     sub: `${v.count}レース / 的中${v.hit}回`,
     color: v.ret >= v.invest ? 'var(--green)' : 'var(--red)',
-  })), '回収率(%)', 100);
+  }));
+  const mMax = Math.max(...mItems.map(i => Math.abs(i.value)), 100);
+  el.innerHTML = renderBarGraph(mItems, '回収率(%)', mMax);
 }
 
 function renderCategoryGraph(el, cat) {
@@ -1206,12 +1208,14 @@ function renderCategoryGraph(el, cat) {
     .sort((a,b) => b[1].count - a[1].count)
     .slice(0, 15);
 
-  el.innerHTML = renderBarGraph(sorted.map(([k,v]) => ({
+  const cItems = sorted.map(([k,v]) => ({
     label: k,
     value: v.invest > 0 ? Math.round(v.ret / v.invest * 100) : 0,
     sub: `${v.count}レース`,
     color: v.ret >= v.invest ? 'var(--green)' : 'var(--red)',
-  })), '回収率(%)', 100);
+  }));
+  const cMax = Math.max(...cItems.map(i => Math.abs(i.value)), 100);
+  el.innerHTML = renderBarGraph(cItems, '回収率(%)', cMax);
 }
 
 function renderJockeyGraph(el) {
