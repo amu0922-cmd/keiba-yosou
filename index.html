@@ -1173,6 +1173,7 @@ function applyNinki() {
       renderAnalysis();
       setStatus(`✅ ${count}頭の人気を反映`, 'ok');
       document.getElementById('ninki-input').value = '';
+      syncCurrentBackup();
     } else {
       setStatus('❌ 反映できた馬がありません', 'err');
     }
@@ -1203,6 +1204,7 @@ function applyOdds() {
       renderAnalysis();
       setStatus(`✅ ${count}頭のオッズを反映`, 'ok');
       document.getElementById('odds-input').value = '';
+      syncCurrentBackup();
     } else {
       setStatus('❌ 反映できた馬がありません', 'err');
     }
@@ -1229,6 +1231,7 @@ function applyBaju() {
       renderTable(); renderAnalysis();
       setStatus(`✅ ${count}頭の馬体重を反映`, 'ok');
       document.getElementById('baju-input').value = '';
+      syncCurrentBackup();
     } else {
       setStatus('❌ 反映できた馬がありません', 'err');
     }
@@ -1269,10 +1272,40 @@ function applyTimdev() {
       renderTable(); renderAnalysis();
       setStatus(`✅ ${count}頭のタイム偏差値を反映`, 'ok');
       document.getElementById('timdev-input').value = '';
+      syncCurrentBackup();
     } else {
       setStatus('❌ 反映できた馬がありません', 'err');
     }
   } catch(e) { setStatus('❌ エラー: ' + e.message, 'err'); }
+}
+
+// 人気・オッズ・馬体重・タイム偏差値の反映時に、現在開いているレースの
+// 統合バックアップ(savedJsons)があれば最新のhorses/dbで自動更新する
+function syncCurrentBackup() {
+  try {
+    if (!currentRaceName) return;
+    if (!savedJsons[currentRaceName]) return;
+
+    const horseJSON = JSON.stringify({ horses });
+    const dbJSON = JSON.stringify(db);
+
+    savedJsons[currentRaceName] = {
+      ...savedJsons[currentRaceName],
+      horses: horseJSON,
+      db: dbJSON,
+      savedAt: new Date().toLocaleString('ja-JP'),
+      horseCount: horses.length
+    };
+
+    localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
+
+    // クラウドにも反映（非同期・失敗してもUIは止めない）
+    if (typeof saveToSupabase === 'function') {
+      saveToSupabase().catch(e => console.error('自動同期(クラウド)エラー:', e));
+    }
+  } catch (e) {
+    console.error('自動同期エラー:', e);
+  }
 }
 
 // 印マスター（競馬印）
