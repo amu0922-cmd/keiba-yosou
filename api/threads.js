@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   try {
     if (action === 'posts') {
       // 自分の投稿一覧（最新25件）
-      const fields = 'id,text,timestamp,permalink,media_type';
+      const fields = 'id,text,timestamp,permalink,media_type,media_url,children{media_type,media_url}';
       const url = `${BASE}/${USER_ID}/threads?fields=${fields}&limit=25&access_token=${TOKEN}`;
       const r = await fetch(url);
       const data = await r.json();
