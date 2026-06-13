@@ -187,6 +187,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     <button class="tab-btn tab-analysis" onclick="switchTo('analysis')">📊 予想</button>
     <button class="tab-btn tab-pace" onclick="switchTo('pace')">🏃 展開</button>
     <button class="tab-btn tab-xpost" onclick="switchTo('xpost')">🐦 投稿</button>
+    <button class="tab-btn tab-threads" onclick="switchTo('threads')">📊 反応</button>
   </div>
 
   <!-- JSON/プロンプトタブ -->
@@ -795,6 +796,18 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     </div>
   </div>
 
+  <!-- Threads反応タブ -->
+  <div id="threads" class="tab-content">
+    <div style="padding:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="margin:0;font-size:14px;">📊 Threads 反応</h3>
+        <button onclick="loadThreadsInsights()" class="btn" style="font-size:11px;padding:6px 12px;">🔄 更新</button>
+      </div>
+      <div id="threads-status" style="font-size:12px;color:#888;margin-bottom:8px;"></div>
+      <div id="threads-posts"></div>
+    </div>
+  </div>
+
   <!-- 着順入力・的中判定 -->
 
   <!-- 着順入力・的中判定 -->
@@ -894,6 +907,7 @@ function switchTo(tab) {
   if (tab === 'analysis') renderAnalysis();
   if (tab === 'pace') { initPaceBonusGrid(); renderPaceAnalysis(); }
   if (tab === 'xpost') { /* ready */ }
+  if (tab === 'threads') loadThreadsInsights();
 }
 
 const PROMPTS = {
@@ -1279,7 +1293,140 @@ function applyTimdev() {
   } catch(e) { setStatus('❌ エラー: ' + e.message, 'err'); }
 }
 
-// 人気・オッズ・馬体重・タイム偏差値の反映時に、現在開いているレースの
+// ===== Threads反応タブ =====
+let threadsPostsCache = [];
+
+async function loadThreadsInsights() {
+  const statusEl = document.getElementById('threads-status');
+  const listEl = document.getElementById('threads-posts');
+  statusEl.textContent = '読込中...';
+  listEl.innerHTML = '';
+
+  try {
+    const res = await fetch('/api/threads?action=posts');
+    const data = await res.json();
+
+    if (data.error) {
+      statusEl.textContent = `❌ エラー: ${data.error}`;
+      return;
+    }
+
+    threadsPostsCache = data.posts || [];
+    statusEl.textContent = `${threadsPostsCache.length}件の投稿を取得`;
+
+    if (threadsPostsCache.length === 0) {
+      listEl.innerHTML = '<div style="color:#888;font-size:12px;">投稿が見つかりません</div>';
+      return;
+    }
+
+    let html = '';
+    threadsPostsCache.forEach((post, idx) => {
+      const m = post.metrics || {};
+      const date = post.timestamp ? new Date(post.timestamp).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      const text = (post.text || '').slice(0, 60);
+
+      html += `
+        <div style="border:1px solid #ddd;border-radius:8px;padding:10px;margin-bottom:8px;background:#fff;">
+          <div style="font-size:11px;color:#888;margin-bottom:4px;">${date}</div>
+          <div style="font-size:13px;margin-bottom:8px;white-space:pre-wrap;">${escapeHtml(text)}${(post.text||'').length>60?'...':''}</div>
+          <div style="display:flex;gap:12px;font-size:12px;color:#444;flex-wrap:wrap;">
+            <span>👀 ${m.views ?? '-'}</span>
+            <span>❤️ ${m.likes ?? '-'}</span>
+            <span>💬 ${m.replies ?? '-'}</span>
+            <span>🔁 ${m.reposts ?? '-'}</span>
+            <span>💭 ${m.quotes ?? '-'}</span>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px;">
+            <button onclick="toggleReplies('${post.id}', ${idx})" class="btn" style="font-size:10px;padding:4px 8px;">返信を見る</button>
+            ${post.permalink ? `<a href="${post.permalink}" target="_blank" style="font-size:10px;padding:4px 8px;">🔗 開く</a>` : ''}
+          </div>
+          <div id="replies-${idx}" style="margin-top:8px;display:none;"></div>
+        </div>
+      `;
+    });
+
+    listEl.innerHTML = html;
+  } catch (e) {
+    statusEl.textContent = `❌ エラー: ${e.message}`;
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function toggleReplies(postId, idx) {
+  const el = document.getElementById(`replies-${idx}`);
+  if (el.style.display === 'block') {
+    el.style.display = 'none';
+    return;
+  }
+
+  el.style.display = 'block';
+  el.innerHTML = '<div style="font-size:11px;color:#888;">読込中...</div>';
+
+  try {
+    const res = await fetch(`/api/threads?action=replies&id=${postId}`);
+    const data = await res.json();
+
+    if (data.error) {
+      el.innerHTML = `<div style="font-size:11px;color:#c00;">❌ ${data.error}</div>`;
+      return;
+    }
+
+    const replies = data.replies || [];
+    if (replies.length === 0) {
+      el.innerHTML = '<div style="font-size:11px;color:#888;">返信はありません</div>';
+      return;
+    }
+
+    let html = '<div style="border-top:1px solid #eee;padding-top:8px;">';
+    replies.forEach(reply => {
+      const date = reply.timestamp ? new Date(reply.timestamp).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      const isHidden = reply.hide_status === 'HIDDEN';
+      html += `
+        <div style="background:#f8f8f8;border-radius:6px;padding:8px;margin-bottom:6px;font-size:12px;${isHidden ? 'opacity:0.5;' : ''}">
+          <div style="font-weight:bold;">${escapeHtml(reply.username || '')} <span style="font-size:10px;color:#888;font-weight:normal;">${date}</span></div>
+          <div style="margin:4px 0;white-space:pre-wrap;">${escapeHtml(reply.text || '')}</div>
+          <button onclick="toggleHideReply('${reply.id}', ${!isHidden}, ${idx})" class="btn" style="font-size:9px;padding:2px 6px;">
+            ${isHidden ? '👁️ 表示する' : '🚫 非表示にする'}
+          </button>
+        </div>
+      `;
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = `<div style="font-size:11px;color:#c00;">❌ ${e.message}</div>`;
+  }
+}
+
+async function toggleHideReply(replyId, hide, idx) {
+  try {
+    const res = await fetch(`/api/threads?action=hide_reply&id=${replyId}&hide=${hide}`, { method: 'POST' });
+    const data = await res.json();
+
+    if (data.error) {
+      setStatus(`❌ ${data.error}`, 'err');
+      return;
+    }
+
+    setStatus(hide ? '✅ 返信を非表示にしました' : '✅ 返信を表示しました', 'ok');
+
+    // 該当の返信欄を再読込
+    const postId = threadsPostsCache[idx]?.id;
+    if (postId) {
+      document.getElementById(`replies-${idx}`).style.display = 'none';
+      toggleReplies(postId, idx);
+    }
+  } catch (e) {
+    setStatus(`❌ ${e.message}`, 'err');
+  }
+}
+
+
 // 統合バックアップ(savedJsons)があれば最新のhorses/dbで自動更新する
 function syncCurrentBackup() {
   try {
