@@ -2733,6 +2733,11 @@ function renderAnalysis() {
   const excludeBanums2 = new Set([...jiku.map(h=>h.banum), dbJockeyScored[0]?.banum].filter(Boolean));
   const scoreTop5 = ranked.filter(h => !excludeBanums2.has(h.banum)).slice(0,5).map(h=>`${h.banum}番`);
 
+  // 1番人気馬（軸馬でない場合、過去データで取りこぼしが多いため相手に追加）
+  const ninki1Horse = ranked.find(h => Number(h.ninki) === 1);
+  const ninki1Num = ninki1Horse ? String(ninki1Horse.banum) : null;
+  const jikuIsNinki1 = jiku.some(h => Number(h.ninki) === 1);
+
   function buildBuyStyle(styleType) {
     const lines = [];
     const jikuNum = jiku.map(h=>h.banum).join('-');
@@ -2750,6 +2755,8 @@ function renderAnalysis() {
       const extra = scoreTop5[0] ? scoreTop5[0].replace('番','') : '';
       if (extra && !aiteArr.includes(extra)) aiteArr.push(extra);
       aiteArr = aiteArr.slice(0,2);
+      // 1番人気を軸にしていない場合、相手に1番人気を追加（未収録なら）
+      if (!jikuIsNinki1 && ninki1Num && !aiteArr.includes(ninki1Num)) aiteArr.push(ninki1Num);
       const aiteStr = aiteArr.join('.');
       lines.push(`《馬連 ${jiku1Num}-${aiteStr}》`);
       lines.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
@@ -2760,6 +2767,8 @@ function renderAnalysis() {
       if (a1 && !aiteArr.includes(a1)) aiteArr.push(a1);
       if (a2 && !aiteArr.includes(a2) && aiteArr.length < 2) aiteArr.push(a2);
       aiteArr = aiteArr.slice(0,2);
+      // 1番人気を軸にしていない場合、相手に1番人気を追加（未収録なら）
+      if (!jikuIsNinki1 && ninki1Num && !aiteArr.includes(ninki1Num)) aiteArr.push(ninki1Num);
       const aiteStr = aiteArr.join('.');
       lines.push(`《馬連 ${jiku1Num}-${aiteStr}》`);
       lines.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
@@ -2779,8 +2788,10 @@ function renderAnalysis() {
         const others = scoreTop5.map(s=>s.replace('番','')).filter(n=>n!==jiku2forSan);
         aite4 = jiku2forSan ? [jiku2forSan, ...others].slice(0,4) : others.slice(0,4);
       }
+      // 1番人気を軸にしていない場合、相手に1番人気を追加（未収録なら）
+      if (!jikuIsNinki1 && ninki1Num && !aite4.includes(ninki1Num)) aite4.push(ninki1Num);
       const aite4str = aite4.sort((a,b)=>Number(a)-Number(b)).join('・');
-      const pts = aite4.length >= 2 ? (aite4.length===2?1:aite4.length===3?3:6) : 0;
+      const pts = aite4.length >= 2 ? (aite4.length===2?1:aite4.length===3?3:aite4.length===4?6:10) : 0;
       lines.push(`《三連複 ${jiku1Num}-${aite4str}（${pts}点）》`);
     }
     if (bestPurchase) {
@@ -2880,11 +2891,21 @@ function renderAnalysis() {
   });
   html += '</tbody></table></div>';
   
-  // 軸馬人気チェック（過去データ: 4人気以下を軸にした場合、単勝的中率0%）
+  // 軸馬人気・オッズチェック（過去データ: 4人気以下 or 6倍以上の軸は単勝的中率0%）
   const jikuNinki = Number(jiku[0]?.ninki);
-  const ninkiWarning = (!isNaN(jikuNinki) && jikuNinki >= 4)
+  const jikuOdds = Number(jiku[0]?.odds);
+  const ninkiBad = !isNaN(jikuNinki) && jikuNinki >= 4;
+  const oddsBad = !isNaN(jikuOdds) && jikuOdds >= 6;
+  const ninkiWarning = (ninkiBad || oddsBad)
     ? `<div style="margin-top: 8px; padding: 8px; background: #fdecea; border-radius: 4px; color: #c00000; font-weight: 700; font-size: 10px;">
-        ⚠️ 軸馬が${jikuNinki}人気：過去データでは4人気以下の軸は単勝的中率0%（少額・見送り推奨）
+        ⚠️ 軸馬${ninkiBad ? `が${jikuNinki}人気` : ''}${ninkiBad && oddsBad ? '・' : ''}${oddsBad ? `オッズ${jikuOdds}倍` : ''}：過去データでは4人気以下 or 6倍以上の軸は単勝的中率0%（少額・見送り推奨）
+      </div>`
+    : '';
+
+  // 軸馬が1番人気でない場合の注釈（過去データ: 軸≠1人気で1人気が勝つケースが32%）
+  const ninki1Note = (!jikuIsNinki1 && ninki1Num)
+    ? `<div style="margin-top: 8px; padding: 8px; background: #fff0e6; border-radius: 4px; color: #d97706; font-weight: 700; font-size: 10px;">
+        💡 軸馬は${jikuNinki}人気（1番人気は${ninki1Num}番）：過去データで1番人気の取りこぼしが多いため、馬連・ワイド・三連複の相手に${ninki1Num}番を追加済み
       </div>`
     : '';
 
@@ -2900,6 +2921,7 @@ function renderAnalysis() {
         💡 司令室通信： ${recommendation}
       </div>
       ${ninkiWarning}
+      ${ninki1Note}
       <div style="margin-top: 8px; font-size: 9px; color: #6080a0;">
         レースレベル: ${stdev < 5 ? '🟡 混戦' : stdev < 10 ? '🟠 中程度' : '🔴 荒れる可能性あり'}
       </div>
@@ -4335,6 +4357,11 @@ function imgCalcBets() {
   const jiku2Num = jiku.length >= 2 ? jiku[1].banum : null;
   const jikustr = jiku.map(h=>h.banum).join('-');
 
+  // 1番人気馬（軸馬でない場合、相手に追加）
+  const ninki1Horse = ranked.find(h => Number(h.ninki) === 1);
+  const ninki1Num = ninki1Horse ? ninki1Horse.banum : null;
+  const jikuIsNinki1 = jiku.some(h => Number(h.ninki) === 1);
+
   const lines = [];
   lines.push(`単勝  ${jiku1Num}`);
 
@@ -4344,6 +4371,7 @@ function imgCalcBets() {
     const extra = scoreTop5[0];
     if (extra !== undefined && !aiteArr.includes(extra)) aiteArr.push(extra);
     aiteArr = aiteArr.slice(0,2);
+    if (!jikuIsNinki1 && ninki1Num !== null && !aiteArr.includes(ninki1Num)) aiteArr.push(ninki1Num);
     const aiteStr = aiteArr.join('.');
     lines.push(`馬連  ${jiku1Num}-${aiteStr}`);
     lines.push(`ワイド ${jiku1Num}-${aiteStr}`);
@@ -4354,6 +4382,7 @@ function imgCalcBets() {
     if (a1 !== undefined && !aiteArr.includes(a1)) aiteArr.push(a1);
     if (a2 !== undefined && !aiteArr.includes(a2) && aiteArr.length < 2) aiteArr.push(a2);
     aiteArr = aiteArr.slice(0,2);
+    if (!jikuIsNinki1 && ninki1Num !== null && !aiteArr.includes(ninki1Num)) aiteArr.push(ninki1Num);
     const aiteStr = aiteArr.join('.');
     lines.push(`馬連  ${jiku1Num}-${aiteStr}`);
     lines.push(`ワイド ${jiku1Num}-${aiteStr}`);
@@ -4372,6 +4401,7 @@ function imgCalcBets() {
       const others = scoreTop5.filter(n=>n!==jiku2forSan);
       aite4 = jiku2forSan ? [jiku2forSan, ...others].slice(0,4) : others.slice(0,4);
     }
+    if (!jikuIsNinki1 && ninki1Num !== null && !aite4.includes(ninki1Num)) aite4.push(ninki1Num);
     const aite4str = aite4.slice().sort((a,b)=>Number(a)-Number(b)).join('.');
     lines.push(`三連複 ${jiku1Num}-${aite4str}`);
   }
