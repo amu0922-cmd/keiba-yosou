@@ -262,6 +262,13 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <span id="race-name-badge" style="display:flex;align-items:center;justify-content:center;margin-top:6px;padding:4px 14px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;font-size:14px;font-weight:900;border-radius:20px;letter-spacing:0.05em;position:relative;"></span>
         <div style="display:flex;gap:6px;width:100%;margin-top:6px;">
           <input type="text" id="race-name-input" class="inp" placeholder="レース名を入力（例：宝塚記念）" style="flex:1;font-size:10px;">
+          <select id="weight-type-select" class="inp" style="font-size:10px;flex:0 0 70px;">
+            <option value="">負担重量</option>
+            <option value="定量">定量</option>
+            <option value="別定">別定</option>
+            <option value="ハンデ">ハンデ</option>
+            <option value="馬齢">馬齢</option>
+          </select>
           <button class="btn" onclick="applyRaceName()" style="font-size:10px;padding:6px 12px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;border-radius:5px;">設定</button>
         </div>
 
@@ -825,6 +832,13 @@ let db = {};
 let savedJsons = {};
 let savedListSortOrder = 'desc'; // desc=新しい順, asc=古い順
 let currentRaceName = '';
+let currentWeightType = '';
+
+function setWeightType(type) {
+  currentWeightType = type || '';
+  const sel = document.getElementById('weight-type-select');
+  if (sel) sel.value = currentWeightType;
+}
 
 function setRaceName(name) {
   currentRaceName = name || '';
@@ -1125,6 +1139,7 @@ function importJSON() {
     
     document.getElementById('count-badge').textContent = horses.length;
     setRaceName(parsed.name || '');
+    setWeightType('');
     renderTable();
     setStatus(`✅ ${horses.length}頭を読込`, 'ok');
   } catch (e) {
@@ -1138,6 +1153,8 @@ function applyRaceName() {
   const name = (input?.value || '').trim();
   if (!name) { setStatus('❌ レース名を入力してください', 'err'); return; }
   setRaceName(name);
+  const weightTypeSel = document.getElementById('weight-type-select');
+  currentWeightType = weightTypeSel?.value || '';
 
   // 統合バックアップ一覧に未登録なら新規追加
   if (!savedJsons[name] && horses.length > 0) {
@@ -1147,6 +1164,7 @@ function applyRaceName() {
       savedJsons[name] = {
         horses: horseJSON,
         db: dbJSON,
+        weightType: currentWeightType,
         savedAt: new Date().toLocaleString('ja-JP'),
         horseCount: horses.length
       };
@@ -1476,6 +1494,7 @@ function syncCurrentBackup() {
       ...savedJsons[currentRaceName],
       horses: horseJSON,
       db: dbJSON,
+      weightType: currentWeightType,
       savedAt: new Date().toLocaleString('ja-JP'),
       horseCount: horses.length
     };
@@ -1777,6 +1796,7 @@ function saveRaceBackup() {
       name: name,
       horses: horses,
       db: db,
+      weightType: currentWeightType,
       savedAt: new Date().toLocaleString('ja-JP'),
       horseCount: horses.length
     };
@@ -1799,6 +1819,7 @@ function saveRaceBackup() {
       savedJsons[name] = {
         horses: horseJSON,
         db: dbJSON,
+        weightType: currentWeightType,
         savedAt: new Date().toLocaleString('ja-JP'),
         horseCount: horses.length
       };
@@ -1912,6 +1933,7 @@ function uploadRaceBackupFile() {
         savedJsons[name] = {
           horses: JSON.stringify({ horses: horseArray }),
           db: (typeof backup.db === 'string') ? backup.db : JSON.stringify(backup.db),
+          weightType: backup.weightType || '',
           savedAt: backup.savedAt || new Date().toLocaleString('ja-JP'),
           horseCount: horseArray.length
         };
@@ -2034,6 +2056,7 @@ function loadSavedJSON(name) {
     horses = horseArray;
     db = dbData;
     setRaceName(name);
+    setWeightType(data.weightType || '');
 
     renderTable();
     renderDBSection();
@@ -2163,6 +2186,7 @@ function addRecord() {
 
   records.push({
     id: Date.now(), race, date, formation, purchase, distance, course, condition, rank, score,
+    weightType: currentWeightType,
     invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo,
     // 拡張データ
     finishRanks, betLines, hitLabels, paceInfo,
@@ -2190,6 +2214,7 @@ function renderRecordList() {
         </a>
         ${r.formation ? `<span style="color: #e94560; font-size: 9px; margin-left: 8px;">📊 ${r.formation}</span>` : ''}
         ${r.purchase ? `<span style="color: #2563eb; font-size: 9px; margin-left: 4px;">🎯 ${r.purchase}</span>` : ''}
+        ${r.weightType ? `<span style="color: #7a1ab5; font-size: 9px; margin-left: 4px;">⚖️ ${r.weightType}</span>` : ''}
         ${r.rank ? `<span style="color: #16a34a; font-size: 9px; margin-left: 4px;">🏁 ${r.rank}</span>` : ''}
       </div>
       <div style="font-size: 9px; color: #6080a0; margin-bottom: 4px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
@@ -3234,6 +3259,7 @@ function downloadBackup() {
     db,                // DBスコア設定
     horses,            // 現在の出馬表
     currentRaceName,   // 現在のレース名
+    currentWeightType, // 現在の負担重量種別
     raceUrls,          // netnkeiba URL一覧
   };
 
@@ -3273,6 +3299,7 @@ function uploadBackup() {
       if (backup.horses && backup.horses.length > 0) {
         horses = backup.horses;
         if (backup.currentRaceName) setRaceName(backup.currentRaceName);
+        if (backup.currentWeightType) setWeightType(backup.currentWeightType);
         renderTable();
       }
       renderRecordList();
@@ -3510,6 +3537,7 @@ async function loadFromSupabase() {
       horses = data.horses;
       document.getElementById('count-badge').textContent = horses.length;
       setRaceName(data.raceName || '');
+      setWeightType(data.weightType || '');
       renderTable();
     }
     if (data.db && Object.keys(data.db).length > 0) {
@@ -3533,6 +3561,7 @@ async function saveToSupabase() {
     const data = {
       horses, db, records, paceBonus, savedJsons,
       raceName: currentRaceName,
+      weightType: currentWeightType,
       savedAt: new Date().toISOString()
     };
     await sbFetch('POST', [{ id: 'main', data, updated_at: new Date().toISOString() }]);
