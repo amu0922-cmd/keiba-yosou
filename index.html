@@ -1334,7 +1334,8 @@ async function loadThreadsInsights() {
     threadsPostsCache.forEach((post, idx) => {
       const m = post.metrics || {};
       const date = post.timestamp ? new Date(post.timestamp).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-      const text = (post.text || '').slice(0, 60);
+      const fullText = post.text || '';
+      const text = truncateText(fullText, 60);
 
       // 画像URL収集（単独画像 or カルーセルのchildren）
       let images = [];
@@ -1345,15 +1346,17 @@ async function loadThreadsInsights() {
           if (c.media_type === 'IMAGE' && c.media_url) images.push(c.media_url);
         });
       }
-      const imagesHtml = images.length > 0
-        ? `<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;">${images.map(url => `<img src="${url}" style="height:120px;border-radius:6px;object-fit:cover;flex-shrink:0;">`).join('')}</div>`
+      const thumbHtml = images.length > 0
+        ? `<img src="${images[0]}" style="width:64px;height:64px;border-radius:6px;object-fit:cover;flex-shrink:0;">`
         : '';
 
       html += `
         <div style="border:1px solid #ddd;border-radius:8px;padding:10px;margin-bottom:8px;background:#fff;">
-          <div style="font-size:11px;color:#888;margin-bottom:4px;">${date}</div>
-          ${imagesHtml}
-          <div style="font-size:13px;margin-bottom:8px;white-space:pre-wrap;">${escapeHtml(text)}${(post.text||'').length>60?'...':''}</div>
+          <div style="font-size:11px;color:#888;margin-bottom:4px;">${date}${images.length > 1 ? ` 🖼️×${images.length}` : ''}</div>
+          <div style="display:flex;gap:10px;margin-bottom:8px;">
+            ${thumbHtml}
+            <div style="font-size:13px;white-space:pre-wrap;flex:1;min-width:0;">${escapeHtml(text)}${text.length < fullText.length ? '...' : ''}</div>
+          </div>
           <div style="display:flex;gap:12px;font-size:12px;color:#444;flex-wrap:wrap;">
             <span>👀 ${m.views ?? '-'}</span>
             <span>❤️ ${m.likes ?? '-'}</span>
@@ -1374,6 +1377,14 @@ async function loadThreadsInsights() {
   } catch (e) {
     statusEl.textContent = `❌ エラー: ${e.message}`;
   }
+}
+
+// 絵文字（サロゲートペア）を考慮した安全な文字列トリム
+function truncateText(str, maxLen) {
+  if (!str) return '';
+  const chars = Array.from(str); // サロゲートペアを1文字として扱う
+  if (chars.length <= maxLen) return str;
+  return chars.slice(0, maxLen).join('');
 }
 
 function escapeHtml(str) {
