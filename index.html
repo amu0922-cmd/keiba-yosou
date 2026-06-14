@@ -4232,42 +4232,96 @@ function imgClear() {
   document.getElementById('img-preview-card').style.display = 'none';
 }
 
-// 買い目計算（既存ロジック流用）
+// 買い目計算（renderAnalysisのbuildBuyStyleと同一ロジックに統一）
 function imgCalcBets() {
   const overrideEl = document.getElementById('pace-override');
   const override = overrideEl ? overrideEl.value : 'auto';
   const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
   const bonusMap = paceBonus[pace];
   const paceLabel = getPaceLabel(pace);
+
   const ranked = horses.map(h => {
-    const nk = String(h.ninki);
-    const paddockScore = h.paddock==='A'?20:h.paddock==='B'?0:h.paddock==='C'?-15:0;
-    const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+paddockScore;
-    const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
-    const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
-    const paceAdj = bonusMap?.[h.kyakushitsu]||0;
+    const _paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
+    const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0) + (db.baju?.[h.baju] || 0) + _paddockPt;
+    const chokyoScore = ({'A': 20, 'B': 0, 'C': -20}[h.chokyoFinal] || 0) + ({'A': 20, 'B': 0, 'C': -20}[h.chokyoPrev] || 0);
+    const commentScore = {'◎': 20, '◯': 0, '△': -20, '×': -20}[h.comment] || 0;
+    const paceAdj = bonusMap[h.kyakushitsu] || 0;
     const negAdj = h.negAdj||0;
-    const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
-    return {...h, totalScore};
-  }).sort((a,b)=>b.totalScore-a.totalScore);
-  const jikuHorses = ranked.filter(h => { const s=ranked.map(x=>x.totalScore); const avg=s.reduce((a,b)=>a+b,0)/s.length; const std=Math.sqrt(s.reduce((a,b)=>a+Math.pow(b-avg,2),0)/s.length)||1; return (h.totalScore-avg)/std*10+50 >= 70; });
+    const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj;
+    return {...h, trendScore, chokyoScore, commentScore, paceAdj, negAdj, totalScore};
+  }).sort((a, b) => b.totalScore - a.totalScore);
+
+  // 偏差値（軸馬判定用）
+  const allScores2 = ranked.map(h => h.totalScore);
+  const avg2 = allScores2.reduce((a,b)=>a+b,0)/allScores2.length;
+  const std2 = Math.sqrt(allScores2.reduce((a,b)=>a+Math.pow(b-avg2,2),0)/allScores2.length)||1;
+  const calcHensaichi2 = s => Math.round((s-avg2)/std2*10+50);
+
+  // 軸馬：偏差値70以上（複数可）、いなければ1位を軸に
+  const jikuHorses = ranked.filter(h => calcHensaichi2(h.totalScore) >= 70);
   const jiku = jikuHorses.length > 0 ? jikuHorses : [ranked[0]];
+
+  // DB騎手スコアが高い馬（軸馬除く、3番人気以下、ランキング6位以内）
+  const rankedTop6Banums = new Set(ranked.slice(0,6).map(h=>Number(h.banum)));
+  const dbJockeyScored = ranked
+    .filter(h => !jiku.find(j=>j.banum===h.banum))
+    .filter(h => { const n=Number(h.ninki); return !h.ninki||isNaN(n)||n>=3; })
+    .filter(h => rankedTop6Banums.has(Number(h.banum)))
+    .map(h => ({...h, jockeyScore: db.jockey?.[h.jockey]||0}))
+    .sort((a,b) => b.jockeyScore - a.jockeyScore)
+    .filter(h => h.jockeyScore > 0)
+    .slice(0, 3);
+
+  const dbTop1 = dbJockeyScored[0] || null;
+  // スコア上位5頭（軸・DB騎手最上位を除く）
+  const excludeBanums2 = new Set([...jiku.map(h=>h.banum), dbJockeyScored[0]?.banum].filter(Boolean));
+  const scoreTop5 = ranked.filter(h => !excludeBanums2.has(h.banum)).slice(0,5).map(h=>Number(h.banum));
+
+  const jiku1Num = jiku[0].banum;
+  const jiku2Num = jiku.length >= 2 ? jiku[1].banum : null;
   const jikustr = jiku.map(h=>h.banum).join('-');
-  // DB騎手スコアがある場合はそれを優先、なければスコア上位2番手を使用
-  const nonJiku = ranked.filter(h=>!jiku.find(j=>j.banum===h.banum));
-  const dbTop1 = nonJiku.filter(h=>{ const n=Number(h.ninki); return !h.ninki||isNaN(n)||n>=3; }).sort((a,b)=>(db.jockey?.[b.jockey]||0)-(db.jockey?.[a.jockey]||0)).filter(h=>(db.jockey?.[h.jockey]||0)>0)[0];
-  // DB騎手スコアがなければスコア2番手を相手にする
-  const dbTop1Num = dbTop1 ? Number(dbTop1.banum) : (nonJiku[0] ? Number(nonJiku[0].banum) : null);
-  const scoreTop5 = ranked.filter(h=>!jiku.find(j=>j.banum===h.banum)&&Number(h.banum)!==dbTop1Num).slice(0,5).map(h=>Number(h.banum));
+
   const lines = [];
-  lines.push(`単勝  ${jikustr}`);
-  if (dbTop1Num) {
-    lines.push(`馬連  ${jikustr}-${dbTop1Num}${scoreTop5[0]?'.'+scoreTop5[0]:''}`);
-    lines.push(`ワイド ${jikustr}-${dbTop1Num}${scoreTop5[0]?'.'+scoreTop5[0]:''}`);
-    // 三連複：◎1頭軸-相手4頭流し
-    const aite4 = [dbTop1Num, ...scoreTop5.slice(0,3)].sort((a,b)=>a-b);
-    lines.push(`三連複 ${jikustr}-${aite4.join('.')}`);
+  lines.push(`単勝  ${jiku1Num}`);
+
+  if (dbTop1) {
+    const dbNum = dbTop1.banum;
+    let aiteArr = jiku2Num && jiku2Num !== dbNum ? [jiku2Num, dbNum] : [dbNum];
+    const extra = scoreTop5[0];
+    if (extra !== undefined && !aiteArr.includes(extra)) aiteArr.push(extra);
+    aiteArr = aiteArr.slice(0,2);
+    const aiteStr = aiteArr.join('.');
+    lines.push(`馬連  ${jiku1Num}-${aiteStr}`);
+    lines.push(`ワイド ${jiku1Num}-${aiteStr}`);
+  } else {
+    let aiteArr = jiku2Num ? [jiku2Num] : [];
+    const a1 = scoreTop5[0];
+    const a2 = scoreTop5[1];
+    if (a1 !== undefined && !aiteArr.includes(a1)) aiteArr.push(a1);
+    if (a2 !== undefined && !aiteArr.includes(a2) && aiteArr.length < 2) aiteArr.push(a2);
+    aiteArr = aiteArr.slice(0,2);
+    const aiteStr = aiteArr.join('.');
+    lines.push(`馬連  ${jiku1Num}-${aiteStr}`);
+    lines.push(`ワイド ${jiku1Num}-${aiteStr}`);
   }
+
+  // 三連複：◎軸-相手4頭流し（DB騎手優先）
+  {
+    let aite4 = [];
+    const jiku2forSan = jiku2Num;
+    if (dbTop1) {
+      const dbNum = dbTop1.banum;
+      const others = scoreTop5.filter(n=>n!==dbNum&&n!==jiku2forSan);
+      const base = jiku2forSan && jiku2forSan!==dbNum ? [jiku2forSan, dbNum] : [dbNum];
+      aite4 = [...base, ...others].slice(0,4);
+    } else {
+      const others = scoreTop5.filter(n=>n!==jiku2forSan);
+      aite4 = jiku2forSan ? [jiku2forSan, ...others].slice(0,4) : others.slice(0,4);
+    }
+    const aite4str = aite4.slice().sort((a,b)=>Number(a)-Number(b)).join('.');
+    lines.push(`三連複 ${jiku1Num}-${aite4str}`);
+  }
+
   return { ranked, jiku, jikustr, paceLabel, lines, topHorse: jiku[0] };
 }
 
