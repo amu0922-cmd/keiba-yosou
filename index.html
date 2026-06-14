@@ -260,6 +260,10 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <span>🏇 出馬表（<span id="count-badge">0</span>頭）</span>
         <button class="btn" onclick="saveTableAsImage()" style="margin-left:auto;padding:4px 10px;font-size:9px;background:linear-gradient(135deg,#1a6fb5,#1a3a8a);color:#fff;border-radius:5px;">📸 画像保存</button>
         <span id="race-name-badge" style="display:flex;align-items:center;justify-content:center;margin-top:6px;padding:4px 14px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;font-size:14px;font-weight:900;border-radius:20px;letter-spacing:0.05em;position:relative;"></span>
+        <div style="display:flex;gap:6px;width:100%;margin-top:6px;">
+          <input type="text" id="race-name-input" class="inp" placeholder="レース名を入力（例：宝塚記念）" style="flex:1;font-size:10px;">
+          <button class="btn" onclick="applyRaceName()" style="font-size:10px;padding:6px 12px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;border-radius:5px;">設定</button>
+        </div>
 
       </div>
 
@@ -824,6 +828,8 @@ let currentRaceName = '';
 
 function setRaceName(name) {
   currentRaceName = name || '';
+  const raceInput = document.getElementById('race-name-input');
+  if (raceInput) raceInput.value = currentRaceName;
   const el = document.getElementById('race-name-badge');
   if (!el) return;
   if (name) {
@@ -1124,6 +1130,34 @@ function importJSON() {
   } catch (e) {
     setStatus('❌ エラー: ' + e.message.substring(0, 30), 'err');
   }
+}
+
+// 出馬表カードからレース名を直接設定（統合バックアップ不要）
+function applyRaceName() {
+  const input = document.getElementById('race-name-input');
+  const name = (input?.value || '').trim();
+  if (!name) { setStatus('❌ レース名を入力してください', 'err'); return; }
+  setRaceName(name);
+
+  // 統合バックアップ一覧に未登録なら新規追加
+  if (!savedJsons[name] && horses.length > 0) {
+    try {
+      const horseJSON = JSON.stringify({ horses });
+      const dbJSON = JSON.stringify(db);
+      savedJsons[name] = {
+        horses: horseJSON,
+        db: dbJSON,
+        savedAt: new Date().toLocaleString('ja-JP'),
+        horseCount: horses.length
+      };
+      localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
+      if (typeof renderSavedJsonList === 'function') renderSavedJsonList();
+    } catch (e) {
+      console.error('レース一覧登録エラー:', e);
+    }
+  }
+
+  setStatus(`✅ レース名を「${name}」に設定`, 'ok');
 }
 
 function validateJSON() {
