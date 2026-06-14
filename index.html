@@ -2880,6 +2880,14 @@ function renderAnalysis() {
   });
   html += '</tbody></table></div>';
   
+  // 軸馬人気チェック（過去データ: 4人気以下を軸にした場合、単勝的中率0%）
+  const jikuNinki = Number(jiku[0]?.ninki);
+  const ninkiWarning = (!isNaN(jikuNinki) && jikuNinki >= 4)
+    ? `<div style="margin-top: 8px; padding: 8px; background: #fdecea; border-radius: 4px; color: #c00000; font-weight: 700; font-size: 10px;">
+        ⚠️ 軸馬が${jikuNinki}人気：過去データでは4人気以下の軸は単勝的中率0%（少額・見送り推奨）
+      </div>`
+    : '';
+
   html += `
     <div style="padding: 12px; background: #fff8e6; border-radius: 6px; border-left: 4px solid #f39c12; margin-bottom: 10px; font-size: 11px; line-height: 1.6;">
       <div style="font-weight: 900; color: #f39c12; margin-bottom: 8px;">🏇 偏差値分析</div>
@@ -2891,6 +2899,7 @@ function renderAnalysis() {
       <div style="background:${buyStrength==='strong'?'#e8f5e9':buyStrength==='normal'?'#fff0e6':'#fdecea'}; padding: 8px; border-radius: 4px; color: ${buyStrength==='strong'?'#1a6e00':buyStrength==='normal'?'#d97706':'#c00000'}; font-weight: 700;">
         💡 司令室通信： ${recommendation}
       </div>
+      ${ninkiWarning}
       <div style="margin-top: 8px; font-size: 9px; color: #6080a0;">
         レースレベル: ${stdev < 5 ? '🟡 混戦' : stdev < 10 ? '🟠 中程度' : '🔴 荒れる可能性あり'}
       </div>
