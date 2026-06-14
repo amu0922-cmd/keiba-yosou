@@ -1156,18 +1156,25 @@ function applyRaceName() {
   const weightTypeSel = document.getElementById('weight-type-select');
   currentWeightType = weightTypeSel?.value || '';
 
-  // 統合バックアップ一覧に未登録なら新規追加
-  if (!savedJsons[name] && horses.length > 0) {
+  // 統合バックアップ一覧に未登録なら新規追加、登録済みならweightTypeのみ更新
+  if (horses.length > 0) {
     try {
-      const horseJSON = JSON.stringify({ horses });
-      const dbJSON = JSON.stringify(db);
-      savedJsons[name] = {
-        horses: horseJSON,
-        db: dbJSON,
-        weightType: currentWeightType,
-        savedAt: new Date().toLocaleString('ja-JP'),
-        horseCount: horses.length
-      };
+      if (!savedJsons[name]) {
+        const horseJSON = JSON.stringify({ horses });
+        const dbJSON = JSON.stringify(db);
+        savedJsons[name] = {
+          horses: horseJSON,
+          db: dbJSON,
+          weightType: currentWeightType,
+          savedAt: new Date().toLocaleString('ja-JP'),
+          horseCount: horses.length
+        };
+      } else {
+        savedJsons[name] = {
+          ...savedJsons[name],
+          weightType: currentWeightType
+        };
+      }
       localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
       if (typeof renderSavedJsonList === 'function') renderSavedJsonList();
     } catch (e) {
