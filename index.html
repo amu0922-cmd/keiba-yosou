@@ -1182,7 +1182,25 @@ function applyRaceName() {
     }
   }
 
-  setStatus(`✅ レース名を「${name}」に設定`, 'ok');
+  // 同じレース名の既存成績記録にもweightTypeを反映
+  let updatedRecordCount = 0;
+  records.forEach(r => {
+    if (r.race === name) {
+      r.weightType = currentWeightType;
+      updatedRecordCount++;
+    }
+  });
+  if (updatedRecordCount > 0) {
+    saveRecordsLocal();
+    renderRecordList();
+  }
+
+  // クラウドにも即時保存（リロードしなくても反映されるように）
+  if (typeof saveToSupabase === 'function') {
+    saveToSupabase().catch(e => console.error('クラウド保存エラー:', e));
+  }
+
+  setStatus(`✅ レース名を「${name}」に設定${updatedRecordCount > 0 ? `（成績記録${updatedRecordCount}件も更新）` : ''}`, 'ok');
 }
 
 function validateJSON() {
