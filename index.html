@@ -451,6 +451,15 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         </select>
         <input type="text" id="record-purchase" class="inp" placeholder="買い目（例: 単勝・ワイド）" style="font-size: 10px;">
       </div>
+      <div style="display: grid; grid-template-columns: 1fr; gap: 6px; margin-bottom: 8px;">
+        <select id="record-weighttype" class="sel" style="font-size: 10px;">
+          <option value="">負担重量</option>
+          <option value="定量">定量</option>
+          <option value="別定">別定</option>
+          <option value="ハンデ">ハンデ</option>
+          <option value="馬齢">馬齢</option>
+        </select>
+      </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px;">
         <select id="record-distance" class="sel" style="font-size: 10px;">
           <option value="">距離</option>
@@ -2109,6 +2118,7 @@ function editRecord(idx) {
   document.getElementById('record-date').value = r.date;
   document.getElementById('record-formation').value = r.formation || '';
   document.getElementById('record-purchase').value = r.purchase || '';
+  document.getElementById('record-weighttype').value = r.weightType || '';
   // record-purchase は削除済みのためスキップ
   document.getElementById('record-distance').value = r.distance || '';
   document.getElementById('record-course').value = r.course || '';
@@ -2134,6 +2144,7 @@ function updateRecord(idx) {
   const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
   const formation = document.getElementById('record-formation').value || '';
   const purchase = document.getElementById('record-purchase')?.value || '';
+  const weightType = document.getElementById('record-weighttype')?.value || '';
   const distance = document.getElementById('record-distance').value || '';
   const course = document.getElementById('record-course').value || '';
   const condition = document.getElementById('record-condition').value || '';
@@ -2149,7 +2160,7 @@ function updateRecord(idx) {
   const existing = records[idx];
   records[idx] = {
     ...existing,
-    race, date, formation, purchase, distance, course, condition, rank, score,
+    race, date, formation, purchase, distance, course, condition, rank, score, weightType,
     invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo
   };
   
@@ -2172,6 +2183,7 @@ function resetRecordForm() {
   document.getElementById('record-date').value = '';
   document.getElementById('record-formation').value = '';
   document.getElementById('record-purchase').value = '';
+  document.getElementById('record-weighttype').value = '';
 
   document.getElementById('record-distance').value = '';
   document.getElementById('record-course').value = '';
@@ -2188,6 +2200,7 @@ function addRecord() {
   const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
   const formation = document.getElementById('record-formation').value || '';
   const purchase = document.getElementById('record-purchase')?.value || '';
+  const weightType = document.getElementById('record-weighttype')?.value || '';
   const distance = document.getElementById('record-distance').value || '';
   const course = document.getElementById('record-course').value || '';
   const condition = document.getElementById('record-condition').value || '';
@@ -2211,7 +2224,7 @@ function addRecord() {
 
   records.push({
     id: Date.now(), race, date, formation, purchase, distance, course, condition, rank, score,
-    weightType: currentWeightType,
+    weightType: weightType || currentWeightType,
     invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo,
     // 拡張データ
     finishRanks, betLines, hitLabels, paceInfo,
