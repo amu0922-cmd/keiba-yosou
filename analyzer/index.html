@@ -888,7 +888,6 @@ function parseJraToJson() {
   if (!pdfExtractedText) return;
   const raw = pdfExtractedText;
 
-  // 前走クラス正規化
   function normMaeclass(str) {
     if (!str) return null;
     if (/GⅠ|G1|GI/.test(str)) return 'GI';
@@ -902,54 +901,52 @@ function parseJraToJson() {
     return null;
   }
 
-  // 行を「枠番 馬番 馬名...」のブロックに分割
-  // JRAのPDFは各馬が1つの連続テキストになっているので改行・区切りで分割
-  const lines = raw.split(/\n/).filter(l => l.trim());
   const horses = [];
 
-  for (const line of lines) {
-    // 「数字 数字 カタカナ/漢字の馬名」で始まる行のみ処理
-    if (!/^\d\s*\d[\u3000-\u9FFF\u30A0-\u30FF]/.test(line.trim())) continue;
+  // 各馬のブロックを「枠番 馬番 馬名 オッズ (X番人気)」で区切って抽出
+  // 改行あり・なし両方に対応するため、全テキストを対象に正規表現でブロックを分割
+  const blockRe = /(\d)\s*(\d)([\u4E00-\u9FFF\u30A0-\u30FF\uFF00-\uFFEFa-zA-Z]+?)\s+([\d.]+)\s*\((\d+)番人気\)(\d{3})kg/g;
+  const positions = [];
+  let bm;
+  while ((bm = blockRe.exec(raw)) !== null) {
+    positions.push({ index: bm.index, end: bm.index + bm[0].length, match: bm });
+  }
+
+  for (let i = 0; i < positions.length; i++) {
+    const { match } = positions[i];
+    // このブロックの終端を次のブロック開始位置またはテキスト末尾に
+    const blockEnd = i + 1 < positions.length ? positions[i + 1].index : raw.length;
+    const block = raw.slice(positions[i].index, blockEnd);
+
     // 競走除外はスキップ
-    if (line.includes('競走除外')) continue;
+    if (block.includes('競走除外')) continue;
 
     const h = {};
-
-    // 枠番・馬番
-    const wb = line.match(/^(\d)\s*(\d)/);
-    if (!wb) continue;
-    h.waku = parseInt(wb[1]);
-    h.banum = parseInt(wb[2]);
-
-    // 馬名・オッズ・人気
-    const nom = line.match(/\d([\u4E00-\u9FFF\u30A0-\u30FF\uFF00-\uFFEFa-zA-Z]+?)\s+([\d.]+)\s*\((\d+)番人気\)/);
-    if (!nom) continue;
-    h.name = nom[1].trim();
-    h.odds = parseFloat(nom[2]);
-    h.ninki = parseInt(nom[3]);
-
-    // 当日馬体重
-    const bajuM = line.match(/\d+番人気\)(\d{3})kg/);
-    h.baju = bajuM ? parseInt(bajuM[1]) : null;
+    h.waku = parseInt(match[1]);
+    h.banum = parseInt(match[2]);
+    h.name = match[3].trim();
+    h.odds = parseFloat(match[4]);
+    h.ninki = parseInt(match[5]);
+    h.baju = parseInt(match[6]);
 
     // 性・年齢
-    const ageM = line.match(/[牡牝セ](\d)/);
+    const ageM = block.match(/[牡牝セ](\d)/);
     h.age = ageM ? parseInt(ageM[1]) : null;
 
     // 種牡馬
-    const sireM = line.match(/父\s*([\u3000-\u9FFF\u30A0-\u30FF\uFF00-\uFFEFa-zA-Zａ-ｚＡ-Ｚ\s・ー]+?)(?:母|\d)/);
+    const sireM = block.match(/父\s*([\u3000-\u9FFF\u30A0-\u30FF\uFF00-\uFFEFa-zA-Zａ-ｚＡ-Ｚ\s・ー]+?)(?:母|\d)/);
     h.sire = sireM ? sireM[1].trim().replace(/\s+/g, '') : null;
 
     // 騎手: 負担重量(XX.0kg)直後〜日付直前
-    const jockM = line.match(/\d{2,3}\.0kg\s*([\u3040-\u9FFF\u30A0-\u30FF\s・A-Za-z\.]+?)\s*\d{4}\.\d{2}/);
+    const jockM = block.match(/\d{2,3}\.0kg\s*([\u3040-\u9FFF\u30A0-\u30FF\s・A-Za-z\.]+?)\s*\d{4}\.\d{2}/);
     h.jockey = jockM ? jockM[1].replace(/\s+/g, '') : null;
 
-    // 前走クラス: GI/GII/GIII/OP/3勝/2勝/1勝/レース名末尾のクラス
-    const mcM = line.match(/\d{4}\.\d{2}.*?\d+(?:m|M).*?\s+(GⅠ|GⅡ|GⅢ|G1|G2|G3|OP|リステッド|オープン|3勝|2勝|1勝)/);
-    h.maeclass = mcM ? normMaeclass(mcM[1]) : null;
+    // 前走クラス
+    const mcM = block.match(/\d{4}\.\d{2}[^\d]*?\d+(?:芝|ダ|障)[^\d]*?(GⅠ|GⅡ|GⅢ|G1|G2|G3|OP|オープン|リステッド|3勝|2勝|1勝)/);
+    h.maeclass = normMaeclass(mcM ? mcM[1] : null);
 
     // 前走着順
-    const mjM = line.match(/\d{4}\.\d{2}[^\d]*?(\d+)着\s+\d+頭/);
+    const mjM = block.match(/\d{4}\.\d{2}[^\d]*?(\d+)着\s*\d+頭/);
     h.maejun = mjM ? parseInt(mjM[1]) : null;
 
     h.kyakushitsu = null;
