@@ -120,6 +120,7 @@
   .graph-bar-fill{height:100%;border-radius:4px;transition:width 0.4s;}
   .graph-val{font-size:9px;font-weight:700;min-width:40px;}
 </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 <header>
@@ -139,12 +140,6 @@
   <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 60%,rgba(245,245,240,0.95) 100%);"></div>
 </div>
 
-<!-- 予想アプリへのリンク -->
-<div style="padding:10px 16px;text-align:center;">
-  <a href="https://keiba-yosou-beige.vercel.app/" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:var(--red);color:#fff;text-decoration:none;padding:10px 24px;border-radius:20px;font-size:11px;font-weight:900;box-shadow:0 2px 8px rgba(233,69,96,0.3);">
-    🏇 競馬予想アプリを開く
-  </a>
-</div>
 <!-- データ確認モーダル -->
 <div id="data-modal">
   <div class="modal-inner">
@@ -178,6 +173,38 @@
 <!-- レース特化データ -->
 <div class="section">
   <div class="section-title">🏆 レース特化データ <small>（重賞の過去傾向データを登録）</small></div>
+
+  <!-- PDF→テキスト変換 -->
+  <div style="background:rgba(100,100,200,0.08);border:1px solid rgba(100,100,200,0.25);border-radius:10px;padding:12px;margin-bottom:14px;">
+    <div style="font-size:10px;font-weight:900;color:#6464c8;margin-bottom:6px;">📄 PDF → テキスト変換</div>
+    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">ウマニティや重賞ナビのPDFをここで読み込んでテキストに変換し、下の入力欄にコピーして使います</div>
+
+    <div id="pdf-drop-zone" onclick="document.getElementById('pdf-file-input').click()"
+      style="border:2px dashed #a0aec0;border-radius:8px;background:var(--surface);padding:24px 12px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:8px;">
+      <div style="font-size:28px;margin-bottom:6px;">📂</div>
+      <div style="font-size:11px;color:var(--text2);">タップしてPDFを選択</div>
+      <div style="font-size:9px;color:var(--text2);margin-top:4px;">またはドラッグ＆ドロップ</div>
+    </div>
+    <input type="file" id="pdf-file-input" accept="application/pdf" style="display:none;">
+
+    <div id="pdf-progress-wrap" style="display:none;margin-bottom:8px;">
+      <div id="pdf-progress-label" style="font-size:9px;color:var(--text2);margin-bottom:4px;">読み込み中...</div>
+      <div style="background:var(--border);border-radius:4px;height:6px;">
+        <div id="pdf-progress-bar" style="background:#6464c8;height:6px;border-radius:4px;width:5%;transition:width 0.3s;"></div>
+      </div>
+    </div>
+
+    <div id="pdf-result-wrap" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span id="pdf-result-info" style="font-size:9px;color:var(--text2);"></span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-outline btn-sm" onclick="copyPdfText()">📋 全文コピー</button>
+          <button class="btn btn-outline btn-sm" onclick="resetPdf()">↩ リセット</button>
+        </div>
+      </div>
+      <div id="pdf-text-output" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:9px;max-height:150px;overflow-y:auto;white-space:pre-wrap;color:var(--text);font-family:'Noto Sans JP',sans-serif;"></div>
+    </div>
+  </div>
 
   <div style="background:rgba(249,200,66,0.08);border:1px solid rgba(249,200,66,0.25);border-radius:10px;padding:12px;margin-bottom:14px;">
     <div style="font-size:10px;font-weight:900;color:var(--gold);margin-bottom:8px;">📄 レースデータPDF 一括インポート</div>
@@ -769,6 +796,84 @@
 <div id="toast">✅ コピーしました</div>
 
 <script>
+// ===== PDF→テキスト変換 =====
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+let pdfExtractedText = '';
+
+document.addEventListener('DOMContentLoaded', function() {
+  const dz = document.getElementById('pdf-drop-zone');
+  const fi = document.getElementById('pdf-file-input');
+  if (!dz || !fi) return;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor='#6464c8'; });
+  dz.addEventListener('dragleave', () => { dz.style.borderColor='#a0aec0'; });
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.style.borderColor='#a0aec0';
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') processPdf(file);
+  });
+  fi.addEventListener('change', e => { if (e.target.files[0]) processPdf(e.target.files[0]); });
+});
+
+async function processPdf(file) {
+  const dz = document.getElementById('pdf-drop-zone');
+  const pw = document.getElementById('pdf-progress-wrap');
+  const pb = document.getElementById('pdf-progress-bar');
+  const pl = document.getElementById('pdf-progress-label');
+  const rw = document.getElementById('pdf-result-wrap');
+  dz.style.display = 'none'; rw.style.display = 'none';
+  pw.style.display = 'block'; pb.style.width = '5%';
+  pl.textContent = 'PDFを読み込み中...';
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const totalPages = pdf.numPages;
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pl.textContent = `テキスト抽出中... ${i} / ${totalPages} ページ`;
+      pb.style.width = Math.round((i / totalPages) * 90 + 5) + '%';
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      pages.push(content.items.map(item => item.str).join('').trim());
+    }
+    pb.style.width = '100%';
+    pdfExtractedText = pages.join('\n');
+    document.getElementById('pdf-text-output').textContent = pdfExtractedText;
+    document.getElementById('pdf-result-info').textContent =
+      `${totalPages}ページ・約${pdfExtractedText.length.toLocaleString()}文字`;
+    setTimeout(() => { pw.style.display = 'none'; rw.style.display = 'block'; }, 400);
+  } catch (err) {
+    alert('PDFの読み込みに失敗しました: ' + err.message);
+    resetPdf();
+  }
+}
+
+function copyPdfText() {
+  if (!pdfExtractedText) return;
+  navigator.clipboard.writeText(pdfExtractedText).then(() => {
+    showToast('✅ テキストをコピーしました！');
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = pdfExtractedText;
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('✅ コピーしました！');
+  });
+}
+
+function resetPdf() {
+  pdfExtractedText = '';
+  document.getElementById('pdf-file-input').value = '';
+  document.getElementById('pdf-drop-zone').style.display = 'block';
+  document.getElementById('pdf-progress-wrap').style.display = 'none';
+  document.getElementById('pdf-result-wrap').style.display = 'none';
+  document.getElementById('pdf-progress-bar').style.width = '0';
+}
+// ===== PDF変換ここまで =====
+
 let allRecords = [];
 let courses = new Set();
 let jraData = {}; // { jockey: [{name, w, r2, r3, out, dist, src}], ... }
