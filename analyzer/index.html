@@ -886,48 +886,58 @@ function copyJraJson() {
 
 function parseJraToJson() {
   if (!pdfExtractedText) return;
-  const raw = pdfExtractedText;
+  const raw = pdfExtractedText
+    .replace(/⼈/g,'人').replace(/⾺/g,'馬').replace(/⽗/g,'父')
+    .replace(/⺟/g,'母').replace(/⾛/g,'走').replace(/⼿/g,'手')
+    .replace(/⽥/g,'田').replace(/⽊/g,'木').replace(/⼭/g,'山')
+    .replace(/‧/g,'・').normalize('NFKC');
 
   function normMaeclass(str) {
     if (!str) return null;
-    if (/GⅠ|G1|GI/.test(str)) return 'GI';
-    if (/GⅡ|G2|GII/.test(str)) return 'GII';
-    if (/GⅢ|G3|GIII/.test(str)) return 'GIII';
-    if (/リステッド|Listed/.test(str)) return 'OP';
+    // 明示的クラス表記
+    if (/GI/.test(str)) return 'GI';
+    if (/GII/.test(str)) return 'GII';
+    if (/GIII/.test(str)) return 'GIII';
+    if (/リステッド/.test(str)) return 'OP';
     if (/3勝/.test(str)) return '3勝';
     if (/2勝/.test(str)) return '2勝';
     if (/1勝/.test(str)) return '1勝';
     if (/OP|オープン/.test(str)) return 'OP';
+    // レース名からクラスを推定
+    if (/高松宮記念|天皇賞|宝塚記念|有馬記念|ジャパンC|安田記念|マイルCS|スプリンターズ|BCT|フェブラリー|桜花賞|皐月賞|オークス|ダービー|菊花賞|エリザベス女王|秋華賞|凱旋門|チャンピオンズC|ジャパンダートクラシック/.test(str)) return 'GI';
+    if (/オーシャンS|京阪杯|シルクロード|CBC賞|キーンランド|函館スプリント|スプリンターズ(?!S)|ファルコン|アーリントン|ニュージーランド|フィリーズR|クイーンC|チューリップ|フラワーC|若葉S|スプリングS|アネモネ|フローラS|青葉賞|京王杯2歳|デイリー杯|ファンタジー|デスモンド|カペラS|根岸S|韋駄天|愛知杯|小倉大賞典|マーガレットS|ラピスラズリ|ターコイズ|スワンS|ディセンバーS/.test(str)) return 'GIII';
+    if (/オーシャン|阪神カップ|京王杯SC|エプソム|アーリントン|毎日王冠|府中牝馬|スワン|福島記念|中日新聞|ステイヤーズ|中山金杯|京都金杯|小倉大賞典|マーメイド|宝塚記念(?!$)|札幌記念|関屋記念|クイーンS|北九州記念|サマーチャンピオン|エルムS/.test(str)) return 'GII';
     return null;
   }
 
-  const horses = [];
-
-  // 各馬のブロックを「枠番 馬番 馬名 オッズ (X番人気)」で区切って抽出
-  // 改行あり・なし両方に対応するため、全テキストを対象に正規表現でブロックを分割
-  const blockRe = /(\d)\s*(\d)([\u4E00-\u9FFF\u30A0-\u30FF\uFF00-\uFFEFa-zA-Z]+?)\s+([\d.]+)\s*\((\d+)番人気\)(\d{3})kg/g;
+  // ブロック区切り: 枠番(1桁)+馬番(1-2桁、붙き含む)+馬名+オッズ+(人気)+体重
+  const blockRe = /(\d)\s*(\d{1,2})\s*([\u4E00-\u9FFF\u30A0-\u30FFa-zA-Z]{2,20}?)\s+([\d.]+)\s*\((\d+)番人気\)(\d{3})kg/g;
   const positions = [];
   let bm;
   while ((bm = blockRe.exec(raw)) !== null) {
-    positions.push({ index: bm.index, end: bm.index + bm[0].length, match: bm });
+    const waku = parseInt(bm[1]);
+    const banum = parseInt(bm[2]);
+    if (waku < 1 || waku > 8 || banum < 1 || banum > 18) continue;
+    if (bm[3].trim().length < 2) continue;
+    positions.push({ index: bm.index, match: bm });
   }
 
+  const horses = [];
   for (let i = 0; i < positions.length; i++) {
     const { match } = positions[i];
-    // このブロックの終端を次のブロック開始位置またはテキスト末尾に
-    const blockEnd = i + 1 < positions.length ? positions[i + 1].index : raw.length;
+    const blockEnd = i + 1 < positions.length ? positions[i+1].index : raw.length;
     const block = raw.slice(positions[i].index, blockEnd);
+    // 競走除外はその馬自身のブロック先頭部分のみチェック
+    if (block.substring(0, 30).includes('競走除外')) continue;
 
-    // 競走除外はスキップ
-    if (block.includes('競走除外')) continue;
-
-    const h = {};
-    h.waku = parseInt(match[1]);
-    h.banum = parseInt(match[2]);
-    h.name = match[3].trim();
-    h.odds = parseFloat(match[4]);
-    h.ninki = parseInt(match[5]);
-    h.baju = parseInt(match[6]);
+    const h = {
+      waku: parseInt(match[1]),
+      banum: parseInt(match[2]),
+      name: match[3].trim(),
+      odds: parseFloat(match[4]),
+      ninki: parseInt(match[5]),
+      baju: parseInt(match[6])
+    };
 
     // 性・年齢
     const ageM = block.match(/[牡牝セ](\d)/);
@@ -935,23 +945,44 @@ function parseJraToJson() {
 
     // 種牡馬
     const sireM = block.match(/父\s*([\u3000-\u9FFF\u30A0-\u30FF\uFF00-\uFFEFa-zA-Zａ-ｚＡ-Ｚ\s・ー]+?)(?:母|\d)/);
-    h.sire = sireM ? sireM[1].trim().replace(/\s+/g, '') : null;
+    h.sire = sireM ? sireM[1].trim().replace(/\s+/g,'') : null;
 
-    // 騎手: 負担重量(XX.0kg)直後〜日付直前
-    const jockM = block.match(/\d{2,3}\.0kg\s*([\u3040-\u9FFF\u30A0-\u30FF\s・A-Za-z\.]+?)\s*\d{4}\.\d{2}/);
-    h.jockey = jockM ? jockM[1].replace(/\s+/g, '') : null;
+    // 騎手: 負担重量(XX.Xkg)直後〜最初の日付直前
+    // 日本人: 漢字を含む / 外国人: 「C.ルメール」のようにアルファベット+カタカナ混在
+    // カタカナのみは馬名の可能性があるためnull
+    const jockM = block.match(/\d+\.\d+kg(.+?)\d{4}\.\d{2}/);
+    if (jockM) {
+      const rawJockey = jockM[1].replace(/\s+/g,'').trim();
+      const hasKanji = /[\u4E00-\u9FFF]/.test(rawJockey);
+      const hasAlpha = /[A-Za-z]/.test(rawJockey);
+      const isKatakanaOnly = /^[\u30A0-\u30FF]+$/.test(rawJockey);
+      h.jockey = (!isKatakanaOnly && (hasKanji || hasAlpha)) ? rawJockey : null;
+    } else {
+      h.jockey = null;
+    }
 
-    // 前走クラス
-    const mcM = block.match(/\d{4}\.\d{2}[^\d]*?\d+(?:芝|ダ|障)[^\d]*?(GⅠ|GⅡ|GⅢ|G1|G2|G3|OP|オープン|リステッド|3勝|2勝|1勝)/);
-    h.maeclass = normMaeclass(mcM ? mcM[1] : null);
-
-    // 前走着順
-    const mjM = block.match(/\d{4}\.\d{2}[^\d]*?(\d+)着\s*\d+頭/);
-    h.maejun = mjM ? parseInt(mjM[1]) : null;
+    // 前走ブロック: 最初のYYYY.MM以降
+    const maeBlockM = block.match(/\d{4}\.\d{2}(.+)/s);
+    if (maeBlockM) {
+      const mb = maeBlockM[1];
+      // 前走レース名を含む部分を取得(日付直後の場所名+レース名)
+      const raceNameM = mb.match(/(?:芝|ダ|障)[^\d]*?([^\d（\(]{2,20}?)(?:GI|GII|GIII|OP|オープン|リステッド|[1-3]勝|\d+着)/);
+      const raceName = raceNameM ? raceNameM[1] : '';
+      // クラス表記を直接探す
+      const mcM = mb.match(/(GI{1,3}|OP|オープン|リステッド|[1-3]勝(?:クラス|ク)?)/);
+      const clsFromText = normMaeclass(mcM ? mcM[1] : null);
+      // レース名からクラス推定
+      h.maeclass = clsFromText || normMaeclass(raceName) || normMaeclass(mb.substring(0, 40));
+      // 前走着順
+      const mjM = mb.match(/(\d+)着\s*\d+頭/);
+      h.maejun = mjM ? parseInt(mjM[1]) : null;
+    } else {
+      h.maeclass = null;
+      h.maejun = null;
+    }
 
     h.kyakushitsu = null;
     h.timdev = null;
-
     horses.push(h);
   }
 
