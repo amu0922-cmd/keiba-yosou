@@ -1397,7 +1397,13 @@ function catLabel(cat) {
 
 function calcRecommendedPt(stats, scale) {
   const base = 0.13; // 連対率の平均基準値（競馬全体）
-  const diff = stats.rentaiRate - base;
+  // サンプル数による信頼度補正（ベイズ的縮小推定）
+  // 出走数が少ないほど基準値(base)寄りに補正し、極端な評価を抑制
+  // 50戦以上で実際の連対率をほぼそのまま反映
+  const CONFIDENCE_SAMPLE = 50;
+  const confidence = Math.min(stats.total / CONFIDENCE_SAMPLE, 1);
+  const adjustedRate = base + (stats.rentaiRate - base) * confidence;
+  const diff = adjustedRate - base;
   const pt = Math.round(diff * scale * 5);
   return Math.max(-scale, Math.min(scale, pt));
 }
