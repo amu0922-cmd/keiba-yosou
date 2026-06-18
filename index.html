@@ -297,6 +297,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">偏差値</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">オッズ</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">馬体重</th>
+              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">斤量</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; background: #1a4d2e;">最終調教</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a; background: #1a4d2e;">一週前調教</th>
               <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">厩舎</th>
@@ -1392,7 +1393,8 @@ function calcAllScores() {
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = _bonusMap[h.kyakushitsu]||0;
     const negAdj = h.negAdj||0;
-    const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
+    const weightScore = calcWeightScore(horses, h);
+    const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj+weightScore;
     return {idx, id: h.id, trendScore, chokyoScore, commentScore, paceAdj, negAdj, totalScore};
   });
 }
@@ -1482,7 +1484,8 @@ function renderTable() {
     const commentScore = {'◎': 20, '◯': 0, '△': -20, '×': -20}[h.comment] || 0;
     const paceAdj = _bonusMap[h.kyakushitsu] || 0;
     const negAdj = h.negAdj||0;
-    const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj;
+    const weightScore = calcWeightScore(horses, h);
+    const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj + weightScore;
     const ji = jirushiMap[h.id] || { jirushi: '', color: '#aaa' };
 
     // 期待値計算
@@ -1544,6 +1547,7 @@ function renderTable() {
       <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].timdev=this.value; renderTable();"><option>-</option><option ${h.timdev==='0～'?'selected':''}>0～</option><option ${h.timdev==='35～'?'selected':''}>35～</option><option ${h.timdev==='40～'?'selected':''}>40～</option><option ${h.timdev==='45～'?'selected':''}>45～</option><option ${h.timdev==='50～'?'selected':''}>50～</option><option ${h.timdev==='55～'?'selected':''}>55～</option><option ${h.timdev==='60～'?'selected':''}>60～</option><option ${h.timdev==='65～'?'selected':''}>65～</option><option ${h.timdev==='70～'?'selected':''}>70～</option><option ${h.timdev==='75～'?'selected':''}>75～</option></select></td>
       <td><input class="inp" style="width: 40px;" value="${h.odds.toFixed(1)}" onchange="horses[${idx}].odds=parseFloat(this.value); renderTable();"></td>
       <td><input class="inp" style="width: 42px; text-align:center;" value="${h.baju || ''}" placeholder="460" onchange="horses[${idx}].baju=getBajuBand(this.value); renderTable();"></td>
+      <td><input class="inp" style="width: 40px; text-align:center;" value="${h.weight || ''}" placeholder="57.0" onchange="horses[${idx}].weight=parseFloat(this.value)||null; renderTable();"></td>
       <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].chokyoFinal=this.value; renderTable();"><option ${h.chokyoFinal==='A'?'selected':''}>A</option><option ${h.chokyoFinal==='B'?'selected':''}>B</option><option ${h.chokyoFinal==='C'?'selected':''}>C</option></select></td>
       <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].chokyoPrev=this.value; renderTable();"><option ${h.chokyoPrev==='A'?'selected':''}>A</option><option ${h.chokyoPrev==='B'?'selected':''}>B</option><option ${h.chokyoPrev==='C'?'selected':''}>C</option></select></td>
       <td><button onclick="(function(){const vals=['◎','◯','△','×'];const cur=horses[${idx}].comment||'◯';const next=vals[(vals.indexOf(cur)+1)%vals.length];horses[${idx}].comment=next;renderTable();})()" style="width:34px;height:30px;font-size:18px;font-weight:900;border:1px solid #ccc;border-radius:4px;background:${h.comment==='◎'?'#ffe0e0':h.comment==='△'?'#fff3cd':h.comment==='×'?'#e0e0e0':'#fff'};cursor:pointer;padding:0;line-height:1;">${h.comment||'◯'}</button></td>
@@ -2323,6 +2327,16 @@ function initPaceBonusGrid() {
   grid.innerHTML = html;
 }
 
+// 斤量補正スコア: レース平均斤量からの差分で加減点（軽い=有利、重い=不利）
+// 1kg差につき5pt補正（経験則ベース、必要に応じて調整可）
+function calcWeightScore(horseList, h) {
+  const weights = horseList.map(x => x.weight).filter(w => typeof w === 'number' && !isNaN(w));
+  if (weights.length === 0 || typeof h.weight !== 'number' || isNaN(h.weight)) return 0;
+  const avg = weights.reduce((a, b) => a + b, 0) / weights.length;
+  const diff = avg - h.weight; // 平均より軽ければプラス
+  return Math.round(diff * 5);
+}
+
 function calcPaceFromHorses(horseList) {
   // 脚質カウント
   const cnt = { '逃げ': 0, '先行': 0, '差し': 0, '追い込み': 0, '自在': 0 };
@@ -2532,7 +2546,8 @@ function renderAnalysis() {
     const commentScore = {'◎': 20, '◯': 0, '△': -20, '×': -20}[h.comment] || 0;
     const paceAdj = bonusMap[h.kyakushitsu] || 0;
     const negAdj = h.negAdj||0;
-    const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj;
+    const weightScore = calcWeightScore(horses, h);
+    const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj + weightScore;
     return {...h, trendScore, chokyoScore, commentScore, paceAdj, negAdj, totalScore};
   }).sort((a, b) => b.totalScore - a.totalScore);
 
@@ -3535,7 +3550,8 @@ function generateXPostImage() {
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
     const negAdj = h.negAdj||0;
-    const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
+    const weightScore = calcWeightScore(horses, h);
+    const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj+weightScore;
     return {...h, paceAdj, totalScore};
   }).sort((a,b)=>b.totalScore-a.totalScore);
 
@@ -3641,7 +3657,8 @@ function generateBuyImage() {
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
     const negAdj = h.negAdj||0;
-    const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
+    const weightScore = calcWeightScore(horses, h);
+    const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj+weightScore;
     return {...h, trendScore, chokyoScore, commentScore, paceAdj, totalScore};
   }).sort((a,b)=>b.totalScore-a.totalScore);
 
@@ -3824,7 +3841,8 @@ function generateResultImage(isHit) {
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
     const negAdj = h.negAdj||0;
-    const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
+    const weightScore = calcWeightScore(horses, h);
+    const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj+weightScore;
     return {...h, totalScore};
   }).sort((a,b)=>b.totalScore-a.totalScore);
 
@@ -4222,7 +4240,8 @@ function imgCalcBets() {
     const commentScore = {'◎': 20, '◯': 0, '△': -20, '×': -20}[h.comment] || 0;
     const paceAdj = bonusMap[h.kyakushitsu] || 0;
     const negAdj = h.negAdj||0;
-    const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj;
+    const weightScore = calcWeightScore(horses, h);
+    const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj + weightScore;
     return {...h, trendScore, chokyoScore, commentScore, paceAdj, negAdj, totalScore};
   }).sort((a, b) => b.totalScore - a.totalScore);
 
@@ -4870,7 +4889,8 @@ function drawScoreRanking(ctx, W, imgH, tc, comment) {
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
     const negAdj = h.negAdj||0;
-    const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj;
+    const weightScore = calcWeightScore(horses, h);
+    const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj+weightScore;
     return {...h, totalScore, paceAdj};
   }).sort((a,b)=>b.totalScore-a.totalScore).slice(0, 6);
 
