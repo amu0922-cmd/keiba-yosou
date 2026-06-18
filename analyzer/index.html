@@ -161,7 +161,12 @@
 <!-- アップロード -->
 <div class="section">
   <div class="section-title">📂 バックアップJSON読み込み</div>
-  <button id="cloud-load-btn" onclick="loadFromCloud()" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:10px;font-weight:700;cursor:pointer;margin-bottom:10px;font-family:'Noto Sans JP',sans-serif;">☁️ クラウドから再読み込み</button>
+  <button id="cloud-load-btn" onclick="loadFromCloud()" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:10px;font-weight:700;cursor:pointer;margin-bottom:6px;font-family:'Noto Sans JP',sans-serif;">☁️ クラウドから再読み込み</button>
+  <div style="display:flex;gap:6px;margin-bottom:10px;">
+    <button onclick="saveJraToCloud()" style="flex:1;padding:8px;background:var(--gold);border:none;border-radius:8px;color:#1a1a2e;font-size:10px;font-weight:900;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">☁️ JRAデータを保存</button>
+    <button onclick="loadJraFromCloud()" style="flex:1;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:10px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">⬇️ JRAデータを復元</button>
+  </div>
+  <div id="jra-cloud-status" style="font-size:9px;margin-bottom:8px;text-align:center;color:var(--text2);"></div>
   <div class="upload-zone" id="upload-zone">
     <input type="file" accept=".json" id="file-input">
     <div class="upload-icon">📁</div>
@@ -1019,6 +1024,68 @@ let dbMode = 'all';
 const SB_URL = 'https://lttrqfbwhyktypddgtpn.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0dHJxZmJ3aHlrdHlwZGRndHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMjY1MDMsImV4cCI6MjA5NTgwMjUwM30.SKn7Okr9UGR5jKapPmD3IAoVW_NThZL4FoXl09wkgCU';
 
+async function saveJraToCloud() {
+  const statusEl = document.getElementById('jra-cloud-status');
+  statusEl.textContent = '⏳ 保存中...';
+  try {
+    const payload = {
+      id: 'analyzer',
+      data: {
+        jraData,
+        raceData,
+        savedAt: new Date().toISOString()
+      },
+      updated_at: new Date().toISOString()
+    };
+    const res = await fetch(SB_URL + '/rest/v1/race_data?id=eq.analyzer', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify([payload])
+    });
+    if (!res.ok) throw new Error('保存エラー');
+    const count = Object.values(jraData).reduce((a, b) => a + (Array.isArray(b) ? b.length : 0), 0);
+    statusEl.textContent = `✅ JRAデータ(${count}件)を保存しました`;
+    showToast('✅ JRAデータをクラウドに保存しました');
+  } catch(e) {
+    statusEl.textContent = '❌ ' + e.message;
+  }
+}
+
+async function loadJraFromCloud() {
+  const statusEl = document.getElementById('jra-cloud-status');
+  statusEl.textContent = '⏳ 復元中...';
+  try {
+    const res = await fetch(SB_URL + '/rest/v1/race_data?id=eq.analyzer', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    if (!res.ok) throw new Error('通信エラー');
+    const rows = await res.json();
+    if (!rows || rows.length === 0) throw new Error('保存データがありません。先に「JRAデータを保存」してください');
+    const data = rows[0].data;
+    if (data.jraData) {
+      jraData = data.jraData;
+      localStorage.setItem('kp_analyzer_jra', JSON.stringify(jraData));
+      renderAllJraLists();
+    }
+    if (data.raceData) {
+      raceData = data.raceData;
+      localStorage.setItem('kp_analyzer_race', JSON.stringify(raceData));
+      renderRaceList();
+    }
+    const count = Object.values(jraData).reduce((a, b) => a + (Array.isArray(b) ? b.length : 0), 0);
+    const savedAt = data.savedAt ? new Date(data.savedAt).toLocaleString('ja-JP') : '不明';
+    statusEl.textContent = `✅ JRAデータ(${count}件)を復元しました（保存日時: ${savedAt}）`;
+    showToast('✅ JRAデータを復元しました');
+  } catch(e) {
+    statusEl.textContent = '❌ ' + e.message;
+  }
+}
+
 async function loadFromCloud() {
   const btn = document.getElementById('cloud-load-btn');
   btn.textContent = '⏳ 読込中...';
@@ -1537,6 +1604,10 @@ window.addEventListener('load', () => {
   const savedRace = localStorage.getItem('kp_analyzer_race');
   if (savedRace) { raceData = JSON.parse(savedRace); renderRaceList(); updateRaceSelect(); }
   renderDBHistory();
+  // 起動時: JRAデータがlocalStorageになければクラウドから自動復元
+  if (!savedJra) {
+    loadJraFromCloud().catch(() => {});
+  }
   // 起動時に自動でクラウドから読み込む
   loadFromCloud();
 });
