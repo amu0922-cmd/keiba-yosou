@@ -265,9 +265,9 @@
 
     <!-- 重賞ナビ一括インポート -->
     <div id="keibanaviImportBlock" style="background:rgba(233,69,96,0.08);border:1px solid rgba(233,69,96,0.3);border-radius:8px;padding:10px;margin-bottom:12px;">
-      <div style="font-size:10px;font-weight:900;color:var(--red,#e94560);margin-bottom:4px;">📋 重賞ナビ テキスト一括インポート</div>
-      <div style="font-size:9px;color:var(--text2);margin-bottom:6px;">重賞ナビのページをコピーして貼り付けると、前走着順・年齢・脚質・枠順・人気・馬体重・前走クラスを一括登録します</div>
-      <textarea id="keibaNaviText" placeholder="重賞ナビのテキストをここに貼り付け..." style="width:100%;height:100px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px;font-size:9px;resize:vertical;box-sizing:border-box;"></textarea>
+      <div style="font-size:10px;font-weight:900;color:var(--red,#e94560);margin-bottom:4px;">📋 ウマニティ＋重賞ナビ まとめて一括インポート</div>
+      <div style="font-size:9px;color:var(--text2);margin-bottom:6px;">ウマニティと重賞ナビのテキストをまとめて貼り付けるだけでOK。同じカテゴリは件数が多い方（信頼度が高い）を自動で採用します</div>
+      <textarea id="keibaNaviText" placeholder="ウマニティのテキスト＋重賞ナビのテキストをまとめてここに貼り付け..." style="width:100%;height:120px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px;font-size:9px;resize:vertical;box-sizing:border-box;"></textarea>
       <div style="display:flex;gap:6px;margin-top:6px;">
         <button class="btn btn-gold btn-sm" onclick="importKeibaNaviText()">⚡ 一括インポート</button>
         <button class="btn btn-outline btn-sm" onclick="document.getElementById('keibaNaviText').value=''">✕ クリア</button>
@@ -1973,8 +1973,21 @@ function importKeibaNaviText() {
     const results = parseTable(text, labels);
     if (Object.keys(results).length > 0) {
       if (!rd[cat]) rd[cat] = {};
-      Object.assign(rd[cat], results);
-      imported += Object.keys(results).length;
+      // 件数が多い方を優先: 既存データと比較してサンプル数(total)が多い方を採用
+      for (const [key, newVal] of Object.entries(results)) {
+        const existing = rd[cat][key];
+        if (!existing) {
+          rd[cat][key] = newVal;
+          imported++;
+        } else {
+          const existTotal = existing.w + existing.r2 + existing.r3 + existing.out;
+          const newTotal = newVal.w + newVal.r2 + newVal.r3 + newVal.out;
+          if (newTotal > existTotal) {
+            rd[cat][key] = newVal; // 新しい方が件数多い→上書き
+          }
+          // 件数が少ない or 同じ場合は既存を維持
+        }
+      }
     }
   }
 
