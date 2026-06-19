@@ -572,13 +572,8 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
           <button class="btn btn-gold" onclick="renderPaceAnalysis()" style="padding: 6px 14px; font-size: 10px;">🔄 再計算</button>
         </div>
         <!-- ペース別ボーナス設定 -->
-        <div style="background: #f7f8ff; border: 1px solid #d0d7e8; border-radius: 6px; padding: 8px; font-size: 9px;">
-          <div style="font-weight: 700; margin-bottom: 6px; color: #2563eb;">⚙️ ペース別加減点設定</div>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px;">
-            <div style="text-align:center; font-weight:700; color:#e94560;">🔥 ハイペース</div>
-            <div style="text-align:center; font-weight:700; color:#f39c12;">⚡ ミドル</div>
-            <div style="text-align:center; font-weight:700; color:#27ae60;">🐢 スロー</div>
-          </div>
+        <div style="background:#f7f8ff;border:1px solid #d0d7e8;border-radius:6px;padding:8px;font-size:9px;width:100%;box-sizing:border-box;overflow:hidden;">
+          <div style="font-weight:700;margin-bottom:6px;color:#2563eb;">⚙️ ペース別加減点設定</div>
           <div id="pace-bonus-grid"></div>
         </div>
       </div>
@@ -2313,16 +2308,21 @@ function initPaceBonusGrid() {
   const grid = document.getElementById('pace-bonus-grid');
   if (!grid) return;
   const types = ['逃げ', '先行', '差し', '追い込み', '自在'];
-  let html = '';
+  let html = `<div style="display:grid;grid-template-columns:44px repeat(3,1fr);gap:3px;margin-bottom:4px;align-items:center;box-sizing:border-box;">
+    <div></div>
+    <div style="font-size:8px;font-weight:900;text-align:center;color:#e94560;">🔥 ハイ</div>
+    <div style="font-size:8px;font-weight:900;text-align:center;color:#f39c12;">⚡ ミドル</div>
+    <div style="font-size:8px;font-weight:900;text-align:center;color:#27ae60;">🐢 スロー</div>
+  </div>`;
   types.forEach(t => {
-    html += `<div style="display:grid; grid-template-columns:50px repeat(3,1fr); gap:3px; margin-bottom:4px; align-items:center;">
-      <div style="font-size:9px; font-weight:700; color:#1a1a2e;">${t}</div>
-      <input class="inp" type="number" style="font-size:9px; text-align:center; padding:2px;" value="${paceBonus.high[t]}" 
-        onchange="paceBonus.high['${t}']=parseInt(this.value)||0; savePaceBonus(); renderPaceAnalysis();">
-      <input class="inp" type="number" style="font-size:9px; text-align:center; padding:2px;" value="${paceBonus.mid[t]}" 
-        onchange="paceBonus.mid['${t}']=parseInt(this.value)||0; savePaceBonus(); renderPaceAnalysis();">
-      <input class="inp" type="number" style="font-size:9px; text-align:center; padding:2px;" value="${paceBonus.slow[t]}" 
-        onchange="paceBonus.slow['${t}']=parseInt(this.value)||0; savePaceBonus(); renderPaceAnalysis();">
+    html += `<div style="display:grid;grid-template-columns:44px repeat(3,1fr);gap:3px;margin-bottom:4px;align-items:center;box-sizing:border-box;">
+      <div style="font-size:9px;font-weight:700;color:#1a1a2e;">${t}</div>
+      <input class="inp" type="number" style="font-size:9px;text-align:center;padding:2px;min-width:0;box-sizing:border-box;" value="${paceBonus.high[t]}"
+        onchange="paceBonus.high['${t}']=parseInt(this.value)||0;savePaceBonus();renderPaceAnalysis();">
+      <input class="inp" type="number" style="font-size:9px;text-align:center;padding:2px;min-width:0;box-sizing:border-box;" value="${paceBonus.mid[t]}"
+        onchange="paceBonus.mid['${t}']=parseInt(this.value)||0;savePaceBonus();renderPaceAnalysis();">
+      <input class="inp" type="number" style="font-size:9px;text-align:center;padding:2px;min-width:0;box-sizing:border-box;" value="${paceBonus.slow[t]}"
+        onchange="paceBonus.slow['${t}']=parseInt(this.value)||0;savePaceBonus();renderPaceAnalysis();">
     </div>`;
   });
   html += `<button class="btn btn-navy" style="width:100%;margin-top:4px;font-size:9px;" onclick="paceBonus=JSON.parse(JSON.stringify(PACE_BONUS_DEFAULTS));savePaceBonus();initPaceBonusGrid();renderPaceAnalysis();">↩ デフォルトに戻す</button>`;
