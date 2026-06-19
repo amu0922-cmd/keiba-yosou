@@ -919,7 +919,7 @@ function parseJraToJson() {
   // 形式A(オッズあり): 「馬名 オッズ (X番人気) 体重kg」
   // 形式B(オッズなし): 「馬名(W.X.Y.Z) 総賞金万円」 ← 出走表の別フォーマット
   const blockReA = /(\d)\s*(\d{1,2})\s*([\u4E00-\u9FFF\u30A0-\u30FFa-zA-Z]{2,20}?)\s+([\d.]+)\s*\((\d+)番人気\)(\d{3})kg/g;
-  const blockReB = /(\d)\s*(\d{1,2})([\u4E00-\u9FFF\u30A0-\u30FFa-zA-Z]{2,20}?)\(\d+\.\d+\.\d+\.\d+\)/g;
+  const blockReB = /(\d)\s*(\d{1,2})\s*([\u4E00-\u9FFF\u30A0-\u30FFa-zA-Z]{2,20}?)\(\d+\.\d+\.\d+\.\d+\)/g;
 
   // まず形式Aで試す
   let positions = [];
@@ -969,7 +969,7 @@ function parseJraToJson() {
     }
 
     // 性・年齢
-    const ageM = block.match(/[牡牝セ](\d)/);
+    const ageM = block.match(/[牡牝セせ](\d)/u);
     h.age = ageM ? parseInt(ageM[1]) : null;
 
     // 種牡馬
