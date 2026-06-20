@@ -2732,6 +2732,91 @@ function renderAnalysis() {
     return lines.join('\n');
   }
 
+  // ===== 推奨券種決定 =====
+  // 陣形・軸オッズ・過去成績から最も効率の良い買い目に絞る
+  function getRecommendedTickets() {
+    const jiku1Num = jiku[0].banum;
+    const odds = Number(jiku[0]?.odds) || 0;
+    const isStrong = buyStrength === 'strong';
+    const is1kyou = formation.includes('1強');
+    const is2kyou = formation.includes('2強') || formation.includes('鉄板');
+    const isHaran = formation.includes('波乱') || formation.includes('混戦');
+
+    // 相手馬(馬連・ワイド用)
+    let aiteArr = [];
+    if (dbTop1) {
+      const dbNum = String(dbJockeyScored[0].banum);
+      const jiku2Num = jiku.length >= 2 ? String(jiku[1].banum) : null;
+      aiteArr = jiku2Num && jiku2Num !== dbNum ? [jiku2Num, dbNum] : [dbNum];
+      if (scoreTop5[0]) { const s = scoreTop5[0].replace('番',''); if (!aiteArr.includes(s)) aiteArr.push(s); }
+    } else {
+      const jiku2Num = jiku.length >= 2 ? String(jiku[1].banum) : null;
+      if (jiku2Num) aiteArr.push(jiku2Num);
+      scoreTop5.slice(0,2).forEach(s => { const n = s.replace('番',''); if (!aiteArr.includes(n)) aiteArr.push(n); });
+    }
+    if (!jikuIsNinki1 && ninki1Num && !aiteArr.includes(ninki1Num)) aiteArr.push(ninki1Num);
+    aiteArr = aiteArr.slice(0,3);
+    const aiteStr = aiteArr.join('・');
+
+    // 三連複相手
+    let aite4 = [];
+    const jiku2forSan = jiku.length >= 2 ? String(jiku[1].banum) : null;
+    if (dbTop1) {
+      const dbNum = String(dbJockeyScored[0].banum);
+      const others = scoreTop5.map(s=>s.replace('番','')).filter(n=>n!==dbNum&&n!==jiku2forSan);
+      const base = jiku2forSan && jiku2forSan!==dbNum ? [jiku2forSan, dbNum] : [dbNum];
+      aite4 = [...base, ...others].slice(0,4);
+    } else {
+      const others = scoreTop5.map(s=>s.replace('番','')).filter(n=>n!==jiku2forSan);
+      aite4 = jiku2forSan ? [jiku2forSan, ...others].slice(0,4) : others.slice(0,4);
+    }
+    if (!jikuIsNinki1 && ninki1Num && !aite4.includes(ninki1Num)) aite4.push(ninki1Num);
+    const aite4str = aite4.sort((a,b)=>Number(a)-Number(b)).join('・');
+    const sanPts = aite4.length >= 2 ? (aite4.length===2?1:aite4.length===3?3:aite4.length===4?6:10) : 0;
+
+    const tickets = [];
+    let reason = '';
+
+    if (ninkiBad || oddsBad) {
+      // 軸が4人気以下 or 6倍超 → 見送り or 複勝のみ
+      tickets.push(`《複勝 ${jiku1Num}》`);
+      reason = `⚠️ 軸馬が低人気・高オッズのため複勝のみ推奨（少額）`;
+    } else if (is1kyou && isStrong && odds <= 3) {
+      // 1強かつ軸オッズ3倍以下 → 馬連+三連複(旨みあり)
+      tickets.push(`《馬連 ${jiku1Num}-${aiteStr}》`);
+      tickets.push(`《三連複 ${jiku1Num}-${aite4str}（${sanPts}点）》`);
+      reason = `✅ 軸が堅いが単勝オッズ${odds.toFixed(1)}倍は旨み少 → 馬連・三連複推奨`;
+    } else if (is1kyou && isStrong && odds <= 8) {
+      // 1強・軸オッズ3〜8倍 → 単勝+ワイドがベスト
+      tickets.push(`《単勝 ${jiku1Num}》`);
+      tickets.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
+      reason = `✅ 軸の信頼度高・オッズも適正 → 単勝+ワイド推奨`;
+    } else if (is2kyou || (is1kyou && !isStrong)) {
+      // 2強 or 1強だがスコア差小 → ワイド+三連複
+      tickets.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
+      tickets.push(`《三連複 ${jiku1Num}-${aite4str}（${sanPts}点）》`);
+      reason = `✅ 2頭軸の信頼度あり → ワイド+三連複推奨`;
+    } else if (isHaran) {
+      // 波乱・混戦 → ワイドBOX or 三連複のみ
+      tickets.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
+      reason = `⚠️ 混戦傾向のためワイドのみ・少額推奨`;
+    } else {
+      // デフォルト → 単勝+ワイド
+      tickets.push(`《単勝 ${jiku1Num}》`);
+      tickets.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
+      reason = `✅ 標準的な信頼度 → 単勝+ワイド推奨`;
+    }
+
+    // 過去成績の最良買い目があれば注記
+    if (bestPurchase) {
+      reason += `\n📊 あなたの成績最良: ${bestPurchase.name}（的中率${bestPurchase.rate}%）`;
+    }
+
+    return { tickets, reason, label: tickets.map(t=>t.replace(/《|》/g,'')).join(' / ') };
+  }
+
+  const recTickets = getRecommendedTickets();
+
   // 旧変数も互換のため残す
   const top3 = ranked.slice(0,3).map(h=>`${h.banum}番`);
   const top1Horse = top3[0]||'';
@@ -2863,6 +2948,17 @@ function renderAnalysis() {
   // 陣形表示
   const formationColor = formation.includes('1強') ? '#e94560' : formation.includes('2強') ? '#2563eb' : formation.includes('波乱') ? '#f39c12' : '#3498db';
   const formationBg = formation.includes('1強') ? '#fdf0f5' : formation.includes('2強') ? '#f0f8ff' : formation.includes('波乱') ? '#fffaf0' : '#f0f9ff';
+
+  // 推奨券種カード
+  html += `
+    <div style="padding:12px;background:linear-gradient(135deg,#1a1a2e,#2d2d44);border-radius:8px;margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:900;color:#f39c12;margin-bottom:6px;">🎯 今回の推奨券種</div>
+      <div style="font-size:13px;font-weight:900;color:#fff;margin-bottom:8px;line-height:1.6;">
+        ${recTickets.tickets.map(t=>`<span style="background:rgba(249,200,66,0.2);border:1px solid #f39c12;border-radius:4px;padding:2px 8px;margin-right:4px;display:inline-block;margin-bottom:4px;">${t}</span>`).join('')}
+      </div>
+      <div style="font-size:9px;color:#aab0c0;white-space:pre-line;line-height:1.6;">${recTickets.reason}</div>
+    </div>
+  `;
   
   html += `
     <div style="padding: 12px; background: ${formationBg}; border-radius: 6px; border-left: 4px solid ${formationColor}; margin-bottom: 10px;">
@@ -3789,10 +3885,13 @@ function generateBuyImage() {
   }
 
   let betRows = '';
-  lines.forEach((line, i) => {
-    const label = betLabels[i] || '';
-    const cnt = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
-    const col = betColors[i] || accent;
+  const displayLines = (typeof recLines !== 'undefined' && recLines && recLines.length > 0) ? recLines : lines;
+  const colorMap = {'単勝':'#ff2d55','複勝':'#9b59b6','馬連':'#007aff','ワイド':'#34c759','三連複':'#ff9500'};
+  displayLines.forEach((line, i) => {
+    const typeMatch = line.match(/^(単勝|複勝|馬連|ワイド|三連複)/);
+    const label = typeMatch ? typeMatch[1] : (betLabels[i] || '');
+    const cnt = line.replace(/^(単勝|複勝|馬連|ワイド|三連複)\s+/, '');
+    const col = colorMap[label] || accent;
     betRows += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:${rowBg};margin-bottom:6px;border:1px solid ${divider};">
       <div style="background:${col};color:#fff;font-size:9px;font-weight:900;padding:3px 7px;border-radius:6px;white-space:nowrap;flex-shrink:0;">${label}</div>
       <div style="display:flex;align-items:center;flex-wrap:wrap;gap:3px;">${renderBanums(cnt)}</div>
@@ -4356,7 +4455,65 @@ function imgCalcBets() {
     lines.push(`三連複 ${jiku1Num}-${aite4str}`);
   }
 
-  return { ranked, jiku, jikustr, paceLabel, lines, topHorse: jiku[0] };
+  // 推奨券種の決定（予想タブと同じロジック）
+  const jikuNinkiImg = Number(jiku[0]?.ninki);
+  const jikuOddsImg = Number(jiku[0]?.odds);
+  const ninkiBadImg = !isNaN(jikuNinkiImg) && jikuNinkiImg >= 4;
+  const oddsBadImg = !isNaN(jikuOddsImg) && jikuOddsImg >= 6;
+
+  // スコア差・偏差値で陣形判定
+  const allScoresImg = ranked.map(h=>h.totalScore);
+  const stdImg = Math.sqrt(allScoresImg.reduce((a,b)=>a+Math.pow(b-(allScoresImg.reduce((a,b)=>a+b,0)/allScoresImg.length),2),0)/allScoresImg.length)||1;
+  const top1img = ranked[0]?.totalScore||0;
+  const top2img = ranked[1]?.totalScore||0;
+  const scoreDiffImg = top1img - top2img;
+  const buyStrengthImg = scoreDiffImg >= 20 ? 'strong' : scoreDiffImg >= 10 ? 'normal' : 'weak';
+
+  // 相手馬
+  let aiteImgArr = [];
+  if (dbTop1) {
+    const dbNum = dbTop1.banum;
+    aiteImgArr = jiku2Num && jiku2Num !== dbNum ? [jiku2Num, dbNum] : [dbNum];
+    if (scoreTop5[0] !== undefined && !aiteImgArr.includes(scoreTop5[0])) aiteImgArr.push(scoreTop5[0]);
+  } else {
+    if (jiku2Num) aiteImgArr.push(jiku2Num);
+    [scoreTop5[0], scoreTop5[1]].forEach(n => { if (n !== undefined && !aiteImgArr.includes(n)) aiteImgArr.push(n); });
+  }
+  if (!jikuIsNinki1 && ninki1Num !== null && !aiteImgArr.includes(ninki1Num)) aiteImgArr.push(ninki1Num);
+  aiteImgArr = aiteImgArr.slice(0,3);
+  const aiteImgStr = aiteImgArr.join('・');
+
+  // 三連複相手
+  let aite4img = [];
+  if (dbTop1) {
+    const dbNum = dbTop1.banum;
+    const others = scoreTop5.filter(n=>n!==dbNum&&n!==jiku2Num);
+    aite4img = [...(jiku2Num && jiku2Num!==dbNum?[jiku2Num,dbNum]:[dbNum]), ...others].slice(0,4);
+  } else {
+    const others = scoreTop5.filter(n=>n!==jiku2Num);
+    aite4img = jiku2Num ? [jiku2Num,...others].slice(0,4) : others.slice(0,4);
+  }
+  if (!jikuIsNinki1 && ninki1Num !== null && !aite4img.includes(ninki1Num)) aite4img.push(ninki1Num);
+  const aite4imgStr = aite4img.sort((a,b)=>Number(a)-Number(b)).join('.');
+  const sanPtsImg = aite4img.length >= 2 ? (aite4img.length===2?1:aite4img.length===3?3:aite4img.length===4?6:10) : 0;
+
+  const recLines = [];
+  if (ninkiBadImg || oddsBadImg) {
+    recLines.push(`複勝  ${jiku1Num}`);
+  } else if (buyStrengthImg === 'strong' && jikuOddsImg <= 3) {
+    recLines.push(`馬連  ${jiku1Num}-${aiteImgStr}`);
+    recLines.push(`三連複 ${jiku1Num}-${aite4imgStr}`);
+  } else if (buyStrengthImg === 'strong') {
+    recLines.push(`単勝  ${jiku1Num}`);
+    recLines.push(`ワイド ${jiku1Num}-${aiteImgStr}`);
+  } else if (buyStrengthImg === 'normal') {
+    recLines.push(`ワイド ${jiku1Num}-${aiteImgStr}`);
+    recLines.push(`三連複 ${jiku1Num}-${aite4imgStr}`);
+  } else {
+    recLines.push(`ワイド ${jiku1Num}-${aiteImgStr}`);
+  }
+
+  return { ranked, jiku, jikustr, paceLabel, lines, recLines, topHorse: jiku[0] };
 }
 
 // 枠色を返す
@@ -4374,7 +4531,7 @@ function imgWakuTextColor(banum) {
 // メイン生成関数
 function imgGenerate(type) {
   if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
-  const { jiku, jikustr, paceLabel, lines, topHorse } = imgCalcBets();
+  const { jiku, jikustr, paceLabel, lines, recLines, topHorse } = imgCalcBets();
   const raceName  = currentRaceName || 'レース';
   const comment   = (document.getElementById('img-comment').value || '').trim();
   const hitTypes  = new Set((document.getElementById('img-hits').value || '').split(/[\s,、]+/).filter(Boolean));
