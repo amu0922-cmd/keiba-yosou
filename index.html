@@ -1381,12 +1381,14 @@ function calcAllScores() {
   const _override = _overrideEl ? _overrideEl.value : 'auto';
   const _pace = (_override === 'auto') ? calcPaceFromHorses(horses) : _override;
   const _bonusMap = paceBonus[_pace];
+  const _babaAdj = getBabaAdjMap();
+  const _effectiveBonusMap = _babaAdj ? Object.fromEntries(Object.entries(_bonusMap).map(([k,v]) => [k, v + (_babaAdj[k]||0)])) : _bonusMap;
   return horses.map((h, idx) => {
     const _paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
     const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+_paddockPt;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
-    const paceAdj = _bonusMap[h.kyakushitsu]||0;
+    const paceAdj = _effectiveBonusMap[h.kyakushitsu]||0;
     const negAdj = h.negAdj||0;
     const weightScore = calcWeightScore(horses, h);
     const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj+weightScore;
@@ -1450,6 +1452,8 @@ function renderTable() {
   const _override = _overrideEl ? _overrideEl.value : 'auto';
   const _pace = (_override === 'auto') ? calcPaceFromHorses(horses) : _override;
   const _bonusMap = paceBonus[_pace];
+  const _babaAdj = getBabaAdjMap();
+  const _effectiveBonusMap = _babaAdj ? Object.fromEntries(Object.entries(_bonusMap).map(([k,v]) => [k, v + (_babaAdj[k]||0)])) : _bonusMap;
   // 全馬スコア計算→印マップ生成
   const jirushiMap = getJirushiMap();
   // 期待値計算用に全馬スコアを先に計算
@@ -1457,7 +1461,7 @@ function renderTable() {
     const ts = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
     const cs = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const ms = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
-    const pa = _bonusMap[h.kyakushitsu]||0;
+    const pa = _effectiveBonusMap[h.kyakushitsu]||0;
     return ts+cs+ms+pa;
   });
   const evMax = Math.max(...allScoresForEV);
@@ -1477,7 +1481,7 @@ function renderTable() {
     const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0) + (db.baju?.[h.baju] || 0) + paddockPt;
     const chokyoScore = ({'A': 20, 'B': 0, 'C': -20}[h.chokyoFinal] || 0) + ({'A': 20, 'B': 0, 'C': -20}[h.chokyoPrev] || 0);
     const commentScore = {'◎': 20, '◯': 0, '△': -20, '×': -20}[h.comment] || 0;
-    const paceAdj = _bonusMap[h.kyakushitsu] || 0;
+    const paceAdj = _effectiveBonusMap[h.kyakushitsu] || 0;
     const negAdj = h.negAdj||0;
     const weightScore = calcWeightScore(horses, h);
     const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj + weightScore;
@@ -2384,6 +2388,8 @@ function renderPaceAnalysis() {
   const autoPace = calcPaceFromHorses(horses);
   const pace = override === 'auto' ? autoPace : override;
   const bonusMap = paceBonus[pace];
+  const babaAdj = getBabaAdjMap();
+  const effectiveBonusMap = babaAdj ? Object.fromEntries(Object.entries(bonusMap).map(([k,v]) => [k, v + (babaAdj[k]||0)])) : bonusMap;
 
   // 脚質カウント
   const cnt = { '逃げ': 0, '先行': 0, '差し': 0, '追い込み': 0, '自在': 0 };
@@ -2400,14 +2406,21 @@ function renderPaceAnalysis() {
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const baseTotal = trendScore + chokyoScore + commentScore;
-    const paceAdj = bonusMap[h.kyakushitsu] || 0;
+    const paceAdj = effectiveBonusMap[h.kyakushitsu] || 0;
     const paceTotal = baseTotal + paceAdj;
     return { ...h, trendScore, chokyoScore, commentScore, baseTotal, paceAdj, paceTotal };
   }).sort((a,b) => b.paceTotal - a.paceTotal);
 
-  const paceColor = getPaceColor(pace);
-  const paceLabel = getPaceLabel(pace);
-  const paceDesc = getPaceDesc(pace);
+  // 馬場状態チェック
+  const courseName = getCurrentCourseName();
+  const babaState = courseName ? getBabaFromWeather(courseName) : null;
+  const babaBadge = babaState && babaState !== '良' ? (() => {
+    const color = babaState === '重' ? '#e94560' : '#f39c12';
+    const msg = babaState === '重'
+      ? '⚠️ 重馬場：逃げ・先行有利、差し・追い込みは注意'
+      : '⚠️ 稍重：やや前有利傾向、道悪巧者に注目';
+    return `<div style="margin-top:6px;padding:6px;background:${color}18;border:1px solid ${color}40;border-radius:4px;font-size:9px;color:${color};font-weight:700;">${msg}<br><span style="font-size:8px;font-weight:400;color:#666;">※ ヘッダー天気から自動取得（${courseName}）</span></div>`;
+  })() : '';
 
   // ===== HTML生成 =====
   let html = '';
@@ -2418,6 +2431,7 @@ function renderPaceAnalysis() {
       <div style="font-size:15px;font-weight:900;color:${paceColor};margin-bottom:4px;">${paceLabel}</div>
       <div style="font-size:9px;color:#444;margin-bottom:8px;">${paceDesc}</div>
       ${override==='auto' ? `<div style="font-size:8px;color:#888;">🤖 自動判定（上のセレクトで手動変更可能）</div>` : `<div style="font-size:8px;color:#888;">⚙️ 手動設定中</div>`}
+      ${babaBadge}
     </div>`;
 
   // --- 脚質分布グラフ ---
@@ -2538,6 +2552,8 @@ function renderAnalysis() {
   const autoPace = calcPaceFromHorses(horses);
   const pace = (override === 'auto') ? autoPace : override;
   const bonusMap = paceBonus[pace];
+  const babaAdj = getBabaAdjMap();
+  const effectiveBonusMap = babaAdj ? Object.fromEntries(Object.entries(bonusMap).map(([k,v]) => [k, v + (babaAdj[k]||0)])) : bonusMap;
   const paceColor = getPaceColor(pace);
   const paceLabel = getPaceLabel(pace);
 
@@ -2546,7 +2562,7 @@ function renderAnalysis() {
     const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0) + (db.baju?.[h.baju] || 0)+_paddockPt;
     const chokyoScore = ({'A': 20, 'B': 0, 'C': -20}[h.chokyoFinal] || 0) + ({'A': 20, 'B': 0, 'C': -20}[h.chokyoPrev] || 0);
     const commentScore = {'◎': 20, '◯': 0, '△': -20, '×': -20}[h.comment] || 0;
-    const paceAdj = bonusMap[h.kyakushitsu] || 0;
+    const paceAdj = effectiveBonusMap[h.kyakushitsu] || 0;
     const negAdj = h.negAdj||0;
     const weightScore = calcWeightScore(horses, h);
     const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj + weightScore;
@@ -3219,13 +3235,15 @@ function analyzeResult() {
   const override = overrideEl ? overrideEl.value : 'auto';
   const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
   const bonusMap = paceBonus[pace];
+  const babaAdj = getBabaAdjMap();
+  const effectiveBonusMap = babaAdj ? Object.fromEntries(Object.entries(bonusMap).map(([k,v]) => [k, v + (babaAdj[k]||0)])) : bonusMap;
 
   // 予想スコアを計算
   const scored = horses.map(h => {
     const ts = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
     const cs = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const ms = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
-    const pa = bonusMap[h.kyakushitsu]||0;
+    const pa = effectiveBonusMap[h.kyakushitsu]||0;
     const total = ts+cs+ms+pa;
     return {...h, totalScore: total};
   }).sort((a,b)=>b.totalScore-a.totalScore);
@@ -3545,6 +3563,8 @@ function generateXPostImage() {
   const override = overrideEl ? overrideEl.value : 'auto';
   const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
   const bonusMap = paceBonus[pace];
+  const babaAdj = getBabaAdjMap();
+  const effectiveBonusMap = babaAdj ? Object.fromEntries(Object.entries(bonusMap).map(([k,v]) => [k, v + (babaAdj[k]||0)])) : bonusMap;
   const ranked = horses.map(h => {
     const _paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
     const trendScore = (db.jockey?.[h.jockey]||0)+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+_paddockPt;
@@ -3647,6 +3667,8 @@ function generateBuyImage() {
   const override = overrideEl ? overrideEl.value : 'auto';
   const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
   const bonusMap = paceBonus[pace];
+  const babaAdj = getBabaAdjMap();
+  const effectiveBonusMap = babaAdj ? Object.fromEntries(Object.entries(bonusMap).map(([k,v]) => [k, v + (babaAdj[k]||0)])) : bonusMap;
   const paceLabel = getPaceLabel(pace);
   const raceName = currentRaceName || 'レース';
   const userComment = document.getElementById('xpost-comment').value || '';
@@ -3829,6 +3851,8 @@ function generateResultImage(isHit) {
   const override = overrideEl ? overrideEl.value : 'auto';
   const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
   const bonusMap = paceBonus[pace];
+  const babaAdj = getBabaAdjMap();
+  const effectiveBonusMap = babaAdj ? Object.fromEntries(Object.entries(bonusMap).map(([k,v]) => [k, v + (babaAdj[k]||0)])) : bonusMap;
   const paceLabel = getPaceLabel(pace);
   const raceName = currentRaceName || 'レース';
   const userComment = document.getElementById('result-comment').value || '';
@@ -4233,6 +4257,8 @@ function imgCalcBets() {
   const override = overrideEl ? overrideEl.value : 'auto';
   const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
   const bonusMap = paceBonus[pace];
+  const babaAdj = getBabaAdjMap();
+  const effectiveBonusMap = babaAdj ? Object.fromEntries(Object.entries(bonusMap).map(([k,v]) => [k, v + (babaAdj[k]||0)])) : bonusMap;
   const paceLabel = getPaceLabel(pace);
 
   const ranked = horses.map(h => {
@@ -4240,7 +4266,7 @@ function imgCalcBets() {
     const trendScore = (db.jockey?.[h.jockey] || 0) + (db.sire?.[h.sire] || 0) + (db.age?.[h.age] || 0) + (db.kyakushitsu?.[h.kyakushitsu] || 0) + (db.ninki?.[h.ninki] || 0) + (db.maejun?.[h.maejun] || 0) + (db.maeclass?.[h.maeclass] || 0) + (db.waku?.[h.waku] || 0) + (db.timdev?.[h.timdev] || 0) + (db.baju?.[h.baju] || 0) + _paddockPt;
     const chokyoScore = ({'A': 20, 'B': 0, 'C': -20}[h.chokyoFinal] || 0) + ({'A': 20, 'B': 0, 'C': -20}[h.chokyoPrev] || 0);
     const commentScore = {'◎': 20, '◯': 0, '△': -20, '×': -20}[h.comment] || 0;
-    const paceAdj = bonusMap[h.kyakushitsu] || 0;
+    const paceAdj = effectiveBonusMap[h.kyakushitsu] || 0;
     const negAdj = h.negAdj||0;
     const weightScore = calcWeightScore(horses, h);
     const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj + weightScore;
@@ -4881,6 +4907,8 @@ function drawScoreRanking(ctx, W, imgH, tc, comment) {
   const override = overrideEl ? overrideEl.value : 'auto';
   const pace = override === 'auto' ? calcPaceFromHorses(horses) : override;
   const bonusMap = paceBonus[pace];
+  const babaAdj = getBabaAdjMap();
+  const effectiveBonusMap = babaAdj ? Object.fromEntries(Object.entries(bonusMap).map(([k,v]) => [k, v + (babaAdj[k]||0)])) : bonusMap;
   const paceLabel = getPaceLabel(pace);
 
   const ranked = horses.map(h => {
@@ -5732,6 +5760,35 @@ const RACECOURSES = [
   { name: '函館',   lat: 41.7667, lon: 140.7333 },
 ];
 
+// 天気データをグローバルに保持（展開予想で参照）
+const weatherCache = {}; // { '阪神': { baba: '重', precipitation: 8.2 }, ... }
+
+function getBabaFromWeather(courseName) {
+  return weatherCache[courseName]?.baba || null;
+}
+
+function getCurrentCourseName() {
+  if (!currentRaceName) return null;
+  for (const rc of RACECOURSES) {
+    if (currentRaceName.includes(rc.name)) return rc.name;
+  }
+  return null;
+}
+
+// 馬場状態による脚質補正マップを返す
+// 重馬場: 逃げ+15 先行+10 差し-10 追い込み-15
+// 稍重:   逃げ+8  先行+5  差し-5  追い込み-8
+function getBabaAdjMap() {
+  const courseName = getCurrentCourseName();
+  const baba = courseName ? getBabaFromWeather(courseName) : null;
+  if (baba === '重') {
+    return { '逃げ': 15, '先行': 10, '差し': -10, '追い込み': -15, '自在': 3 };
+  } else if (baba === '稍重') {
+    return { '逃げ': 8, '先行': 5, '差し': -5, '追い込み': -8, '自在': 2 };
+  }
+  return null; // 良馬場は補正なし
+}
+
 const WX_CODE = {
   0:'☀️',1:'🌤',2:'⛅',3:'☁️',
   45:'🌫',48:'🌫',
@@ -5753,14 +5810,21 @@ async function loadWeather() {
       const cur = d.current;
       const icon = WX_CODE[cur.weathercode] || '🌤';
       let baba = '';
-      if (cur.precipitation >= 5) baba = '<span style="color:#e94560;font-size:8px;">重</span>';
-      else if (cur.precipitation >= 1) baba = '<span style="color:#f39c12;font-size:8px;">稍重</span>';
-      else if (cur.precipitation > 0) baba = '<span style="color:#f39c12;font-size:8px;">稍</span>';
-      else baba = '<span style="color:#16a34a;font-size:8px;">良</span>';
+      if (cur.precipitation >= 5) baba = '重';
+      else if (cur.precipitation >= 1) baba = '稍重';
+      else if (cur.precipitation > 0) baba = '稍重';
+      else baba = '良';
+      // グローバルキャッシュに保存（展開予想で参照）
+      weatherCache[rc.name] = { baba, precipitation: cur.precipitation };
+      const babaHtml = baba === '重'
+        ? '<span style="color:#e94560;font-size:8px;">重</span>'
+        : baba === '稍重'
+        ? '<span style="color:#f39c12;font-size:8px;">稍重</span>'
+        : '<span style="color:#16a34a;font-size:8px;">良</span>';
       return `<div style="display:inline-flex;flex-direction:column;align-items:center;background:#fff;border:1px solid #e0e6f0;border-radius:8px;padding:4px 8px;min-width:46px;gap:1px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
         <div style="font-size:8px;color:#6080a0;font-weight:700;">${rc.name}</div>
         <div style="font-size:16px;line-height:1.2;">${icon}</div>
-        ${baba}
+        ${babaHtml}
       </div>`;
     } catch(e) {
       return `<div style="display:inline-flex;flex-direction:column;align-items:center;background:#fff;border:1px solid #e0e6f0;border-radius:8px;padding:4px 8px;min-width:46px;gap:1px;">
