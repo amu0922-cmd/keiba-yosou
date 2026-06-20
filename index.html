@@ -2815,8 +2815,6 @@ function renderAnalysis() {
     return { tickets, reason, label: tickets.map(t=>t.replace(/《|》/g,'')).join(' / ') };
   }
 
-  const recTickets = getRecommendedTickets();
-
   // 旧変数も互換のため残す
   const top3 = ranked.slice(0,3).map(h=>`${h.banum}番`);
   const top1Horse = top3[0]||'';
@@ -2945,6 +2943,9 @@ function renderAnalysis() {
     </div>
   `;
   
+  // 推奨券種を決定（formation/ninkiBad/oddsBad定義後）
+  const recTickets = getRecommendedTickets();
+
   // 陣形表示
   const formationColor = formation.includes('1強') ? '#e94560' : formation.includes('2強') ? '#2563eb' : formation.includes('波乱') ? '#f39c12' : '#3498db';
   const formationBg = formation.includes('1強') ? '#fdf0f5' : formation.includes('2強') ? '#f0f8ff' : formation.includes('波乱') ? '#fffaf0' : '#f0f9ff';
