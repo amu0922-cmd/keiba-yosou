@@ -2422,6 +2422,10 @@ function renderPaceAnalysis() {
     return `<div style="margin-top:6px;padding:6px;background:${color}18;border:1px solid ${color}40;border-radius:4px;font-size:9px;color:${color};font-weight:700;">${msg}<br><span style="font-size:8px;font-weight:400;color:#666;">※ ヘッダー天気から自動取得（${courseName}）</span></div>`;
   })() : '';
 
+  const paceColor = getPaceColor(pace);
+  const paceLabel = getPaceLabel(pace);
+  const paceDesc = getPaceDesc(pace);
+
   // ===== HTML生成 =====
   let html = '';
 
