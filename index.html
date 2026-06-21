@@ -4693,6 +4693,8 @@ function imgGenerate(type) {
         ? { tickets: recLines.map(l => `《${l}》`), reason: '' }
         : null);
       let contentY = 528;
+      // コメントがある場合はその分下にずらす
+      if (comment) contentY = 524 + 42 + 8;
 
       if (recData && recData.tickets && recData.tickets.length > 0) {
         const cardX = 18, cardW = W - 36, recCardH = 104;
@@ -4857,7 +4859,8 @@ function imgGenerate(type) {
         const scoreRows = comment ? 6 : 8;
         cy = 102 + scoreRows * (66 + 4) + 10;
       } else if (type === 'buy') {
-        cy = 170 + lines.length * 44 + 8 + blinkerCanvasOffsetY + upJockeyCanvasOffsetY;
+        // 画像エリア(100〜520)の直下・推奨券種カードの上
+        cy = 524;
       } else {
         cy = 120 + lines.length * 44 + 8;
       }
