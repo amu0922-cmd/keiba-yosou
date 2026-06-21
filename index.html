@@ -854,6 +854,7 @@ let savedListSortOrder = 'desc'; // desc=新しい順, asc=古い順
 let currentRaceName = '';
 let currentWeightType = '';
 let _lastRecTickets = null; // 推奨券種を画像生成で参照するためグローバル保持
+let _resetAnalysisOnNextRender = false; // 新レース読込時のみ予想タブをリセット
 
 function setWeightType(type) {
   currentWeightType = type || '';
@@ -1137,6 +1138,7 @@ function importJSON() {
       return map[val] || String(val || '');
     };
     
+    _resetAnalysisOnNextRender = true;
     horses = list.map((h, i) => ({
       id: Date.now() + i,
       banum: parseInt(h.banum || 0),
@@ -1468,12 +1470,16 @@ function autoSaveHorses() {
 }
 
 function renderTable() {
-  // 馬データが変わったので予想・展開タブをリセット
-  const ac = document.getElementById('analysis-content');
-  if (ac) ac.innerHTML = '<div style="padding: 20px; text-align: center; color: #aab0c0;">馬を読込すると予想が表示されます</div>';
-  const pc = document.getElementById('pace-analysis-content');
-  if (pc) pc.innerHTML = '<div style="padding: 20px; text-align: center; color: #aab0c0;">馬を読込すると展開予想が表示されます</div>';
-  _lastRecTickets = null;
+  // 出馬表が新しく読み込まれた時のみ予想・展開タブをリセット
+  // (人気・オッズ更新時はリセットしない)
+  if (_resetAnalysisOnNextRender) {
+    const ac = document.getElementById('analysis-content');
+    if (ac) ac.innerHTML = '<div style="padding: 20px; text-align: center; color: #aab0c0;">馬を読込すると予想が表示されます</div>';
+    const pc = document.getElementById('pace-analysis-content');
+    if (pc) pc.innerHTML = '<div style="padding: 20px; text-align: center; color: #aab0c0;">馬を読込すると展開予想が表示されます</div>';
+    _lastRecTickets = null;
+    _resetAnalysisOnNextRender = false;
+  }
   autoSaveHorses();
   // 着順入力エリアを表示
   const fra = document.getElementById('finish-rank-area');
@@ -1845,6 +1851,7 @@ function uploadRaceBackupFile() {
         renderSavedJsonList();
 
         // インポート後そのまま出馬表・DB・分析に反映
+        _resetAnalysisOnNextRender = true;
         horses = horseArray;
         db = (typeof backup.db === 'string') ? JSON.parse(backup.db) : backup.db;
         setRaceName(backup.name || '');
@@ -1958,6 +1965,7 @@ function loadSavedJSON(name) {
     document.getElementById('json-input').value = JSON.stringify({ horses: horseArray }, null, 2);
     document.getElementById('db-json').value = data.db;
 
+    _resetAnalysisOnNextRender = true;
     horses = horseArray;
     db = dbData;
     setRaceName(name);
@@ -6277,6 +6285,7 @@ window.addEventListener('load', () => {
     const savedHorses = localStorage.getItem('kp_last_horses');
     const savedRace = localStorage.getItem('kp_last_race');
     if (savedHorses) {
+      _resetAnalysisOnNextRender = true;
       horses = JSON.parse(savedHorses);
       if (savedRace) setRaceName(savedRace);
       document.getElementById('count-badge').textContent = horses.length;
