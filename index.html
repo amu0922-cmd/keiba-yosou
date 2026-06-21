@@ -498,16 +498,30 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
       </div>
       <!-- 券種別配当入力 -->
       <div style="margin-bottom: 8px; background:#f7f8ff; border:1px solid #d0d7e8; border-radius:6px; padding:8px;">
-        <div style="font-size:9px;font-weight:900;color:#2563eb;margin-bottom:6px;">💰 券種別配当（円/100円あたり）</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-          <input type="number" id="payout-tansho" class="inp" placeholder="単勝 配当¥" style="font-size:10px;">
-          <input type="number" id="payout-fukusho" class="inp" placeholder="複勝 配当¥" style="font-size:10px;">
-          <input type="number" id="payout-umaren" class="inp" placeholder="馬連 配当¥" style="font-size:10px;">
-          <input type="number" id="payout-wide" class="inp" placeholder="ワイド 配当¥" style="font-size:10px;">
-          <input type="number" id="payout-sanfuku" class="inp" placeholder="三連複 配当¥" style="font-size:10px;">
-          <input type="number" id="payout-santan" class="inp" placeholder="三連単 配当¥" style="font-size:10px;">
+        <div style="font-size:9px;font-weight:900;color:#2563eb;margin-bottom:6px;">💰 券種別配当（検証用・JRA結果から入力）</div>
+        <div style="font-size:8px;color:#6080a0;margin-bottom:6px;">100円あたりの払戻金額。複勝・ワイドは複数ある場合は的中組み合わせのみ入力</div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:4px;align-items:center;">
+          <span style="font-size:9px;color:#333;font-weight:700;">単勝</span>
+          <input type="number" id="payout-tansho" class="inp" placeholder="例: 940" style="font-size:10px;">
+          <span style="font-size:9px;color:#333;font-weight:700;">複勝①</span>
+          <input type="number" id="payout-fukusho1" class="inp" placeholder="例: 370" style="font-size:10px;">
+          <span style="font-size:9px;color:#333;font-weight:700;">複勝②</span>
+          <input type="number" id="payout-fukusho2" class="inp" placeholder="例: 980" style="font-size:10px;">
+          <span style="font-size:9px;color:#333;font-weight:700;">複勝③</span>
+          <input type="number" id="payout-fukusho3" class="inp" placeholder="例: 2330" style="font-size:10px;">
+          <span style="font-size:9px;color:#333;font-weight:700;">馬連</span>
+          <input type="number" id="payout-umaren" class="inp" placeholder="例: 13070" style="font-size:10px;">
+          <span style="font-size:9px;color:#333;font-weight:700;">ワイド①</span>
+          <input type="number" id="payout-wide1" class="inp" placeholder="例: 4470" style="font-size:10px;">
+          <span style="font-size:9px;color:#333;font-weight:700;">ワイド②</span>
+          <input type="number" id="payout-wide2" class="inp" placeholder="例: 12910" style="font-size:10px;">
+          <span style="font-size:9px;color:#333;font-weight:700;">ワイド③</span>
+          <input type="number" id="payout-wide3" class="inp" placeholder="例: 17960" style="font-size:10px;">
+          <span style="font-size:9px;color:#333;font-weight:700;">三連複</span>
+          <input type="number" id="payout-sanfuku" class="inp" placeholder="例: 217840" style="font-size:10px;">
+          <span style="font-size:9px;color:#333;font-weight:700;">三連単</span>
+          <input type="number" id="payout-santan" class="inp" placeholder="例: 1066160" style="font-size:10px;">
         </div>
-        <div style="font-size:8px;color:#6080a0;margin-top:4px;">※ JRAの結果から全券種の払戻金額を入力（検証用）。自分が買っていない券種も入力しておくと後で新戦略のシミュレーションができます</div>
       </div>
       <div style="margin-bottom: 8px;">
         <input type="text" id="record-score" class="inp" placeholder="偏差値（任意）" style="width:100%;font-size: 10px;">
@@ -2052,25 +2066,36 @@ function resetRecordForm() {
 
 function getPayoutInputs() {
   return {
-    tansho:  parseInt(document.getElementById('payout-tansho')?.value) || null,
-    fukusho: parseInt(document.getElementById('payout-fukusho')?.value) || null,
-    umaren:  parseInt(document.getElementById('payout-umaren')?.value) || null,
-    wide:    parseInt(document.getElementById('payout-wide')?.value) || null,
-    sanfuku: parseInt(document.getElementById('payout-sanfuku')?.value) || null,
-    santan:  parseInt(document.getElementById('payout-santan')?.value) || null,
+    tansho:   parseInt(document.getElementById('payout-tansho')?.value) || null,
+    fukusho1: parseInt(document.getElementById('payout-fukusho1')?.value) || null,
+    fukusho2: parseInt(document.getElementById('payout-fukusho2')?.value) || null,
+    fukusho3: parseInt(document.getElementById('payout-fukusho3')?.value) || null,
+    umaren:   parseInt(document.getElementById('payout-umaren')?.value) || null,
+    wide1:    parseInt(document.getElementById('payout-wide1')?.value) || null,
+    wide2:    parseInt(document.getElementById('payout-wide2')?.value) || null,
+    wide3:    parseInt(document.getElementById('payout-wide3')?.value) || null,
+    sanfuku:  parseInt(document.getElementById('payout-sanfuku')?.value) || null,
+    santan:   parseInt(document.getElementById('payout-santan')?.value) || null,
   };
 }
 function setPayoutInputs(p) {
   if (!p) p = {};
-  document.getElementById('payout-tansho').value  = p.tansho  || '';
-  document.getElementById('payout-fukusho').value = p.fukusho || '';
-  document.getElementById('payout-umaren').value  = p.umaren  || '';
-  document.getElementById('payout-wide').value    = p.wide    || '';
-  document.getElementById('payout-sanfuku').value = p.sanfuku || '';
-  document.getElementById('payout-santan').value  = p.santan  || '';
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+  set('payout-tansho',   p.tansho);
+  set('payout-fukusho1', p.fukusho1 || p.fukusho);
+  set('payout-fukusho2', p.fukusho2);
+  set('payout-fukusho3', p.fukusho3);
+  set('payout-umaren',   p.umaren);
+  set('payout-wide1',    p.wide1 || p.wide);
+  set('payout-wide2',    p.wide2);
+  set('payout-wide3',    p.wide3);
+  set('payout-sanfuku',  p.sanfuku);
+  set('payout-santan',   p.santan);
 }
 function clearPayoutInputs() {
-  ['payout-tansho','payout-fukusho','payout-umaren','payout-wide','payout-sanfuku','payout-santan']
+  ['payout-tansho','payout-fukusho1','payout-fukusho2','payout-fukusho3',
+   'payout-umaren','payout-wide1','payout-wide2','payout-wide3',
+   'payout-sanfuku','payout-santan']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
 }
 
