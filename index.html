@@ -5036,18 +5036,34 @@ function drawBigStamp(ctx, text, color, cx, cy) {
 }
 
 function drawBetCards(ctx, lines, betLabels, betColors, hitTypes, x, y, w, type) {
-  const cardH = 38;
-  const gap   = 6;
+  const isBuy = type === 'buy';
+  const cardH = isBuy ? 62 : 38;
+  const gap   = isBuy ? 12 : 6;
+  const pillW = isBuy ? 52 : 36;
+  const pillH = isBuy ? 30 : 20;
+  const pillX = isBuy ? 10 : 8;
+  const pillFont = isBuy ? '700 14px sans-serif' : '700 10px sans-serif';
+  const pillCX = isBuy ? x + pillX + pillW/2 : x + 26;
+  const pillCY = isBuy ? (cy => cy + 35) : (cy => cy + 23);
+  const boxStart = isBuy ? x + pillX + pillW + 8 : x + 52;
+  const boxSize  = isBuy ? 34 : 24;
+  const boxFont  = isBuy ? '900 16px sans-serif' : '900 12px sans-serif';
+  const sepFont  = isBuy ? '700 18px sans-serif' : '700 14px sans-serif';
+  const dotFont  = isBuy ? '14px sans-serif' : '11px sans-serif';
+  const sepW     = isBuy ? 18 : 14;
+  const dotW     = isBuy ? 14 : 11;
+
   lines.forEach((line, i) => {
     const label = betLabels[i] || '';
     const cnt   = line.replace(/^(単勝|複勝|馬連|ワイド|三連複)\s+/, '');
     const col   = betColors[i];
     const isHit = hitTypes && hitTypes.has(label);
     const cy    = y + i * (cardH + gap);
+    const textCY = isBuy ? cy + 38 : cy + 23;
 
     ctx.save();
     // カード背景
-    ctx.fillStyle = isHit ? 'rgba(233,69,96,0.18)' : (type === 'buy' ? 'rgba(0,0,0,0.88)' : _imgTc.card);
+    ctx.fillStyle = isHit ? 'rgba(233,69,96,0.18)' : (isBuy ? 'rgba(0,0,0,0.88)' : _imgTc.card);
     roundRect(ctx, x, cy, w, cardH, 8);
     ctx.fill();
     ctx.strokeStyle = isHit ? '#e94560' : _imgTc.border;
@@ -5057,47 +5073,45 @@ function drawBetCards(ctx, lines, betLabels, betColors, hitTypes, x, y, w, type)
 
     // 種別ピル
     ctx.fillStyle = col;
-    roundRect(ctx, x + 8, cy + 9, 36, 20, 5);
+    roundRect(ctx, x + pillX, cy + (cardH - pillH)/2, pillW, pillH, 5);
     ctx.fill();
     ctx.fillStyle = '#fff';
-    ctx.font = '700 10px sans-serif';
+    ctx.font = pillFont;
     ctx.textAlign = 'center';
-    ctx.fillText(label, x + 26, cy + 23);
+    ctx.fillText(label, x + pillX + pillW/2, cy + (cardH + pillH)/2 - 4);
 
     // 馬番
-    let bx = x + 52;
+    let bx = boxStart;
     const parts = cnt.split('-');
     parts.forEach((part, pi) => {
       if (pi > 0) {
         ctx.fillStyle = '#ffffff';
-        ctx.font = '700 14px sans-serif';
+        ctx.font = sepFont;
         ctx.textAlign = 'center';
-        ctx.fillText('-', bx + 6, cy + 23);
-        bx += 14;
+        ctx.fillText('-', bx + sepW/2, textCY);
+        bx += sepW;
       }
       part.split(/[・.]/).forEach((n, ni) => {
         if (ni > 0) {
           ctx.fillStyle = '#ffffff';
-          ctx.font = '11px sans-serif';
-          ctx.fillText('・', bx + 5, cy + 23);
-          bx += 11;
+          ctx.font = dotFont;
+          ctx.fillText('・', bx + dotW/2, textCY);
+          bx += dotW;
         }
         const bg = imgWakuColor(n.trim());
-        const tx = imgWakuTextColor(n.trim());
         ctx.fillStyle = bg;
-        roundRect(ctx, bx, cy + 7, 24, 24, 4);
+        roundRect(ctx, bx, cy + (cardH - boxSize)/2, boxSize, boxSize, 4);
         ctx.fill();
         if (bg === '#fff' || bg === '#ffffff') {
           ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
-          roundRect(ctx, bx, cy + 7, 24, 24, 4); ctx.stroke();
+          roundRect(ctx, bx, cy + (cardH - boxSize)/2, boxSize, boxSize, 4); ctx.stroke();
         }
-        // 白・黄背景は必ず黒テキスト
         const textColor = (bg === '#fff' || bg === '#ffffff' || bg === '#e6c800') ? '#111' : '#fff';
         ctx.fillStyle = textColor;
-        ctx.font = '900 12px sans-serif';
+        ctx.font = boxFont;
         ctx.textAlign = 'center';
-        ctx.fillText(n.trim(), bx + 12, cy + 23);
-        bx += 28;
+        ctx.fillText(n.trim(), bx + boxSize/2, textCY);
+        bx += boxSize + (isBuy ? 4 : 4);
       });
     });
 
