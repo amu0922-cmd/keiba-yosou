@@ -4633,7 +4633,7 @@ function imgGenerate(type) {
   const betLabels = ['単勝','馬連','ワイド','三連複'];
   const betColors = ['#ff2d55','#007aff','#34c759','#ff9500'];
   const W = 450;
-  const H = type === 'score' ? 1000 : 800;
+  const H = type === 'score' ? 1000 : type === 'buy' ? 900 : 800;
   const DPR = Math.min(window.devicePixelRatio || 2, 3); // 最大3倍
 
   const canvas = document.createElement('canvas');
@@ -4683,28 +4683,32 @@ function imgGenerate(type) {
     if (type === 'score') {
       drawScoreRanking(ctx, W, imgH, tc, comment);
     } else if (type === 'buy') {
-      // 推奨券種カードをペース表示直下に描画
+      // === レイアウト ===
+      // [0〜100]   レースタイトル・ペース (doRender冒頭で描画済み)
+      // [100〜340] 背景画像エリア (240px)
+      // [340〜...]  推奨券種カード + 買い目カード
+
+      // 推奨券種カード
       const recData = _lastRecTickets || null;
-      let recCardH = 0;
+      let contentY = 348; // 画像エリア(240px) + 余白
+
       if (recData) {
-        const cardX = 18, cardW = W - 36;
-        recCardH = 104;
-        const cardY = 106;
+        const cardX = 18, cardW = W - 36, recCardH = 104;
         ctx.fillStyle = 'rgba(20,20,40,0.95)';
-        roundRect(ctx, cardX, cardY, cardW, recCardH, 6);
+        roundRect(ctx, cardX, contentY, cardW, recCardH, 6);
         ctx.fill();
         ctx.strokeStyle = '#f39c12';
         ctx.lineWidth = 1.5;
-        roundRect(ctx, cardX, cardY, cardW, recCardH, 6);
+        roundRect(ctx, cardX, contentY, cardW, recCardH, 6);
         ctx.stroke();
 
         ctx.fillStyle = '#f39c12';
         ctx.font = '700 11px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText('🎯 今回の推奨券種', cardX + 10, cardY + 18);
+        ctx.fillText('🎯 今回の推奨券種', cardX + 10, contentY + 18);
 
         let bx = cardX + 10;
-        const by = cardY + 26;
+        const by = contentY + 26;
         (recData.tickets || []).forEach((t) => {
           const label = t.replace(/《|》/g, '');
           ctx.font = '700 13px sans-serif';
@@ -4730,15 +4734,13 @@ function imgGenerate(type) {
         ctx.font = '400 11px sans-serif';
         ctx.textAlign = 'left';
         reasonLines.forEach((line, i) => {
-          ctx.fillText(line.substring(0, 45), cardX + 10, cardY + 68 + i * 16);
+          ctx.fillText(line.substring(0, 45), cardX + 10, contentY + 68 + i * 16);
         });
+
+        contentY += recCardH + 8;
       }
 
-      // 本命バナーを推奨券種カードの下に
-      const bannerY = 106 + recCardH + 8;
-      drawHorseBanner(ctx, topHorse, jikustr, 18, bannerY, W - 36);
-      let betStartY = bannerY + 60;
-      drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, betStartY, W - 36, type);
+      drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, contentY, W - 36, type);
     } else if (type === 'hit') {
       drawBetCards(ctx, drawLines, drawLabels, drawColors, hitTypes, 18, 120, W - 36, type);
     } else {
@@ -4904,33 +4906,32 @@ function imgGenerate(type) {
     const img = new Image();
     img.onload = () => {
       const imgHh = type === 'score' ? Math.round(H * 0.50) : Math.round(H * 0.48);
-      // buy画像はタイトル直下(Y=100)から画像を表示
+      // buy画像はタイトル直下(Y=100)から240px固定
       const imgTop = type === 'buy' ? 100 : H - imgHh;
-      const clipH = type === 'buy' ? imgHh : imgHh;
+      const clipH  = type === 'buy' ? 240 : imgHh;
       const scale = Math.max(W / img.width, clipH / img.height);
       const dw = img.width * scale;
       const dh = img.height * scale;
       const dx = (W - dw) / 2;
-      const dy = imgTop;
+      const dy = imgTop + (clipH - dh) / 2;
       ctx.save();
       ctx.beginPath();
       ctx.rect(0, imgTop, W, clipH);
       ctx.clip();
       ctx.drawImage(img, dx, dy, dw, dh);
       ctx.restore();
-      // 上方向グラデ（テキストエリアとなじませる）
-      const grad = ctx.createLinearGradient(0, imgTop, 0, imgTop + clipH * 0.5);
-      grad.addColorStop(0, 'rgba(10,10,10,1)');
-      grad.addColorStop(1, 'rgba(10,10,10,0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, imgTop, W, clipH * 0.5);
-      // 下方向グラデ(buy時：テキストが重なる下部を暗くする)
+      // 上下グラデでなじませる
+      const gradT = ctx.createLinearGradient(0, imgTop, 0, imgTop + 40);
+      gradT.addColorStop(0, 'rgba(10,10,10,1)');
+      gradT.addColorStop(1, 'rgba(10,10,10,0)');
+      ctx.fillStyle = gradT;
+      ctx.fillRect(0, imgTop, W, 40);
       if (type === 'buy') {
-        const gradB = ctx.createLinearGradient(0, imgTop + clipH * 0.5, 0, imgTop + clipH);
+        const gradB = ctx.createLinearGradient(0, imgTop + clipH - 40, 0, imgTop + clipH);
         gradB.addColorStop(0, 'rgba(10,10,10,0)');
-        gradB.addColorStop(1, 'rgba(10,10,10,0.85)');
+        gradB.addColorStop(1, 'rgba(10,10,10,1)');
         ctx.fillStyle = gradB;
-        ctx.fillRect(0, imgTop + clipH * 0.5, W, clipH * 0.5);
+        ctx.fillRect(0, imgTop + clipH - 40, W, 40);
       }
       doRender();
     };
