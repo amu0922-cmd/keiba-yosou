@@ -4670,15 +4670,19 @@ function imgGenerate(type) {
     }
 
     // ── タイプ別 ──
+    const drawLines = (recLines && recLines.length > 0) ? recLines : lines;
+    const drawLabels = drawLines.map(l => { const m = l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m ? m[1] : ''; });
+    const colorMap3 = {'単勝':'#ff2d55','複勝':'#9b59b6','馬連':'#007aff','ワイド':'#34c759','三連複':'#ff9500'};
+    const drawColors = drawLabels.map(l => colorMap3[l] || '#888');
     if (type === 'score') {
       drawScoreRanking(ctx, W, imgH, tc, comment);
     } else if (type === 'buy') {
       drawHorseBanner(ctx, topHorse, jikustr, 18, 112, W - 36);
-      drawBetCards(ctx, lines, betLabels, betColors, null, 18, 170, W - 36, type);
+      drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, 170, W - 36, type);
     } else if (type === 'hit') {
-      drawBetCards(ctx, lines, betLabels, betColors, hitTypes, 18, 120, W - 36, type);
+      drawBetCards(ctx, drawLines, drawLabels, drawColors, hitTypes, 18, 120, W - 36, type);
     } else {
-      drawBetCards(ctx, lines, betLabels, betColors, null, 18, 120, W - 36, type);
+      drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, 120, W - 36, type);
     }
 
     // ── ハズレスタンプ（最前面）──
