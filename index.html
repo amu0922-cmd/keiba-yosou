@@ -826,6 +826,7 @@ let savedJsons = {};
 let savedListSortOrder = 'desc'; // desc=新しい順, asc=古い順
 let currentRaceName = '';
 let currentWeightType = '';
+let _lastRecTickets = null; // 推奨券種を画像生成で参照するためグローバル保持
 
 function setWeightType(type) {
   currentWeightType = type || '';
@@ -2993,6 +2994,7 @@ function renderAnalysis() {
   
   // 推奨券種を決定（formation/ninkiBad/oddsBad定義後）
   const recTickets = getRecommendedTickets();
+  _lastRecTickets = recTickets; // 画像生成で参照
 
   // 陣形表示
   const formationColor = formation.includes('1強') ? '#e94560' : formation.includes('2強') ? '#2563eb' : formation.includes('波乱') ? '#f39c12' : '#3498db';
@@ -4682,7 +4684,58 @@ function imgGenerate(type) {
       drawScoreRanking(ctx, W, imgH, tc, comment);
     } else if (type === 'buy') {
       drawHorseBanner(ctx, topHorse, jikustr, 18, 112, W - 36);
-      drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, 170, W - 36, type);
+
+      // 推奨券種カード
+      const recData = _lastRecTickets || null;
+      let betStartY = 170;
+      if (recData) {
+        const cardX = 18, cardW = W - 36;
+        // カード背景
+        ctx.fillStyle = 'rgba(20,20,40,0.95)';
+        roundRect(ctx, cardX, betStartY, cardW, 52, 6);
+        ctx.fill();
+        ctx.strokeStyle = '#f39c12';
+        ctx.lineWidth = 1;
+        roundRect(ctx, cardX, betStartY, cardW, 52, 6);
+        ctx.stroke();
+
+        // ラベル「今回の推奨券種」
+        ctx.fillStyle = '#f39c12';
+        ctx.font = '700 9px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('🎯 今回の推奨券種', cardX + 8, betStartY + 13);
+
+        // 券種バッジ
+        let bx = cardX + 8;
+        const by = betStartY + 18;
+        (recData.tickets || []).forEach((t, i) => {
+          const label = t.replace(/《|》/g, '');
+          ctx.font = '700 10px sans-serif';
+          const tw = ctx.measureText(label).width + 14;
+          ctx.fillStyle = 'rgba(249,200,66,0.25)';
+          roundRect(ctx, bx, by, tw, 18, 3);
+          ctx.fill();
+          ctx.strokeStyle = '#f39c12';
+          ctx.lineWidth = 1;
+          roundRect(ctx, bx, by, tw, 18, 3);
+          ctx.stroke();
+          ctx.fillStyle = '#fff';
+          ctx.textAlign = 'left';
+          ctx.fillText(label, bx + 7, by + 12);
+          bx += tw + 6;
+        });
+
+        // 理由テキスト(1行目のみ)
+        const reasonLine = (recData.reason || '').split('\n')[0].replace(/[✅⚠️🎯📊📌]/g, '');
+        ctx.fillStyle = '#aab0c0';
+        ctx.font = '400 8px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(reasonLine.trim().substring(0, 50), cardX + 8, betStartY + 48);
+
+        betStartY += 58;
+      }
+
+      drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, betStartY, W - 36, type);
     } else if (type === 'hit') {
       drawBetCards(ctx, drawLines, drawLabels, drawColors, hitTypes, 18, 120, W - 36, type);
     } else {
