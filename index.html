@@ -5041,7 +5041,7 @@ function drawBetCards(ctx, lines, betLabels, betColors, hitTypes, x, y, w, type)
 
     ctx.save();
     // カード背景
-    ctx.fillStyle = isHit ? 'rgba(233,69,96,0.18)' : _imgTc.card;
+    ctx.fillStyle = isHit ? 'rgba(233,69,96,0.18)' : (type === 'buy' ? 'rgba(0,0,0,0.88)' : _imgTc.card);
     roundRect(ctx, x, cy, w, cardH, 8);
     ctx.fill();
     ctx.strokeStyle = isHit ? '#e94560' : _imgTc.border;
