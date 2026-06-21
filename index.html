@@ -4633,7 +4633,7 @@ function imgGenerate(type) {
   const betLabels = ['単勝','馬連','ワイド','三連複'];
   const betColors = ['#ff2d55','#007aff','#34c759','#ff9500'];
   const W = 450;
-  const H = type === 'score' ? 1000 : type === 'buy' ? 900 : 800;
+  const H = type === 'score' ? 1000 : type === 'buy' ? 1050 : 800;
   const DPR = Math.min(window.devicePixelRatio || 2, 3); // 最大3倍
 
   const canvas = document.createElement('canvas');
@@ -4684,15 +4684,17 @@ function imgGenerate(type) {
       drawScoreRanking(ctx, W, imgH, tc, comment);
     } else if (type === 'buy') {
       // === レイアウト ===
-      // [0〜100]   レースタイトル・ペース (doRender冒頭で描画済み)
-      // [100〜340] 背景画像エリア (240px)
-      // [340〜...]  推奨券種カード + 買い目カード
+      // [0〜100]    レースタイトル・ペース
+      // [100〜520]  背景画像エリア(420px)
+      // [528〜...]  推奨券種カード → 買い目カード
 
-      // 推奨券種カード
-      const recData = _lastRecTickets || null;
-      let contentY = 348; // 画像エリア(240px) + 余白
+      // 推奨券種カード(_lastRecTicketsがなければrecLinesから組み立て)
+      const recData = _lastRecTickets || (recLines && recLines.length > 0
+        ? { tickets: recLines.map(l => `《${l}》`), reason: '' }
+        : null);
+      let contentY = 528;
 
-      if (recData) {
+      if (recData && recData.tickets && recData.tickets.length > 0) {
         const cardX = 18, cardW = W - 36, recCardH = 104;
         ctx.fillStyle = 'rgba(20,20,40,0.95)';
         roundRect(ctx, cardX, contentY, cardW, recCardH, 6);
@@ -4906,9 +4908,9 @@ function imgGenerate(type) {
     const img = new Image();
     img.onload = () => {
       const imgHh = type === 'score' ? Math.round(H * 0.50) : Math.round(H * 0.48);
-      // buy画像はタイトル直下(Y=100)から240px固定
+      // buy画像はタイトル直下(Y=100)から420px固定
       const imgTop = type === 'buy' ? 100 : H - imgHh;
-      const clipH  = type === 'buy' ? 240 : imgHh;
+      const clipH  = type === 'buy' ? 420 : imgHh;
       const scale = Math.max(W / img.width, clipH / img.height);
       const dw = img.width * scale;
       const dh = img.height * scale;
