@@ -5078,7 +5078,9 @@ function drawBetCards(ctx, lines, betLabels, betColors, hitTypes, x, y, w, type)
     ctx.fillStyle = '#fff';
     ctx.font = pillFont;
     ctx.textAlign = 'center';
-    ctx.fillText(label, x + pillX + pillW/2, cy + (cardH + pillH)/2 - 4);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x + pillX + pillW/2, cy + cardH/2);
+    ctx.textBaseline = 'alphabetic';
 
     // 馬番
     let bx = boxStart;
