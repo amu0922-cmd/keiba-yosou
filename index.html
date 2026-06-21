@@ -4095,11 +4095,13 @@ function generateResultImage(isHit) {
     return `<span style="${ws}display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:4px;font-weight:900;font-size:13px;flex-shrink:0;">${banum}</span>`;
   }
   function renderBanums2(str) {
+    // "1-5・15・2" や "1・5・15" など混在に対応
+    // まず-で軸と相手を分割、次に・で各馬番を分割
     const parts = str.split('-');
     let html = '';
     parts.forEach((part, pi) => {
       if (pi > 0) html += `<span style="color:${textSub};font-size:14px;font-weight:900;margin:0 2px;">-</span>`;
-      part.split('.').forEach((n, ni) => {
+      part.split(/[・.]/).forEach((n, ni) => {
         if (ni > 0) html += `<span style="color:${textSub};font-size:11px;margin:0 1px;">・</span>`;
         html += banuBox2(n.trim());
       });
@@ -4960,7 +4962,7 @@ function drawBetCards(ctx, lines, betLabels, betColors, hitTypes, x, y, w, type)
   const gap   = 6;
   lines.forEach((line, i) => {
     const label = betLabels[i] || '';
-    const cnt   = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
+    const cnt   = line.replace(/^(単勝|複勝|馬連|ワイド|三連複)\s+/, '');
     const col   = betColors[i];
     const isHit = hitTypes && hitTypes.has(label);
     const cy    = y + i * (cardH + gap);
@@ -4995,7 +4997,7 @@ function drawBetCards(ctx, lines, betLabels, betColors, hitTypes, x, y, w, type)
         ctx.fillText('-', bx + 6, cy + 23);
         bx += 14;
       }
-      part.split('.').forEach((n, ni) => {
+      part.split(/[・.]/).forEach((n, ni) => {
         if (ni > 0) {
           ctx.fillStyle = '#ffffff';
           ctx.font = '11px sans-serif';
