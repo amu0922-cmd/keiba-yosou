@@ -4690,49 +4690,55 @@ function imgGenerate(type) {
       let betStartY = 170;
       if (recData) {
         const cardX = 18, cardW = W - 36;
+        const cardH = 104;
         // カード背景
         ctx.fillStyle = 'rgba(20,20,40,0.95)';
-        roundRect(ctx, cardX, betStartY, cardW, 52, 6);
+        roundRect(ctx, cardX, betStartY, cardW, cardH, 6);
         ctx.fill();
         ctx.strokeStyle = '#f39c12';
-        ctx.lineWidth = 1;
-        roundRect(ctx, cardX, betStartY, cardW, 52, 6);
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, cardX, betStartY, cardW, cardH, 6);
         ctx.stroke();
 
         // ラベル「今回の推奨券種」
         ctx.fillStyle = '#f39c12';
-        ctx.font = '700 9px sans-serif';
+        ctx.font = '700 11px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText('🎯 今回の推奨券種', cardX + 8, betStartY + 13);
+        ctx.fillText('🎯 今回の推奨券種', cardX + 10, betStartY + 18);
 
-        // 券種バッジ
-        let bx = cardX + 8;
-        const by = betStartY + 18;
-        (recData.tickets || []).forEach((t, i) => {
+        // 券種バッジ(大きめ)
+        let bx = cardX + 10;
+        const by = betStartY + 26;
+        (recData.tickets || []).forEach((t) => {
           const label = t.replace(/《|》/g, '');
-          ctx.font = '700 10px sans-serif';
-          const tw = ctx.measureText(label).width + 14;
+          ctx.font = '700 13px sans-serif';
+          const tw = ctx.measureText(label).width + 18;
           ctx.fillStyle = 'rgba(249,200,66,0.25)';
-          roundRect(ctx, bx, by, tw, 18, 3);
+          roundRect(ctx, bx, by, tw, 28, 4);
           ctx.fill();
           ctx.strokeStyle = '#f39c12';
-          ctx.lineWidth = 1;
-          roundRect(ctx, bx, by, tw, 18, 3);
+          ctx.lineWidth = 1.5;
+          roundRect(ctx, bx, by, tw, 28, 4);
           ctx.stroke();
           ctx.fillStyle = '#fff';
           ctx.textAlign = 'left';
-          ctx.fillText(label, bx + 7, by + 12);
-          bx += tw + 6;
+          ctx.fillText(label, bx + 9, by + 19);
+          bx += tw + 8;
         });
 
-        // 理由テキスト(1行目のみ)
-        const reasonLine = (recData.reason || '').split('\n')[0].replace(/[✅⚠️🎯📊📌]/g, '');
-        ctx.fillStyle = '#aab0c0';
-        ctx.font = '400 8px sans-serif';
+        // 理由テキスト(2行まで、大きめ)
+        const reasonLines = (recData.reason || '').split('\n')
+          .map(l => l.replace(/[✅⚠️🎯📊📌]/g, '').trim())
+          .filter(l => l.length > 0)
+          .slice(0, 2);
+        ctx.fillStyle = '#ccd0e0';
+        ctx.font = '400 11px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText(reasonLine.trim().substring(0, 50), cardX + 8, betStartY + 48);
+        reasonLines.forEach((line, i) => {
+          ctx.fillText(line.substring(0, 45), cardX + 10, betStartY + 68 + i * 16);
+        });
 
-        betStartY += 58;
+        betStartY += cardH + 6;
       }
 
       drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, betStartY, W - 36, type);
