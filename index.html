@@ -2760,7 +2760,8 @@ function renderAnalysis() {
         return isAnaBeta && isUpperHalf && isNearTop && (isDashi || isMaejunGood);
       }).slice(0, 4);
 
-      const anaNums = anaHorses.map(h => String(h.banum));
+      const anaNums = anaHorses.map(h => String(h.banum))
+        .filter(n => n !== jiku1Str); // 軸馬と重複する番号を除外
       // 軸馬(1〜3人気)も入れてワイドの軸にする
       const jiku1Str = String(jiku1Num);
 
@@ -4584,8 +4585,8 @@ function imgCalcBets() {
       return isAnaBeta && isUpperHalf && isNearTop && (isDashi || isMaejunGood);
     }).slice(0, 4);
     const anaNums = anaHorsesImg.length > 0
-      ? anaHorsesImg.map(h => Number(h.banum))
-      : ranked.filter(h => Number(h.ninki) >= 4).slice(0,2).map(h => Number(h.banum));
+      ? anaHorsesImg.map(h => Number(h.banum)).filter(n => n !== jiku1Num)
+      : ranked.filter(h => Number(h.ninki) >= 4).slice(0,2).map(h => Number(h.banum)).filter(n => n !== jiku1Num);
     recLines.push(`複勝  ${anaNums.slice(0,3).join('・')}`);
     recLines.push(`ワイド ${jiku1Num}-${anaNums.join('・')}`);
   } else if (ninkiBadImg || oddsBadImg) {
@@ -5009,12 +5010,13 @@ function drawBetCards(ctx, lines, betLabels, betColors, hitTypes, x, y, w, type)
         ctx.fillStyle = bg;
         roundRect(ctx, bx, cy + 7, 24, 24, 4);
         ctx.fill();
-        if (bg === '#fff') {
+        if (bg === '#fff' || bg === '#ffffff') {
           ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
           roundRect(ctx, bx, cy + 7, 24, 24, 4); ctx.stroke();
         }
-        // 白背景の場合は必ず黒テキスト
-        ctx.fillStyle = (bg === '#fff' || bg === '#e6c800') ? '#222' : tx;
+        // 白・黄背景は必ず黒テキスト
+        const textColor = (bg === '#fff' || bg === '#ffffff' || bg === '#e6c800') ? '#111' : '#fff';
+        ctx.fillStyle = textColor;
         ctx.font = '900 12px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(n.trim(), bx + 12, cy + 23);
