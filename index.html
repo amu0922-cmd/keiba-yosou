@@ -4110,11 +4110,16 @@ function generateResultImage(isHit) {
   // 的中タイプのセット
   const hitSet = new Set(hitTypes.split(/[\s,、]+/).filter(Boolean));
 
+  // 別定・ハンデ戦は穴馬用のrecLinesを優先
+  const displayLines2 = (recLines && recLines.length > 0) ? recLines : lines;
+  const colorMap2 = {'単勝':'#ff2d55','複勝':'#9b59b6','馬連':'#007aff','ワイド':'#34c759','三連複':'#ff9500'};
+
   let betRows = '';
-  lines.forEach((line, i) => {
-    const label = betLabels[i] || '';
-    const cnt = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
-    const col = betColors[i] || accent;
+  displayLines2.forEach((line, i) => {
+    const typeMatch = line.match(/^(単勝|複勝|馬連|ワイド|三連複)/);
+    const label = typeMatch ? typeMatch[1] : (betLabels[i] || '');
+    const cnt = line.replace(/^(単勝|複勝|馬連|ワイド|三連複)\s+/, '');
+    const col = colorMap2[label] || accent;
     const isLineHit = isHit && hitSet.has(label);
     const rowStyle = isLineHit
       ? `background:rgba(233,69,96,0.18);border:1.5px solid #e94560;`
