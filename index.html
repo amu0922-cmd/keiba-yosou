@@ -1978,7 +1978,8 @@ function loadSavedJSON(name) {
 
     setStatus(`✅ 「${name}」を読込（${horses.length}頭・DB設定）`, 'ok');
   } catch (e) {
-    setStatus('❌ 読込エラー', 'err');
+    console.error('loadSavedJSON error:', e);
+    setStatus('❌ 読込エラー: ' + (e.message || '').substring(0, 30), 'err');
   }
 }
 
@@ -2632,7 +2633,7 @@ function getMeritLabel(pace, kyakushitsu) {
 function renderAnalysis() {
   const content = document.getElementById('analysis-content');
   if (horses.length === 0) { content.innerHTML = '<div style="padding: 20px; text-align: center; color: #aab0c0;">馬を読込してください</div>'; return; }
-
+  try {
   // 展開ペース取得（展開予想タブの設定を参照）
   const overrideEl = document.getElementById('pace-override');
   const override = overrideEl ? overrideEl.value : 'auto';
@@ -3141,6 +3142,10 @@ function renderAnalysis() {
   }
 
   content.innerHTML = html;
+  } catch(e) {
+    console.error('renderAnalysis error:', e);
+    content.innerHTML = `<div style="padding:20px;text-align:center;color:#e94560;">予想表示エラー: ${e.message}</div>`;
+  }
 }
 
 // テキストコピペからインポート
