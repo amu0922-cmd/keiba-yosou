@@ -496,6 +496,19 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <input type="text" id="record-invest" class="inp" placeholder="投資¥" style="font-size: 10px;">
         <input type="text" id="record-return" class="inp" placeholder="回収¥" style="font-size: 10px;">
       </div>
+      <!-- 券種別配当入力 -->
+      <div style="margin-bottom: 8px; background:#f7f8ff; border:1px solid #d0d7e8; border-radius:6px; padding:8px;">
+        <div style="font-size:9px;font-weight:900;color:#2563eb;margin-bottom:6px;">💰 券種別配当（円/100円あたり）</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+          <input type="number" id="payout-tansho" class="inp" placeholder="単勝 配当¥" style="font-size:10px;">
+          <input type="number" id="payout-fukusho" class="inp" placeholder="複勝 配当¥" style="font-size:10px;">
+          <input type="number" id="payout-umaren" class="inp" placeholder="馬連 配当¥" style="font-size:10px;">
+          <input type="number" id="payout-wide" class="inp" placeholder="ワイド 配当¥" style="font-size:10px;">
+          <input type="number" id="payout-sanfuku" class="inp" placeholder="三連複 配当¥" style="font-size:10px;">
+          <input type="number" id="payout-santan" class="inp" placeholder="三連単 配当¥" style="font-size:10px;">
+        </div>
+        <div style="font-size:8px;color:#6080a0;margin-top:4px;">※ JRAの結果から全券種の払戻金額を入力（検証用）。自分が買っていない券種も入力しておくと後で新戦略のシミュレーションができます</div>
+      </div>
       <div style="margin-bottom: 8px;">
         <input type="text" id="record-score" class="inp" placeholder="偏差値（任意）" style="width:100%;font-size: 10px;">
       </div>
@@ -1966,6 +1979,7 @@ function editRecord(idx) {
   document.getElementById('record-invest').value = r.invest;
   document.getElementById('record-return').value = r.return;
   document.getElementById('record-memo').value = r.memo || '';
+  setPayoutInputs(r.payouts || {});
   
   const btn = document.querySelector('button[onclick*="addRecord"]');
   btn.textContent = '✏️ 更新';
@@ -1991,6 +2005,7 @@ function updateRecord(idx) {
   const invest = parseInt(document.getElementById('record-invest').value) || 0;
   const ret = parseInt(document.getElementById('record-return').value) || 0;
   const memo = document.getElementById('record-memo').value;
+  const payouts = getPayoutInputs();
   
   if (invest === 0) { setStatus('❌ 金額を入力', 'err'); return; }
   
@@ -1999,7 +2014,7 @@ function updateRecord(idx) {
   records[idx] = {
     ...existing,
     race, date, formation, purchase, distance, course, condition, rank, score, weightType,
-    invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo
+    invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo, payouts
   };
   
   saveRecordsLocal();
@@ -2031,6 +2046,32 @@ function resetRecordForm() {
   document.getElementById('record-invest').value = '';
   document.getElementById('record-return').value = '';
   document.getElementById('record-memo').value = '';
+  clearPayoutInputs();
+}
+
+
+function getPayoutInputs() {
+  return {
+    tansho:  parseInt(document.getElementById('payout-tansho')?.value) || null,
+    fukusho: parseInt(document.getElementById('payout-fukusho')?.value) || null,
+    umaren:  parseInt(document.getElementById('payout-umaren')?.value) || null,
+    wide:    parseInt(document.getElementById('payout-wide')?.value) || null,
+    sanfuku: parseInt(document.getElementById('payout-sanfuku')?.value) || null,
+    santan:  parseInt(document.getElementById('payout-santan')?.value) || null,
+  };
+}
+function setPayoutInputs(p) {
+  if (!p) p = {};
+  document.getElementById('payout-tansho').value  = p.tansho  || '';
+  document.getElementById('payout-fukusho').value = p.fukusho || '';
+  document.getElementById('payout-umaren').value  = p.umaren  || '';
+  document.getElementById('payout-wide').value    = p.wide    || '';
+  document.getElementById('payout-sanfuku').value = p.sanfuku || '';
+  document.getElementById('payout-santan').value  = p.santan  || '';
+}
+function clearPayoutInputs() {
+  ['payout-tansho','payout-fukusho','payout-umaren','payout-wide','payout-sanfuku','payout-santan']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
 }
 
 function addRecord() {
@@ -2047,6 +2088,7 @@ function addRecord() {
   const invest = parseInt(document.getElementById('record-invest').value) || 0;
   const ret = parseInt(document.getElementById('record-return').value) || 0;
   const memo = document.getElementById('record-memo').value;
+  const payouts = getPayoutInputs();
   
   if (invest === 0) { setStatus('❌ 金額を入力', 'err'); return; }
   
@@ -2064,6 +2106,7 @@ function addRecord() {
     id: Date.now(), race, date, formation, purchase, distance, course, condition, rank, score,
     weightType: weightType || currentWeightType,
     invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo,
+    payouts,
     // 拡張データ
     finishRanks, betLines, hitLabels, paceInfo,
     horsesSnapshot, dbSnapshot
