@@ -4683,32 +4683,28 @@ function imgGenerate(type) {
     if (type === 'score') {
       drawScoreRanking(ctx, W, imgH, tc, comment);
     } else if (type === 'buy') {
-      drawHorseBanner(ctx, topHorse, jikustr, 18, 112, W - 36);
-
-      // 推奨券種カード
+      // 推奨券種カードをペース表示直下に描画
       const recData = _lastRecTickets || null;
-      let betStartY = 170;
+      let recCardH = 0;
       if (recData) {
         const cardX = 18, cardW = W - 36;
-        const cardH = 104;
-        // カード背景
+        recCardH = 104;
+        const cardY = 106;
         ctx.fillStyle = 'rgba(20,20,40,0.95)';
-        roundRect(ctx, cardX, betStartY, cardW, cardH, 6);
+        roundRect(ctx, cardX, cardY, cardW, recCardH, 6);
         ctx.fill();
         ctx.strokeStyle = '#f39c12';
         ctx.lineWidth = 1.5;
-        roundRect(ctx, cardX, betStartY, cardW, cardH, 6);
+        roundRect(ctx, cardX, cardY, cardW, recCardH, 6);
         ctx.stroke();
 
-        // ラベル「今回の推奨券種」
         ctx.fillStyle = '#f39c12';
         ctx.font = '700 11px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText('🎯 今回の推奨券種', cardX + 10, betStartY + 18);
+        ctx.fillText('🎯 今回の推奨券種', cardX + 10, cardY + 18);
 
-        // 券種バッジ(大きめ)
         let bx = cardX + 10;
-        const by = betStartY + 26;
+        const by = cardY + 26;
         (recData.tickets || []).forEach((t) => {
           const label = t.replace(/《|》/g, '');
           ctx.font = '700 13px sans-serif';
@@ -4726,21 +4722,22 @@ function imgGenerate(type) {
           bx += tw + 8;
         });
 
-        // 理由テキスト(2行まで、大きめ)
         const reasonLines = (recData.reason || '').split('\n')
           .map(l => l.replace(/[✅⚠️🎯📊📌]/g, '').trim())
-          .filter(l => l.length > 0)
+          .filter(l => l.length > 0 && !l.includes('成績最良') && !l.includes('的中率'))
           .slice(0, 2);
         ctx.fillStyle = '#ccd0e0';
         ctx.font = '400 11px sans-serif';
         ctx.textAlign = 'left';
         reasonLines.forEach((line, i) => {
-          ctx.fillText(line.substring(0, 45), cardX + 10, betStartY + 68 + i * 16);
+          ctx.fillText(line.substring(0, 45), cardX + 10, cardY + 68 + i * 16);
         });
-
-        betStartY += cardH + 6;
       }
 
+      // 本命バナーを推奨券種カードの下に
+      const bannerY = 106 + recCardH + 8;
+      drawHorseBanner(ctx, topHorse, jikustr, 18, bannerY, W - 36);
+      let betStartY = bannerY + 60;
       drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, betStartY, W - 36, type);
     } else if (type === 'hit') {
       drawBetCards(ctx, drawLines, drawLabels, drawColors, hitTypes, 18, 120, W - 36, type);
@@ -4907,24 +4904,34 @@ function imgGenerate(type) {
     const img = new Image();
     img.onload = () => {
       const imgHh = type === 'score' ? Math.round(H * 0.50) : Math.round(H * 0.48);
-      const imgTop = H - imgHh; // 画像は下半分
-      const scale = Math.max(W / img.width, imgHh / img.height);
+      // buy画像はタイトル直下(Y=100)から画像を表示
+      const imgTop = type === 'buy' ? 100 : H - imgHh;
+      const clipH = type === 'buy' ? imgHh : imgHh;
+      const scale = Math.max(W / img.width, clipH / img.height);
       const dw = img.width * scale;
       const dh = img.height * scale;
       const dx = (W - dw) / 2;
       const dy = imgTop;
       ctx.save();
       ctx.beginPath();
-      ctx.rect(0, imgTop, W, imgHh);
+      ctx.rect(0, imgTop, W, clipH);
       ctx.clip();
       ctx.drawImage(img, dx, dy, dw, dh);
       ctx.restore();
       // 上方向グラデ（テキストエリアとなじませる）
-      const grad = ctx.createLinearGradient(0, imgTop, 0, imgTop + imgHh * 0.5);
+      const grad = ctx.createLinearGradient(0, imgTop, 0, imgTop + clipH * 0.5);
       grad.addColorStop(0, 'rgba(10,10,10,1)');
       grad.addColorStop(1, 'rgba(10,10,10,0)');
       ctx.fillStyle = grad;
-      ctx.fillRect(0, imgTop, W, imgHh * 0.5);
+      ctx.fillRect(0, imgTop, W, clipH * 0.5);
+      // 下方向グラデ(buy時：テキストが重なる下部を暗くする)
+      if (type === 'buy') {
+        const gradB = ctx.createLinearGradient(0, imgTop + clipH * 0.5, 0, imgTop + clipH);
+        gradB.addColorStop(0, 'rgba(10,10,10,0)');
+        gradB.addColorStop(1, 'rgba(10,10,10,0.85)');
+        ctx.fillStyle = gradB;
+        ctx.fillRect(0, imgTop + clipH * 0.5, W, clipH * 0.5);
+      }
       doRender();
     };
     img.onerror = () => { doRender(); };
