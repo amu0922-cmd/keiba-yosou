@@ -2831,7 +2831,7 @@ function renderAnalysis() {
       const bestAna = anaNums[0] || null;
       const secondAna = anaNums[1] || null;
       const tickets = [];
-      let reason = `🎯 ${currentWeightType}戦：シミュレーション回収率258%の最良戦略\n過去データで2-3着の87.5%が4人気以下\n`;
+      reason = `🎯 ${currentWeightType}戦：シミュレーション回収率258%の最良戦略\n過去データで2-3着の87.5%が4人気以下\n💴 配分例: 複勝400円・ワイド各300円×2点`;
       if (bestAna) {
         tickets.push(`《複勝 ${bestAna}》`);
         tickets.push(`《ワイド ${wideJiku}-${bestAna}》`);
@@ -2888,17 +2888,17 @@ function renderAnalysis() {
     if (ninkiBad || oddsBad) {
       // 軸4人気以下 or 6倍超 → 複勝のみ(シミュレーション結果に基づく)
       tickets.push(`《複勝 ${jiku1Num}》`);
-      reason = `⚠️ 軸馬が低人気・高オッズのため複勝のみ推奨（少額）`;
+      reason = `⚠️ 軸馬が低人気・高オッズのため複勝のみ推奨（少額）\n💴 配分例: 複勝1000円`;
     } else if (odds <= 3) {
       // 軸オッズ3倍以下 → 単勝+複勝(シミュレーション回収率149%)
       tickets.push(`《単勝 ${jiku1Num}》`);
       tickets.push(`《複勝 ${jiku1Num}》`);
-      reason = `✅ 軸オッズ${odds.toFixed(1)}倍：単勝+複勝推奨（シミュレーション回収率149%）`;
+      reason = `✅ 軸オッズ${odds.toFixed(1)}倍：単勝+複勝推奨（シミュレーション回収率149%）\n💴 配分例: 単勝500円・複勝500円`;
     } else {
       // 軸オッズ3-8倍 → 単勝+ワイド(シミュレーション回収率175%)
       tickets.push(`《単勝 ${jiku1Num}》`);
       tickets.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
-      reason = `✅ 軸オッズ${odds.toFixed(1)}倍：単勝+ワイド推奨（シミュレーション回収率175%）`;
+      reason = `✅ 軸オッズ${odds.toFixed(1)}倍：単勝+ワイド推奨（シミュレーション回収率175%）\n💴 配分例: 単勝500円・ワイド各250円×2点`;
     }
 
     // 過去成績の最良買い目があれば注記
