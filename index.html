@@ -2878,7 +2878,7 @@ function renderAnalysis() {
       scoreTop5.slice(0,2).forEach(s => { const n = s.replace('番',''); if (!aiteArr.includes(n)) aiteArr.push(n); });
     }
     if (!jikuIsNinki1 && ninki1Num && !aiteArr.includes(ninki1Num)) aiteArr.push(ninki1Num);
-    aiteArr = aiteArr.slice(0,3);
+    aiteArr = aiteArr.slice(0,2); // ワイド2点(300円+200円=500円)
     const aiteStr = aiteArr.join('・');
 
     // 三連複相手
@@ -2913,7 +2913,7 @@ function renderAnalysis() {
       // 軸オッズ3-8倍 → 単勝+ワイド(シミュレーション回収率175%)
       tickets.push(`《単勝 ${jiku1Num}》`);
       tickets.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
-      reason = `✅ 軸オッズ${odds.toFixed(1)}倍：単勝+ワイド推奨（シミュレーション回収率175%）\n💴 配分例: 単勝500円・ワイド各250円×2点`;
+      reason = `✅ 軸オッズ${odds.toFixed(1)}倍：単勝+ワイド推奨（シミュレーション回収率175%）\n💴 配分例: 単勝500円・ワイド300円+ワイド200円`;
     }
 
     // 過去成績の最良買い目があれば注記
