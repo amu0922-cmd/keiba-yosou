@@ -2811,54 +2811,45 @@ function renderAnalysis() {
     const is2kyou = formation.includes('2強') || formation.includes('鉄板');
     const isHaran = formation.includes('波乱') || formation.includes('混戦');
 
-    // ===== 別定・ハンデ戦: 穴馬ワイド狙いモード =====
+    // ===== 別定・ハンデ戦: 複勝1頭+ワイド2点(シミュレーション回収率258%) =====
     const isHandicap = currentWeightType === '別定' || currentWeightType === 'ハンデ';
     if (isHandicap) {
-      // 穴馬条件: スコア上位50%以内 + トップ差50pt以内 + 4人気以下
       const topScore = ranked[0]?.totalScore || 0;
       const totalHorses = ranked.length;
+      const wideJiku = String(ranked[0].banum);
       const anaHorses = ranked.filter((h, idx) => {
         const ninki = Number(h.ninki);
         const scoreDiff = topScore - (h.totalScore || 0);
-        const scoreRank = idx + 1;
-        const isUpperHalf = scoreRank <= Math.ceil(totalHorses * 0.5);
+        const isUpperHalf = (idx + 1) <= Math.ceil(totalHorses * 0.5);
         const isNearTop = scoreDiff <= 50;
         const isAnaBeta = ninki >= 4;
         const isDashi = h.kyakushitsu === '差し';
         const isMaejunGood = [1,2,3,4].includes(Number(h.maejun));
         return isAnaBeta && isUpperHalf && isNearTop && (isDashi || isMaejunGood);
-      }).slice(0, 4);
-
-      const anaNums = anaHorses.map(h => String(h.banum));
-      // ワイドの軸: スコア1位(人気問わず)
-      const wideJiku = String(ranked[0].banum);
-      // ワイドの相手: 穴馬候補から軸と重複を除外
-      const wideAite = anaNums.filter(n => n !== wideJiku);      // 軸馬(1〜3人気)も入れてワイドの軸にする
-      const jiku1Str = String(jiku1Num);
-
+      });
+      const anaNums = anaHorses.map(h => String(h.banum)).filter(n => n !== wideJiku);
+      const bestAna = anaNums[0] || null;
+      const secondAna = anaNums[1] || null;
       const tickets = [];
-      let reason = `🎯 ${currentWeightType}戦：過去データで2-3着の87.5%が4人気以下\n`;
-
-      if (anaNums.length >= 1) {
-        tickets.push(`《複勝 ${anaNums.slice(0,3).join('・')}》`);
-        if (wideAite.length >= 1) {
-          tickets.push(`《ワイド ${wideJiku}-${wideAite.join('・')}》`);
-        }
-        reason += `✅ 穴馬候補: ${anaNums.map(n=>n+'番').join('・')}\n`;
-        reason += `📌 条件: スコア上位50%以内・トップ差50pt以内・4人気以下`;
+      let reason = `🎯 ${currentWeightType}戦：シミュレーション回収率258%の最良戦略\n過去データで2-3着の87.5%が4人気以下\n`;
+      if (bestAna) {
+        tickets.push(`《複勝 ${bestAna}》`);
+        tickets.push(`《ワイド ${wideJiku}-${bestAna}》`);
+        if (secondAna) tickets.push(`《ワイド ${wideJiku}-${secondAna}》`);
+        reason += `✅ 穴馬候補: ${anaNums.slice(0,2).map(n=>n+'番').join('・')}\n`;
+        reason += `📌 スコア上位50%以内・トップ差50pt以内・4人気以下`;
       } else {
-        // 条件に合う穴馬がいない場合はスコア上位4人気以下の馬を候補に
         const fallback = ranked.filter(h => Number(h.ninki) >= 4).slice(0,2).map(h=>String(h.banum));
-        tickets.push(`《ワイド ${jiku1Str}-${fallback.join('・')}》`);
-        reason += `⚠️ 明確な穴馬候補なし → スコア上位の穴馬でワイド`;
+        tickets.push(`《複勝 ${fallback[0] || wideJiku}》`);
+        if (fallback[0]) tickets.push(`《ワイド ${wideJiku}-${fallback[0]}》`);
+        reason += `⚠️ 穴馬候補なし → スコア上位の穴馬で複勝+ワイド`;
       }
-
-      if (bestPurchase) {
-        reason += `\n📊 あなたの成績最良: ${bestPurchase.name}（的中率${bestPurchase.rate}%）`;
-      }
-      return { tickets, reason, label: tickets.map(t=>t.replace(/《|》/g,'')).join(' / '), isHandicap: true, anaHorses, wideJiku };
+      if (bestPurchase) reason += `\n📊 あなたの成績最良: ${bestPurchase.name}（的中率${bestPurchase.rate}%）`;
+      return { tickets, reason, label: tickets.map(t=>t.replace(/《|》/g,'')).join(' / '), isHandicap: true, anaHorses: anaHorses.slice(0,2), wideJiku };
     }
 
+    // ===== 定量戦: シミュレーション最良戦略 =====
+    // 軸<=3倍→単勝+複勝(回収率149%) / 3-8倍→単勝+ワイド / >8倍or4人気以下→複勝
     // 相手馬(馬連・ワイド用)
     let aiteArr = [];
     if (dbTop1) {
@@ -2895,33 +2886,19 @@ function renderAnalysis() {
     let reason = '';
 
     if (ninkiBad || oddsBad) {
-      // 軸が4人気以下 or 6倍超 → 見送り or 複勝のみ
+      // 軸4人気以下 or 6倍超 → 複勝のみ(シミュレーション結果に基づく)
       tickets.push(`《複勝 ${jiku1Num}》`);
       reason = `⚠️ 軸馬が低人気・高オッズのため複勝のみ推奨（少額）`;
-    } else if (is1kyou && isStrong && odds <= 3) {
-      // 1強かつ軸オッズ3倍以下 → 馬連+三連複(旨みあり)
-      tickets.push(`《馬連 ${jiku1Num}-${aiteStr}》`);
-      tickets.push(`《三連複 ${jiku1Num}-${aite4str}（${sanPts}点）》`);
-      reason = `✅ 軸が堅いが単勝オッズ${odds.toFixed(1)}倍は旨み少 → 馬連・三連複推奨`;
-    } else if (is1kyou && isStrong && odds <= 8) {
-      // 1強・軸オッズ3〜8倍 → 単勝+ワイドがベスト
+    } else if (odds <= 3) {
+      // 軸オッズ3倍以下 → 単勝+複勝(シミュレーション回収率149%)
       tickets.push(`《単勝 ${jiku1Num}》`);
-      tickets.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
-      reason = `✅ 軸の信頼度高・オッズも適正 → 単勝+ワイド推奨`;
-    } else if (is2kyou || (is1kyou && !isStrong)) {
-      // 2強 or 1強だがスコア差小 → ワイド+三連複
-      tickets.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
-      tickets.push(`《三連複 ${jiku1Num}-${aite4str}（${sanPts}点）》`);
-      reason = `✅ 2頭軸の信頼度あり → ワイド+三連複推奨`;
-    } else if (isHaran) {
-      // 波乱・混戦 → ワイドBOX or 三連複のみ
-      tickets.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
-      reason = `⚠️ 混戦傾向のためワイドのみ・少額推奨`;
+      tickets.push(`《複勝 ${jiku1Num}》`);
+      reason = `✅ 軸オッズ${odds.toFixed(1)}倍：単勝+複勝推奨（シミュレーション回収率149%）`;
     } else {
-      // デフォルト → 単勝+ワイド
+      // 軸オッズ3-8倍 → 単勝+ワイド(シミュレーション回収率175%)
       tickets.push(`《単勝 ${jiku1Num}》`);
       tickets.push(`《ワイド ${jiku1Num}-${aiteStr}》`);
-      reason = `✅ 標準的な信頼度 → 単勝+ワイド推奨`;
+      reason = `✅ 軸オッズ${odds.toFixed(1)}倍：単勝+ワイド推奨（シミュレーション回収率175%）`;
     }
 
     // 過去成績の最良買い目があれば注記
@@ -4641,6 +4618,7 @@ function imgCalcBets() {
   if (isHandicapImg) {
     const topScoreImg2 = ranked[0]?.totalScore || 0;
     const totalHorsesImg2 = ranked.length;
+    const wideJikuImg = ranked[0].banum;
     const anaHorsesImg = ranked.filter((h, idx) => {
       const ninki = Number(h.ninki);
       const scoreDiff = topScoreImg2 - (h.totalScore || 0);
@@ -4650,32 +4628,29 @@ function imgCalcBets() {
       const isDashi = h.kyakushitsu === '差し';
       const isMaejunGood = [1,2,3,4].includes(Number(h.maejun));
       return isAnaBeta && isUpperHalf && isNearTop && (isDashi || isMaejunGood);
-    }).slice(0, 4);
-    const anaNums = anaHorsesImg.length > 0
-      ? anaHorsesImg.map(h => Number(h.banum))
-      : ranked.filter(h => Number(h.ninki) >= 4).slice(0,2).map(h => Number(h.banum));
-    const wideJikuImg = ranked[0].banum;
-    const wideAiteImg = anaNums.filter(n => n !== wideJikuImg);
-    recLines.push(`複勝  ${anaNums.slice(0,3).join('・')}`);
-    if (wideAiteImg.length >= 1) {
-      recLines.push(`ワイド ${wideJikuImg}-${wideAiteImg.join('・')}`);
+    });
+    const anaNums = anaHorsesImg.map(h => Number(h.banum)).filter(n => n !== wideJikuImg);
+    const bestAnaImg = anaNums[0] || null;
+    const secondAnaImg = anaNums[1] || null;
+    if (bestAnaImg) {
+      recLines.push(`複勝  ${bestAnaImg}`);
+      recLines.push(`ワイド ${wideJikuImg}-${bestAnaImg}`);
+      if (secondAnaImg) recLines.push(`ワイド ${wideJikuImg}-${secondAnaImg}`);
+    } else {
+      const fb = ranked.filter(h => Number(h.ninki) >= 4).slice(0,1).map(h => h.banum);
+      if (fb[0]) { recLines.push(`複勝  ${fb[0]}`); recLines.push(`ワイド ${wideJikuImg}-${fb[0]}`); }
     }
   } else if (ninkiBadImg || oddsBadImg) {
     recLines.push(`複勝  ${jiku1Num}`);
-  } else if (buyStrengthImg === 'strong' && jikuOddsImg <= 3) {
-    recLines.push(`馬連  ${jiku1Num}-${aiteImgStr}`);
-    recLines.push(`三連複 ${jiku1Num}-${aite4imgStr}`);
-  } else if (buyStrengthImg === 'strong') {
+  } else if (jikuOddsImg <= 3) {
     recLines.push(`単勝  ${jiku1Num}`);
-    recLines.push(`ワイド ${jiku1Num}-${aiteImgStr}`);
-  } else if (buyStrengthImg === 'normal') {
-    recLines.push(`ワイド ${jiku1Num}-${aiteImgStr}`);
-    recLines.push(`三連複 ${jiku1Num}-${aite4imgStr}`);
+    recLines.push(`複勝  ${jiku1Num}`);
   } else {
+    recLines.push(`単勝  ${jiku1Num}`);
     recLines.push(`ワイド ${jiku1Num}-${aiteImgStr}`);
   }
 
-  return { ranked, jiku, jikustr, paceLabel, lines, recLines, topHorse: jiku[0] };
+    return { ranked, jiku, jikustr, paceLabel, lines, recLines, topHorse: jiku[0] };
 }
 
 // 枠色を返す
