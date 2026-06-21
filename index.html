@@ -4693,8 +4693,8 @@ function imgGenerate(type) {
         ? { tickets: recLines.map(l => `《${l}》`), reason: '' }
         : null);
       let contentY = 540;
-      // コメントがある場合はその分下にずらす
-      if (comment) contentY = 524 + 42 + 20;
+      // コメントがある場合はその分下にずらす(余白40px)
+      if (comment) contentY = 536 + 42 + 40;
 
       if (recData && recData.tickets && recData.tickets.length > 0) {
         const cardX = 18, cardW = W - 36, recCardH = 104;
