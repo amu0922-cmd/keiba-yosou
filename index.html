@@ -1468,6 +1468,12 @@ function autoSaveHorses() {
 }
 
 function renderTable() {
+  // 馬データが変わったので予想・展開タブをリセット
+  const ac = document.getElementById('analysis-content');
+  if (ac) ac.innerHTML = '<div style="padding: 20px; text-align: center; color: #aab0c0;">馬を読込すると予想が表示されます</div>';
+  const pc = document.getElementById('pace-analysis-content');
+  if (pc) pc.innerHTML = '<div style="padding: 20px; text-align: center; color: #aab0c0;">馬を読込すると展開予想が表示されます</div>';
+  _lastRecTickets = null;
   autoSaveHorses();
   // 着順入力エリアを表示
   const fra = document.getElementById('finish-rank-area');
