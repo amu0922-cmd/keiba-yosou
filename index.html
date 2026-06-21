@@ -4633,7 +4633,7 @@ function imgGenerate(type) {
   const betLabels = ['単勝','馬連','ワイド','三連複'];
   const betColors = ['#ff2d55','#007aff','#34c759','#ff9500'];
   const W = 450;
-  const H = type === 'score' ? 1000 : type === 'buy' ? 1050 : 800;
+  const H = type === 'score' ? 1000 : type === 'buy' ? 1100 : 800;
   const DPR = Math.min(window.devicePixelRatio || 2, 3); // 最大3倍
 
   const canvas = document.createElement('canvas');
@@ -4692,9 +4692,9 @@ function imgGenerate(type) {
       const recData = _lastRecTickets || (recLines && recLines.length > 0
         ? { tickets: recLines.map(l => `《${l}》`), reason: '' }
         : null);
-      let contentY = 528;
+      let contentY = 540;
       // コメントがある場合はその分下にずらす
-      if (comment) contentY = 524 + 42 + 8;
+      if (comment) contentY = 524 + 42 + 20;
 
       if (recData && recData.tickets && recData.tickets.length > 0) {
         const cardX = 18, cardW = W - 36, recCardH = 104;
@@ -4741,7 +4741,7 @@ function imgGenerate(type) {
           ctx.fillText(line.substring(0, 45), cardX + 10, contentY + 68 + i * 16);
         });
 
-        contentY += recCardH + 8;
+        contentY += recCardH + 16;
       }
 
       drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, contentY, W - 36, type);
@@ -4859,8 +4859,8 @@ function imgGenerate(type) {
         const scoreRows = comment ? 6 : 8;
         cy = 102 + scoreRows * (66 + 4) + 10;
       } else if (type === 'buy') {
-        // 画像エリア(100〜520)の直下・推奨券種カードの上
-        cy = 524;
+        // 画像エリア(100〜520)の直下・余白16px
+        cy = 536;
       } else {
         cy = 120 + lines.length * 44 + 8;
       }
