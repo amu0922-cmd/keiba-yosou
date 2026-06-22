@@ -2225,6 +2225,12 @@ function renderRecordList() {
       </div>
       ${r.distance ? `<div style="font-size: 8px; color: #8090a0; margin-bottom: 2px;">📍 ${r.distance}m | ${r.course || '?'} | ${r.condition || '?'}</div>` : ''}
       ${r.memo && r.memo !== '📋 コピペインポート' ? `<div style="font-size: 8px; color: #8090a0; margin-bottom: 4px;">備: ${r.memo}</div>` : ''}
+      ${r.anaResult && r.anaResult.length > 0 ? `
+      <div style="font-size:8px;background:#f0f4ff;border:1px solid #c0cce8;border-radius:4px;padding:4px 6px;margin-bottom:4px;">
+        🎰 穴馬候補: ${r.anaResult.map(a =>
+          `<span style="font-weight:700;color:${a.hit ? '#16a34a' : '#e94560'};">${a.banum}番${a.name ? a.name.substring(0,4) : ''} ${a.hit ? '✅'+a.rank+'着' : '❌'}</span>`
+        ).join(' / ')}
+      </div>` : ''}
       <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
         <button class="btn btn-blue" style="padding: 4px; font-size: 8px;" onclick="showRecordDetail(${origIdx});">📋 詳細</button>
         <button class="btn btn-blue" style="padding: 4px; font-size: 8px;" onclick="editRecord(${origIdx});">✏️ 編集</button>
