@@ -3728,6 +3728,10 @@ async function loadFromSupabase() {
     }
     if (data.paceBonus) paceBonus = data.paceBonus;
     if (data.savedJsons) { savedJsons = data.savedJsons; renderSavedJsonList(); }
+    // netkeiba URLを復元
+    if (data.raceUrls) {
+      Object.entries(data.raceUrls).forEach(([k, v]) => localStorage.setItem(k, v));
+    }
     return true;
   } catch(e) {
     console.error('Supabase読込エラー:', e);
@@ -3737,10 +3741,19 @@ async function loadFromSupabase() {
 
 async function saveToSupabase() {
   try {
+    // raceUrlsをlocalStorageから収集
+    const raceUrls = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('kp_race_url_')) {
+        raceUrls[key] = localStorage.getItem(key);
+      }
+    }
     const data = {
       horses, db, records, paceBonus, savedJsons,
       raceName: currentRaceName,
       weightType: currentWeightType,
+      raceUrls,
       savedAt: new Date().toISOString()
     };
     await sbFetch('POST', [{ id: 'main', data, updated_at: new Date().toISOString() }]);
