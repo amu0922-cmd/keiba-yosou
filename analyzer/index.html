@@ -222,7 +222,7 @@
 
   <div style="background:rgba(249,200,66,0.08);border:1px solid rgba(249,200,66,0.25);border-radius:10px;padding:12px;margin-bottom:14px;">
     <div style="font-size:10px;font-weight:900;color:var(--gold);margin-bottom:8px;">📄 レースデータPDF 一括インポート</div>
-    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">ウマニティ等の重賞データ分析PDFのテキストをコピーして貼り付け。脚質・枠順・人気・種牡馬の着別度数を自動抽出します</div>
+    <div style="font-size:9px;color:var(--text2);margin-bottom:8px;">ウマニティ等の重賞データ分析PDFのテキストをコピーして貼り付け。脚質・枠順・人気・種牡馬の着別度数を自動抽出します<br>📌 ウマニティ・重賞ナビのテキストも一緒に貼り付けると前走着順・年齢・馬体重・前走クラスも同時取り込めます</div>
     <div class="inp-grid col3" style="margin-bottom:8px;">
       <div>
         <div class="inp-label">レース名</div>
@@ -1704,10 +1704,66 @@ function importRacePDF() {
   }
 
   raceData[raceName] = entry;
+
+  // ===== 同じテキストからウマニティ+重賞ナビのデータも抽出 =====
+  // importKeibaNaviTextと同じロジックをここで実行
+  const rd = raceData[raceName];
+  let naviImported = 0;
+
+  function parseAtsuInline(str) {
+    const m = str.match(/(\d+)-(\d+)-(\d+)-(\d+)/);
+    if (!m) return null;
+    return { w: parseInt(m[1]), r2: parseInt(m[2]), r3: parseInt(m[3]), out: parseInt(m[4]) };
+  }
+  function parseTableInline(text, labels) {
+    const results = {};
+    for (const [key, patterns] of Object.entries(labels)) {
+      for (const pat of patterns) {
+        const re = new RegExp(pat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s\\S]{0,30}?(\\d+)-(\\d+)-(\\d+)-(\\d+)', '');
+        const m = text.match(re);
+        if (m) {
+          const v = { w: parseInt(m[1]), r2: parseInt(m[2]), r3: parseInt(m[3]), out: parseInt(m[4]) };
+          if (v.w + v.r2 + v.r3 + v.out > 0) { results[key] = v; break; }
+        }
+      }
+    }
+    return results;
+  }
+
+  const allLabels = [
+    ['maejun', {'1':['1着 ','1着\t'],'2':['2着 ','2着\t'],'3':['3着 ','3着\t'],'4':['4着 ','4着\t'],'5':['5着 ','5着\t'],'6-9':['6-9着','6〜9着','6～9着'],'10-':['10着-','10着以下','10着〜','10着 ']}],
+    ['age',    {'3':['3歳 ','3歳\t'],'4':['4歳 ','4歳\t'],'5':['5歳 ','5歳\t'],'6':['6歳 ','6歳\t'],'7':['7歳- ','7歳以上']}],
+    ['kyakushitsu', {'逃げ':['逃げ ','逃げ\t'],'先行':['先行 ','先行\t'],'差し':['差し ','差し\t'],'追い込み':['追込 ','追込\t','追い込み ']}],
+    ['waku',   {'1':['1枠 ','1枠\t'],'2':['2枠 ','2枠\t'],'3':['3枠 ','3枠\t'],'4':['4枠 ','4枠\t'],'5':['5枠 ','5枠\t'],'6':['6枠 ','6枠\t'],'7':['7枠 ','7枠\t'],'8':['8枠 ','8枠\t']}],
+    ['ninki',  {'1':['1番人気','1人気'],'2':['2番人気','2人気'],'3':['3番人気','3人気'],'4':['4番人気','4人気'],'5':['5番人気','5人気'],'6-9':['6〜9番人気','6-9番人気','6～9番人気'],'10-':['10番人気〜','10番人気-','10番人気以下']}],
+    ['baju',   {'～419':['～419','〜419','-419'],'420～439':['420～439','420〜439','420-439'],'440～459':['440～459','440〜459','440-459'],'460～479':['460～479','460〜479','460-479'],'480～499':['480～499','480〜499','480-499'],'500～519':['500～519','500〜519','500-519'],'520～':['520～','520〜','520-']}],
+    ['maeclass',{'GI':['GⅠ ','GⅠ\t','G1 '],'GII':['GⅡ ','GⅡ\t','G2 '],'GIII':['GⅢ ','GⅢ\t','G3 '],'OP':['オープン ','OP ','リステッド '],'3勝':['3勝クラス','3勝 '],'2勝':['2勝クラス','2勝 ']}],
+  ];
+
+  const CONFIDENCE_SAMPLE = 50;
+  for (const [cat, labels] of allLabels) {
+    const results = parseTableInline(raw, labels);
+    if (Object.keys(results).length > 0) {
+      if (!rd[cat]) rd[cat] = {};
+      for (const [key, newVal] of Object.entries(results)) {
+        const existing = rd[cat][key];
+        if (!existing) {
+          rd[cat][key] = newVal; naviImported++;
+        } else {
+          const existTotal = existing.w + existing.r2 + existing.r3 + existing.out;
+          const newTotal = newVal.w + newVal.r2 + newVal.r3 + newVal.out;
+          if (newTotal > existTotal) rd[cat][key] = newVal;
+        }
+      }
+    }
+  }
+
   localStorage.setItem('kp_analyzer_race', JSON.stringify(raceData));
   renderRaceList();
   updateRaceSelect();
-  setRaceImportStatus(`✅ 「${raceName}」を登録しました（脚質${Object.keys(entry.kyakushitsu).length}件・枠順${Object.keys(entry.waku).length}件・人気${Object.keys(entry.ninki).length}件・種牡馬${Object.keys(entry.sire).length}件）`, 'green');
+  const cats = ['kyakushitsu','waku','ninki','sire','maejun','age','baju','maeclass'];
+  const counts = cats.map(c => `${c.replace('kyakushitsu','脚質').replace('waku','枠順').replace('ninki','人気').replace('sire','種牡馬').replace('maejun','前走着順').replace('age','年齢').replace('baju','馬体重').replace('maeclass','前走クラス')}:${Object.keys(rd[c]||{}).length}件`).filter(s=>!s.endsWith(':0件'));
+  setRaceImportStatus(`✅ 「${raceName}」を登録しました（${counts.join('・')}）`, 'green');
   document.getElementById('race-pdf-area').value = '';
 }
 
