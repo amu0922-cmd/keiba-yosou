@@ -2044,6 +2044,7 @@ function updateRecord(idx) {
     ...existing,
     race, date, formation, purchase, distance, course, condition, rank, score, weightType,
     invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo, payouts
+    // anaResultは既存データを引き継ぎ(editでは再計算しない)
   };
   
   saveRecordsLocal();
@@ -2142,11 +2143,51 @@ function addRecord() {
   const paceInfo       = pt.paceInfo       || '';
   window._pendingTransfer = null; // 使用後クリア
 
+  // 穴馬候補の実際の着順を自動計算(別定・ハンデ戦のみ)
+  let anaResult = null;
+  const wt = weightType || currentWeightType;
+  if (wt === '別定' || wt === 'ハンデ') {
+    const pace = paceInfo || '';
+    const PACE_BONUS_MAP = {
+      'high': {'逃げ':-15,'先行':-10,'差し':15,'追い込み':20,'自在':0},
+      'mid':  {'逃げ':0,'先行':5,'差し':5,'追い込み':0,'自在':5},
+      'slow': {'逃げ':20,'先行':15,'差し':-5,'追い込み':-15,'自在':5}
+    };
+    const paceKey = pace.includes('ハイ') ? 'high' : pace.includes('スロー') ? 'slow' : 'mid';
+    const scored = [...horsesSnapshot].sort((a, b) => {
+      const sa = (dbSnapshot.jockey?.[a.jockey]||0)+(dbSnapshot.sire?.[a.sire]||0)
+                +(dbSnapshot.kyakushitsu?.[a.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(a.ninki)]||0)
+                +(dbSnapshot.maejun?.[String(a.maejun)]||0)+(dbSnapshot.maeclass?.[a.maeclass]||0)
+                +(dbSnapshot.waku?.[String(a.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[a.kyakushitsu]||0);
+      const sb = (dbSnapshot.jockey?.[b.jockey]||0)+(dbSnapshot.sire?.[b.sire]||0)
+                +(dbSnapshot.kyakushitsu?.[b.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(b.ninki)]||0)
+                +(dbSnapshot.maejun?.[String(b.maejun)]||0)+(dbSnapshot.maeclass?.[b.maeclass]||0)
+                +(dbSnapshot.waku?.[String(b.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[b.kyakushitsu]||0);
+      return sb - sa;
+    });
+    const topScore = scored[0] ? ((dbSnapshot.jockey?.[scored[0].jockey]||0)+(dbSnapshot.sire?.[scored[0].sire]||0)) : 0;
+    const wideJikuBanum = scored[0]?.banum;
+    const n = scored.length;
+    const anaCandidates = scored.filter((h, idx) => {
+      const ninki = Number(h.ninki);
+      const isDashi = h.kyakushitsu === '差し';
+      const isMaejun = [1,2,3,4].includes(Number(h.maejun));
+      return ninki >= 4 && (idx+1)/n <= 0.5 && (isDashi || isMaejun) && h.banum !== wideJikuBanum;
+    }).slice(0, 2);
+    const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
+    anaResult = anaCandidates.map(h => ({
+      banum: h.banum, name: h.name, ninki: h.ninki,
+      hit: hit23.has(h.banum),
+      rank: h.banum === finishRanks.rank1 ? 1 : h.banum === finishRanks.rank2 ? 2 : h.banum === finishRanks.rank3 ? 3 : null
+    }));
+  }
+
   records.push({
     id: Date.now(), race, date, formation, purchase, distance, course, condition, rank, score,
-    weightType: weightType || currentWeightType,
+    weightType: wt,
     invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo,
     payouts,
+    anaResult, // 穴馬候補の実際の着順
     // 拡張データ
     finishRanks, betLines, hitLabels, paceInfo,
     horsesSnapshot, dbSnapshot
