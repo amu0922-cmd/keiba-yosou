@@ -482,6 +482,9 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
           <option value="新潟">新潟</option>
           <option value="中京">中京</option>
           <option value="福島">福島</option>
+          <option value="函館">函館</option>
+          <option value="札幌">札幌</option>
+          <option value="小倉">小倉</option>
           <option value="地方">地方</option>
         </select>
         <select id="record-condition" class="sel" style="font-size: 10px;">
@@ -597,6 +600,24 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
             <option value="slow">🐢 スローペース</option>
           </select>
           <button class="btn btn-gold" onclick="renderPaceAnalysis()" style="padding: 6px 14px; font-size: 10px;">🔄 再計算</button>
+        </div>
+        <!-- 馬場状態手動選択 -->
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+          <div style="font-size:10px;font-weight:700;color:#1a1a2e;white-space:nowrap;">🏇 馬場状態:</div>
+          <select id="baba-select" class="sel" style="flex:1;font-size:10px;" onchange="currentBaba=this.value;renderPaceAnalysis();">
+            <option value="">🌐 自動(天気API)</option>
+            <option value="良">☀️ 良</option>
+            <option value="稍重">🌦️ 稍重</option>
+            <option value="重">🌧️ 重</option>
+            <option value="不良">⛈️ 不良</option>
+          </select>
+        </div>
+        <!-- 道悪ボーナス -->
+        <div style="margin-bottom:8px;">
+          <button id="muddy-btn" class="btn" style="width:100%;font-size:10px;background:#e8f4fd;color:#1a1a2e;border:1.5px solid #90c0e0;" onclick="toggleMuddySireBonus()">
+            💧 道悪得意/苦手 種牡馬ボーナス: OFF
+          </button>
+          <div style="font-size:8px;color:#6080a0;margin-top:3px;">得意: オルフェ・ゴールドシップ・キタサン等 / 苦手: エピファネイア・ジャスタウェイ等（稍重/重/不良時のみ有効）</div>
         </div>
         <!-- ペース別ボーナス設定 -->
         <div style="background:#f7f8ff;border:1px solid #d0d7e8;border-radius:6px;padding:8px;font-size:9px;width:100%;box-sizing:border-box;overflow:hidden;">
@@ -1415,7 +1436,7 @@ function calcAllScores() {
   const _effectiveBonusMap = _babaAdj ? Object.fromEntries(Object.entries(_bonusMap).map(([k,v]) => [k, v + (_babaAdj[k]||0)])) : _bonusMap;
   return horses.map((h, idx) => {
     const _paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
-    const trendScore = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+_paddockPt;
+    const trendScore = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+getMuddySireBonus(h.sire)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+_paddockPt;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = _effectiveBonusMap[h.kyakushitsu]||0;
@@ -1498,7 +1519,7 @@ function renderTable() {
   const jirushiMap = getJirushiMap();
   // 期待値計算用に全馬スコアを先に計算
   const allScoresForEV = horses.map(h => {
-    const ts = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
+    const ts = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+getMuddySireBonus(h.sire)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
     const cs = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const ms = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const pa = _effectiveBonusMap[h.kyakushitsu]||0;
@@ -2533,7 +2554,7 @@ function renderPaceAnalysis() {
   // 各馬の展開ボーナス込みスコア
   const ranked = horses.map(h => {
     const _paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
-    const trendScore = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+_paddockPt;
+    const trendScore = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+getMuddySireBonus(h.sire)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+_paddockPt;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const baseTotal = trendScore + chokyoScore + commentScore;
@@ -2630,7 +2651,7 @@ function renderPaceAnalysis() {
   ['high','mid','slow'].forEach(p => {
     const bmap = paceBonus[p];
     const scenarioRanked = [...horses].map(h => {
-      const base = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
+      const base = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+getMuddySireBonus(h.sire)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
       const adj = bmap[h.kyakushitsu]||0;
       return { ...h, paceTotal: base+adj+({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0)+({'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0) };
     }).sort((a,b)=>b.paceTotal-a.paceTotal);
@@ -3514,7 +3535,7 @@ function analyzeResult() {
 
   // 予想スコアを計算
   const scored = horses.map(h => {
-    const ts = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
+    const ts = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+getMuddySireBonus(h.sire)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0);
     const cs = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const ms = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const pa = effectiveBonusMap[h.kyakushitsu]||0;
@@ -3854,7 +3875,7 @@ function generateXPostImage() {
   const effectiveBonusMap = babaAdj ? Object.fromEntries(Object.entries(bonusMap).map(([k,v]) => [k, v + (babaAdj[k]||0)])) : bonusMap;
   const ranked = horses.map(h => {
     const _paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
-    const trendScore = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+_paddockPt;
+    const trendScore = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+getMuddySireBonus(h.sire)+(db.age?.[h.age]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+_paddockPt;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
@@ -3963,7 +3984,7 @@ function generateBuyImage() {
   const ranked = horses.map(h => {
     const nk = String(h.ninki);
     const paddockScore = h.paddock==='A'?20:h.paddock==='B'?0:h.paddock==='C'?-15:0;
-    const trendScore = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+paddockScore;
+    const trendScore = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+getMuddySireBonus(h.sire)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+paddockScore;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
@@ -4152,7 +4173,7 @@ function generateResultImage(isHit) {
   const ranked = horses.map(h => {
     const nk = String(h.ninki);
     const paddockScore = h.paddock==='A'?20:h.paddock==='B'?0:h.paddock==='C'?-15:0;
-    const trendScore = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+paddockScore;
+    const trendScore = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+getMuddySireBonus(h.sire)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+paddockScore;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
@@ -5386,7 +5407,7 @@ function drawScoreRanking(ctx, W, imgH, tc, comment) {
   const ranked = horses.map(h => {
     const nk = String(h.ninki);
     const paddockScore = h.paddock==='A'?20:h.paddock==='B'?0:h.paddock==='C'?-15:0;
-    const trendScore = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+paddockScore;
+    const trendScore = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+getMuddySireBonus(h.sire)+(db.age?.[String(h.age)]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[nk]||0)+(db.maejun?.[String(h.maejun)]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[String(h.waku)]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+paddockScore;
     const chokyoScore = ({'A':20,'B':0,'C':-20}[h.chokyoFinal]||0)+({'A':20,'B':0,'C':-20}[h.chokyoPrev]||0);
     const commentScore = {'◎':20,'◯':0,'△':-20,'×':-20}[h.comment]||0;
     const paceAdj = bonusMap?.[h.kyakushitsu]||0;
@@ -6246,9 +6267,43 @@ const RACECOURSES = [
 // 天気データをグローバルに保持（展開予想で参照）
 const weatherCache = {}; // { '阪神': { baba: '重', precipitation: 8.2 }, ... }
 
+function toggleMuddySireBonus() {
+  muddySireEnabled = !muddySireEnabled;
+  const btn = document.getElementById('muddy-btn');
+  if (muddySireEnabled) {
+    btn.style.background = '#1a4a6e';
+    btn.style.color = '#fff';
+    btn.style.border = '1.5px solid #2563eb';
+    btn.textContent = '💧 道悪得意/苦手 種牡馬ボーナス: ON ✅';
+  } else {
+    btn.style.background = '#e8f4fd';
+    btn.style.color = '#1a1a2e';
+    btn.style.border = '1.5px solid #90c0e0';
+    btn.textContent = '💧 道悪得意/苦手 種牡馬ボーナス: OFF';
+  }
+  renderPaceAnalysis();
+  // 予想タブも再計算
+  if (horses.length > 0) renderAnalysis();
+}
+
 function getBabaFromWeather(courseName) {
   return weatherCache[courseName]?.baba || null;
 }
+
+// 手動で選択した馬場状態(天気APIより優先)
+let currentBaba = ''; // ''=自動(天気API) / '良'/'稍重'/'重'/'不良'
+
+// 道悪得意/苦手種牡馬ボーナス(一時的・そのレースのみ有効)
+// スクリーンショットのデータより設定
+const MUDDY_SIRE_BONUS = {
+  // 道悪得意(重&不良で成績UP)
+  'オルフェーヴル': 12, 'ゴールドシップ': 12, 'キングズベスト': 10,
+  'キタサンブラック': 15, 'キングカメハメハ': 8, 'スクリーンヒーロー': 8,
+  'ハービンジャー': 10,
+  // 道悪苦手(重&不良で成績DOWN)
+  'エピファネイア': -8, 'ジャスタウェイ': -10, 'ディープインパクト': -5,
+  'ハーツクライ': -5,
+};
 
 function getCurrentCourseName() {
   if (!currentRaceName) return null;
@@ -6258,18 +6313,40 @@ function getCurrentCourseName() {
   return null;
 }
 
-// 馬場状態による脚質補正マップを返す
-// 重馬場: 逃げ+15 先行+10 差し-10 追い込み-15
-// 稍重:   逃げ+8  先行+5  差し-5  追い込み-8
-function getBabaAdjMap() {
+// 現在の馬場状態を取得(手動優先→天気API)
+function getCurrentBaba() {
+  if (currentBaba) return currentBaba;
   const courseName = getCurrentCourseName();
-  const baba = courseName ? getBabaFromWeather(courseName) : null;
-  if (baba === '重') {
+  return courseName ? getBabaFromWeather(courseName) : null;
+}
+
+// 馬場状態による脚質補正マップを返す
+function getBabaAdjMap() {
+  const baba = getCurrentBaba();
+  if (baba === '重' || baba === '不良') {
     return { '逃げ': 15, '先行': 10, '差し': -10, '追い込み': -15, '自在': 3 };
   } else if (baba === '稍重') {
     return { '逃げ': 8, '先行': 5, '差し': -5, '追い込み': -8, '自在': 2 };
   }
-  return null; // 良馬場は補正なし
+  return null;
+}
+
+// 道悪ボーナス有効フラグ(展開タブのボタンで切替)
+let muddySireEnabled = false;
+
+// 種牡馬の道悪ボーナスを取得(有効時のみ)
+function getMuddySireBonus(sireName) {
+  const baba = getCurrentBaba();
+  if (!muddySireEnabled || !sireName) return 0;
+  if (baba !== '重' && baba !== '不良' && baba !== '稍重') return 0;
+  // 部分一致で検索
+  for (const [key, val] of Object.entries(MUDDY_SIRE_BONUS)) {
+    if (sireName.includes(key) || key.includes(sireName)) {
+      // 稍重は半分のボーナス
+      return baba === '稍重' ? Math.round(val * 0.5) : val;
+    }
+  }
+  return 0;
 }
 
 const WX_CODE = {
