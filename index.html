@@ -434,7 +434,17 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     <div class="card">
       <div class="card-title">📚 成績</div>
       
-      <div style="display: grid; grid-template-columns: 1fr; gap: 6px; margin-bottom: 8px;">
+      <!-- 全データ統合バックアップ -->
+      <div style="background:linear-gradient(135deg,#1a1a2e,#2d2d44);border-radius:8px;padding:10px;margin-bottom:12px;">
+        <div style="font-size:10px;font-weight:900;color:#f39c12;margin-bottom:6px;">📦 全データ統合バックアップ</div>
+        <div style="font-size:8px;color:#aab0c0;margin-bottom:8px;">出馬表・DB設定・成績・レース一覧・URL・ペース設定を全て1つのJSONに保存・復元</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <button class="btn btn-gold" onclick="exportFullBackup()" style="font-size:10px;font-weight:900;">💾 全データ出力</button>
+          <button class="btn" onclick="document.getElementById('full-backup-file').click()" style="background:#27ae60;color:#fff;font-size:10px;font-weight:900;">📂 全データ復元</button>
+        </div>
+        <input type="file" id="full-backup-file" accept=".json" style="display:none;" onchange="importFullBackup(event)">
+        <div id="full-backup-status" style="font-size:9px;margin-top:6px;text-align:center;color:#aab0c0;"></div>
+      </div>
         <input type="text" id="record-race" class="inp" placeholder="レース名" style="font-size: 10px;">
         <input type="date" id="record-date" class="inp" style="font-size: 10px;">
       </div>
@@ -3695,6 +3705,103 @@ function analyzeResult() {
 
 
 // localStorage用軽量保存（horsesSnapshot・dbSnapshotを除外）
+// ===== 全データ統合バックアップ =====
+function exportFullBackup() {
+  // netkeiba URLを全収集
+  const raceUrls = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('kp_race_url_')) {
+      raceUrls[key] = localStorage.getItem(key);
+    }
+  }
+
+  const fullData = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    // 出馬表・レース設定
+    horses,
+    raceName: currentRaceName,
+    weightType: currentWeightType,
+    // DB設定
+    db,
+    // 成績
+    records,
+    // レース一覧バックアップ
+    savedJsons,
+    // ペース設定
+    paceBonus,
+    // netkeiba URL
+    raceUrls,
+  };
+
+  const blob = new Blob([JSON.stringify(fullData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `競馬予想_全データ_${new Date().toLocaleDateString('ja-JP').replace(/\//g,'-')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById('full-backup-status').textContent = `✅ 全データを出力しました（成績${records.length}件・レース${Object.keys(savedJsons).length}件）`;
+}
+
+async function importFullBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('full-backup-status');
+  statusEl.textContent = '⏳ 復元中...';
+  try {
+    const text = await file.text();
+    const fullData = JSON.parse(text);
+
+    if (!fullData.version) throw new Error('形式が不正です');
+
+    // 出馬表
+    if (fullData.horses && fullData.horses.length > 0) {
+      horses = fullData.horses;
+      if (fullData.raceName) { currentRaceName = fullData.raceName; setRaceName(currentRaceName); }
+      if (fullData.weightType) { currentWeightType = fullData.weightType; setWeightType(currentWeightType); }
+      renderTable();
+      localStorage.setItem('kp_last_horses', JSON.stringify(horses));
+      localStorage.setItem('kp_last_race', currentRaceName);
+    }
+    // DB設定
+    if (fullData.db && Object.keys(fullData.db).length > 0) {
+      db = fullData.db;
+      localStorage.setItem('kp_db', JSON.stringify(db));
+      renderDBSection();
+    }
+    // 成績
+    if (fullData.records && fullData.records.length > 0) {
+      records = fullData.records;
+      saveRecordsLocal();
+      renderRecordList();
+      renderGraph();
+    }
+    // レース一覧
+    if (fullData.savedJsons) {
+      savedJsons = fullData.savedJsons;
+      localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
+      renderSavedJsonList();
+    }
+    // ペース設定
+    if (fullData.paceBonus) {
+      paceBonus = fullData.paceBonus;
+      localStorage.setItem('kp_pace_bonus', JSON.stringify(paceBonus));
+    }
+    // netkeiba URL
+    if (fullData.raceUrls) {
+      Object.entries(fullData.raceUrls).forEach(([k, v]) => localStorage.setItem(k, v));
+    }
+
+    statusEl.textContent = `✅ 復元完了（成績${records.length}件・レース${Object.keys(savedJsons).length}件・馬${horses.length}頭）`;
+    setStatus('✅ 全データを復元しました', 'ok');
+  } catch(e) {
+    statusEl.textContent = '❌ 復元エラー: ' + e.message;
+  }
+  event.target.value = '';
+}
+
 function saveRecordsLocal() {
   const light = records.map(r => {
     const { horsesSnapshot, dbSnapshot, ...rest } = r;
