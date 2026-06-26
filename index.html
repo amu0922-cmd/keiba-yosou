@@ -161,6 +161,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     <button class="tab-btn tab-main" onclick="switchTo('main')">🏇 出馬</button>
     <button class="tab-btn tab-db" onclick="switchTo('db')">⚙️ DB</button>
     <button class="tab-btn tab-record" onclick="switchTo('record')">📚 成績</button>
+    <button class="tab-btn tab-stats" onclick="switchTo('stats');renderStats()">📈 分析</button>
     <button class="tab-btn tab-analysis" onclick="switchTo('analysis')">📊 予想</button>
     <button class="tab-btn tab-pace" onclick="switchTo('pace')">🏃 展開</button>
     <button class="tab-btn tab-xpost" onclick="switchTo('xpost')">🐦 投稿</button>
@@ -552,7 +553,6 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
       </div>
       <div id="learning-result" style="margin-top: 12px;"></div>
       <div id="record-list" style="max-height: 400px; overflow-y: auto; margin-top: 12px;"></div>
-    </div>
 
     <!-- 成績グラフ -->
     <div class="card">
@@ -722,128 +722,18 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
       <div style="margin-top:6px;padding:7px 10px;background:#f3eeff;border-radius:8px;font-size:9px;color:#7c3aed;font-weight:700;text-align:center;">📱 長押し保存 または「画像を保存」ボタンをタップ</div>
     </div>
 
-    <!-- 成績グラフ画像 -->
-    <div class="card" style="border:2px solid #1a9e50;">
-      <div class="card-title" style="color:#1a9e50;">📊 成績グラフ画像生成</div>
-      <div style="font-size:9px;color:#6080a0;margin-bottom:8px;">成績タブのデータから月別・的中率グラフ画像を生成します。</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
-        <div>
-          <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">📅 期間</label>
-          <select id="img-graph-period" class="sel" style="width:100%;font-size:11px;">
-            <option value="3">直近3ヶ月</option>
-            <option value="6" selected>直近6ヶ月</option>
-            <option value="12">直近12ヶ月</option>
-            <option value="all">全期間</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">📈 グラフ種類</label>
-          <select id="img-graph-type" class="sel" style="width:100%;font-size:11px;">
-            <option value="monthly">月別損益</option>
-            <option value="rate">的中率推移</option>
-            <option value="both">両方</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn" onclick="imgGenerateGraph()" style="width:100%;padding:10px;font-size:11px;background:linear-gradient(135deg,#1a9e50,#0d6e35);color:#fff;">📊 グラフ画像を生成</button>
-    </div>
+  </div><!-- record tab end -->
 
-    <!-- グラフプレビュー -->
-    <div class="card" id="graph-preview-card" style="border:1px solid #1a9e50;display:none;">
-      <div class="card-title" style="color:#1a9e50;">📊 グラフプレビュー</div>
-      <div id="graph-preview-area" style="padding:0;text-align:center;"></div>
-      <button style="width:100%;margin-top:10px;padding:11px;background:linear-gradient(135deg,#1a9e50,#0d6e35);border:none;border-radius:9px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;" onclick="graphSave()">💾 グラフ画像を保存</button>
-    </div>
-
-    <!-- 的中/ハズレ報告カード -->
-    <div class="card" style="border:2px solid #e94560;">
-      <div class="card-title">🎰 結果報告画像</div>
-      <div style="margin-bottom:8px;">
-        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:4px;">✏️ 結果コメント（任意）</label>
-        <input type="text" id="result-comment" class="inp" style="width:100%;" placeholder="例: ワイド的中！配当2,340円">
-      </div>
-      <div style="margin-bottom:8px;">
-        <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:4px;">🎯 的中した買い目（スペース区切り）</label>
-        <input type="text" id="result-hits" class="inp" style="width:100%;" placeholder="例: 単勝 ワイド">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button class="btn" onclick="generateResultImage(true)" style="padding:10px;font-size:11px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;">🎊 的中画像</button>
-        <button class="btn" onclick="generateResultImage(false)" style="padding:10px;font-size:11px;background:linear-gradient(135deg,#444,#222);color:#fff;">💧 ハズレ画像</button>
-      </div>
-    </div>
-
-    <!-- 結果報告プレビュー -->
+  <!-- 分析タブ -->
+  <div id="stats" class="tab-content">
     <div class="card">
-      <div class="card-title">🎰 結果報告プレビュー</div>
-      <div id="result-preview-area" style="text-align:center;color:#aab0c0;padding:20px;">「的中画像」か「ハズレ画像」を押してください</div>
-      <div id="result-save-btn-area" style="display:none;margin-top:10px;">
-        <button class="btn btn-gold" onclick="saveResultImage()" style="width:100%;padding:10px;font-size:11px;">💾 画像を保存</button>
-      </div>
+      <div class="card-title">📈 成績分析レポート</div>
+      <div style="font-size:9px;color:#6080a0;margin-bottom:8px;">成績データから自動集計。新ルール(2000円配分)でのシミュレーションも表示</div>
+      <div id="stats-content" style="color:#aab0c0;text-align:center;padding:20px;">成績タブにデータを入力すると分析が表示されます</div>
     </div>
+  </div>
 
-    <!-- 次回予告カード -->
-    <div class="card" style="border:2px solid #2563eb;">
-      <div class="card-title">📣 次回予告画像</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
-        <div>
-          <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">📅 日付</label>
-          <input type="text" id="next-date" class="inp" style="width:100%;" placeholder="例: 6/7">
-        </div>
-        <div>
-          <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">🏟 場所</label>
-          <input type="text" id="next-place" class="inp" style="width:100%;" placeholder="例: 東京">
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
-        <div>
-          <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">🌿 芝/ダート・距離</label>
-          <input type="text" id="next-dist" class="inp" style="width:100%;" placeholder="例: 芝1600m">
-        </div>
-        <div>
-          <label style="font-size:9px;color:#6080a0;font-weight:700;display:block;margin-bottom:3px;">🏆 レース名</label>
-          <input type="text" id="next-race" class="inp" style="width:100%;" placeholder="例: 安田記念">
-        </div>
-      </div>
-      <button class="btn btn-blue" onclick="generateNextImage()" style="width:100%;padding:10px;font-size:11px;">📣 次回予告画像を生成</button>
-    </div>
-
-    <!-- ハッシュタグ生成カード -->
-    <div class="card" style="border:2px solid #1da1f2;">
-      <div class="card-title">🏷️ X用ハッシュタグ生成</div>
-      <div style="font-size:9px;color:#6080a0;margin-bottom:8px;">現在のレース情報から自動生成。次回予告欄の入力も反映されます。</div>
-      <button class="btn" onclick="generateHashtags()" style="width:100%;padding:10px;font-size:11px;background:linear-gradient(135deg,#1da1f2,#0d8bd9);color:#fff;margin-bottom:8px;">🏷️ ハッシュタグを生成</button>
-      <div id="hashtag-area" style="display:none;">
-        <div id="hashtag-text" style="background:#f0f8ff;border:1px solid #1da1f2;border-radius:8px;padding:10px 12px;font-size:12px;font-weight:700;color:#0d3a5c;line-height:1.9;word-break:break-all;"></div>
-        <button class="btn" onclick="copyHashtags()" style="width:100%;padding:8px;font-size:11px;background:#1da1f2;color:#fff;margin-top:6px;">📋 ワンタップコピー</button>
-      </div>
-    </div>
-
-    <!-- 次回予告プレビュー -->
-    <div class="card">
-      <div class="card-title">📣 次回予告プレビュー</div>
-      <div id="next-preview-area" style="text-align:center;color:#aab0c0;padding:20px;">「次回予告画像を生成」ボタンを押してください</div>
-      <div id="next-save-btn-area" style="display:none;margin-top:10px;">
-        <button class="btn btn-blue" onclick="saveNextImage()" style="width:100%;padding:10px;font-size:11px;">💾 画像を保存</button>
-      </div>
-    </div>
-
-    <!-- スコアランキング画像 -->
-    <div class="card">
-      <div class="card-title">📊 スコアランキング画像</div>
-      <div id="xpost-preview-area" style="text-align:center;color:#aab0c0;padding:20px;">「スコアランキング」ボタンを押してください</div>
-      <div id="xpost-save-btn-area" style="display:none;margin-top:10px;">
-        <button class="btn btn-gold" onclick="saveXPostImage()" style="width:100%;padding:10px;font-size:11px;">💾 画像を保存</button>
-      </div>
-    </div>
-
-    <!-- 推奨買い目画像 -->
-    <div class="card">
-      <div class="card-title">🎯 推奨買い目画像</div>
-      <div id="buy-preview-area" style="text-align:center;color:#aab0c0;padding:20px;">「推奨買い目」ボタンを押してください</div>
-      <div id="buy-save-btn-area" style="display:none;margin-top:10px;">
-        <button class="btn btn-blue" onclick="saveBuyImage()" style="width:100%;padding:10px;font-size:11px;">💾 画像を保存</button>
-      </div>
-    </div>
+  <!-- 投稿タブ -->
   </div>
 
 
@@ -863,14 +753,6 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
       </div>
     </div>
 
-    <!-- 振り返り分析 -->
-    <div class="card" style="border:2px solid #27ae60;">
-      <div class="card-title" style="color:#1a9e50;">🔍 振り返り分析（レース結果照合）</div>
-      <div style="font-size:9px;color:#6080a0;margin-bottom:8px;">Geminiで着順JSONを作成→貼り付けて分析</div>
-      <textarea id="result-json-input" spellcheck="false" placeholder='{"results": [{"rank": 1, "banum": 17, "name": "ロブチェン", ...}]}'></textarea>
-      <button class="btn btn-green" onclick="analyzeResult()" style="width:100%;margin-top:8px;padding:10px;font-size:11px;">🔍 振り返り分析を実行</button>
-      <div id="review-content" style="margin-top:10px;"></div>
-    </div>
   </div>
 
 
@@ -2272,6 +2154,207 @@ function renderRecordList() {
   setTimeout(renderRecordGraphs, 50);
 }
 
+
+function renderStats() {
+  const el = document.getElementById('stats-content');
+  if (!el) return;
+  if (!records || records.length === 0) {
+    el.innerHTML = '<div style="color:#aab0c0;text-align:center;padding:20px;">成績データがありません</div>';
+    return;
+  }
+
+  // 基本集計
+  const total = records.length;
+  const hits = records.filter(r => r.hitLabels && r.hitLabels.length > 0).length;
+  const totalInv = records.reduce((s,r) => s+Number(r.invest||0), 0);
+  const totalRet = records.reduce((s,r) => s+Number(r.return||0), 0);
+
+  // 負担重量別
+  const wtStats = {};
+  ['定量','別定','ハンデ','馬齢'].forEach(wt => {
+    const rs = records.filter(r => r.weightType === wt);
+    if (!rs.length) return;
+    const inv = rs.reduce((s,r)=>s+Number(r.invest||0),0);
+    const ret = rs.reduce((s,r)=>s+Number(r.return||0),0);
+    const h = rs.filter(r=>r.hitLabels&&r.hitLabels.length>0).length;
+    wtStats[wt] = { count:rs.length, hit:h, inv, ret, rate: inv>0?ret/inv*100:0 };
+  });
+
+  // 穴馬候補精度
+  let anaTotal=0, anaHit=0, ana1Hit=0, ana1Total=0, ana2Hit=0, ana2Total=0;
+  records.filter(r=>r.anaResult).forEach(r => {
+    r.anaResult.forEach((a,i) => {
+      anaTotal++;
+      if(a.hit) anaHit++;
+      if(i===0){ ana1Total++; if(a.hit) ana1Hit++; }
+      if(i===1){ ana2Total++; if(a.hit) ana2Hit++; }
+    });
+  });
+
+  // ペース別
+  const paceStats = {};
+  records.forEach(r => {
+    const p = (r.paceInfo||'').includes('ハイ') ? '🔥ハイ' : (r.paceInfo||'').includes('スロー') ? '🐢スロー' : '⚡ミドル';
+    if (!paceStats[p]) paceStats[p] = {count:0,hit:0,inv:0,ret:0};
+    paceStats[p].count++;
+    paceStats[p].inv += Number(r.invest||0);
+    paceStats[p].ret += Number(r.return||0);
+    if(r.hitLabels&&r.hitLabels.length>0) paceStats[p].hit++;
+  });
+
+  // 新ルール2000円シミュレーション
+  const PACE_BONUS_SIM = {
+    high:{'逃げ':-15,'先行':-10,'差し':15,'追い込み':20,'自在':0},
+    mid: {'逃げ':0,'先行':5,'差し':5,'追い込み':0,'自在':5},
+    slow:{'逃げ':20,'先行':15,'差し':-5,'追い込み':-15,'自在':5}
+  };
+  function gFuku(p,b,r1,r2,r3){ if(b==r1)return p.fukusho1||0; if(b==r2)return p.fukusho2||0; if(b==r3)return p.fukusho3||0; return 0; }
+  function gWide(p,a,b,r1,r2,r3){ const pair=new Set([a,b]); const eq=(s)=>pair.size===s.size&&[...pair].every(x=>s.has(x)); if(eq(new Set([r1,r2])))return p.wide1||0; if(eq(new Set([r1,r3])))return p.wide2||0; if(eq(new Set([r2,r3])))return p.wide3||0; return 0; }
+
+  let simInv=0, simRet=0, simHit=0, simCount=0;
+  records.forEach(r => {
+    if(r.weightType==='馬齢') return;
+    const p = r.payouts||{};
+    const hs = r.horsesSnapshot||[];
+    const dbS = r.dbSnapshot||{};
+    const paceKey = (r.paceInfo||'').includes('ハイ')?'high':(r.paceInfo||'').includes('スロー')?'slow':'mid';
+    const finish = r.finishRanks||{};
+    const r1=finish.rank1, r2=finish.rank2, r3=finish.rank3;
+    const bl = r.betLines||[];
+    const tan = bl.find(b=>b.startsWith('単勝'))||'';
+    const jikuM = tan.match(/(\d+)/);
+    if(!jikuM) return;
+    const jiku = parseInt(jikuM[1]);
+    const hJ = hs.find(h=>h.banum===jiku);
+    if(!hJ) return;
+    const odds = parseFloat(hJ.odds||0);
+    const ninki = parseInt(hJ.ninki||0);
+
+    const scored = [...hs].sort((a,b) => {
+      const sc = h => (dbS.jockey?.[h.jockey]||0)+(dbS.sire?.[h.sire]||0)+(dbS.kyakushitsu?.[h.kyakushitsu]||0)+(dbS.ninki?.[String(h.ninki)]||0)+(dbS.maejun?.[String(h.maejun)]||0)+(dbS.waku?.[String(h.waku)]||0)+((PACE_BONUS_SIM[paceKey]||{})[h.kyakushitsu]||0);
+      return sc(b)-sc(a);
+    });
+    const wideJiku = scored[0]?.banum;
+    const n = scored.length;
+    const ana = scored.filter((h,idx) => {
+      return parseInt(h.ninki||0)>=4 && (idx+1)/n<=0.5 && ((scored[0]?.__s||0)-(h.__s||0))<=50 && (h.kyakushitsu==='差し'||parseInt(h.maejun||99)<=4) && h.banum!==wideJiku;
+    });
+    const best=ana[0]?.banum, sec=ana[1]?.banum;
+    const wd = bl.find(b=>b.startsWith('ワイド'))||'';
+    const wdM = wd.match(/ワイド\s+(\d+)-(.+)/);
+    const wdAite = wdM ? [...wdM[2].matchAll(/\d+/g)].map(m=>parseInt(m[0])).slice(0,2) : [];
+
+    simCount++;
+    let invest=2000, ret=0;
+    if(r.weightType==='別定'||r.weightType==='ハンデ'){
+      if(best){ ret+=Math.round(gFuku(p,best,r1,r2,r3)*800/100); ret+=Math.round(gWide(p,wideJiku,best,r1,r2,r3)*600/100); if(sec)ret+=Math.round(gWide(p,wideJiku,sec,r1,r2,r3)*600/100); }
+    } else if(ninki>=4||odds>=6){
+      ret=Math.round(gFuku(p,jiku,r1,r2,r3)*2000/100);
+    } else if(odds<=3){
+      ret=Math.round((jiku===r1?p.tansho||0:0)*1000/100)+Math.round(gFuku(p,jiku,r1,r2,r3)*1000/100);
+    } else {
+      ret=Math.round((jiku===r1?p.tansho||0:0)*1000/100);
+      wdAite.forEach((a,i)=>{ ret+=Math.round(gWide(p,jiku,a,r1,r2,r3)*(i===0?600:400)/100); });
+    }
+    simInv+=invest; simRet+=ret; if(ret>0)simHit++;
+  });
+
+  const simProfit = simRet - simInv;
+  const rateColor = r => r >= 150 ? '#16a34a' : r >= 100 ? '#f39c12' : '#e94560';
+
+  const wtRows = Object.entries(wtStats).map(([wt,s]) => `
+    <tr>
+      <td style="font-weight:700;">${wt}</td>
+      <td>${s.count}</td>
+      <td>${s.hit}件(${(s.hit/s.count*100).toFixed(0)}%)</td>
+      <td style="color:${rateColor(s.rate)};font-weight:700;">${s.rate.toFixed(1)}%</td>
+    </tr>`).join('');
+
+  const paceRows = Object.entries(paceStats).map(([p,s]) => `
+    <tr>
+      <td style="font-weight:700;">${p}</td>
+      <td>${s.count}</td>
+      <td>${s.hit}件(${(s.hit/s.count*100).toFixed(0)}%)</td>
+      <td style="color:${rateColor(s.inv>0?s.ret/s.inv*100:0)};font-weight:700;">${s.inv>0?(s.ret/s.inv*100).toFixed(1):'-'}%</td>
+    </tr>`).join('');
+
+  const tdStyle = 'padding:6px 8px;border-bottom:1px solid #e0e6f0;font-size:10px;text-align:center;';
+  const thStyle = 'padding:6px 8px;background:#f0f4ff;font-size:9px;font-weight:700;text-align:center;color:#1a1a2e;';
+
+  el.innerHTML = `
+    <!-- 総合 -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;">
+      <div style="background:#f0f4ff;border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:8px;color:#6080a0;">総レース</div>
+        <div style="font-size:20px;font-weight:900;color:#1a1a2e;">${total}</div>
+      </div>
+      <div style="background:#f0fff4;border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:8px;color:#6080a0;">的中率</div>
+        <div style="font-size:20px;font-weight:900;color:#16a34a;">${(hits/total*100).toFixed(1)}%</div>
+      </div>
+      <div style="background:${totalRet>=totalInv?'#f0fff4':'#fff0f0'};border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:8px;color:#6080a0;">実回収率</div>
+        <div style="font-size:20px;font-weight:900;color:${rateColor(totalRet/totalInv*100)};">${(totalRet/totalInv*100).toFixed(1)}%</div>
+      </div>
+    </div>
+
+    <!-- 新ルールシミュレーション -->
+    <div style="background:linear-gradient(135deg,#1a1a2e,#2d2d44);border-radius:8px;padding:10px;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:900;color:#f39c12;margin-bottom:6px;">💰 新ルール(2000円)シミュレーション</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+        <div style="text-align:center;">
+          <div style="font-size:8px;color:#aab0c0;">投資</div>
+          <div style="font-size:14px;font-weight:900;color:#fff;">${simInv.toLocaleString()}円</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:8px;color:#aab0c0;">回収</div>
+          <div style="font-size:14px;font-weight:900;color:#fff;">${simRet.toLocaleString()}円</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:8px;color:#aab0c0;">損益</div>
+          <div style="font-size:14px;font-weight:900;color:${simProfit>=0?'#34c759':'#e94560'}">${simProfit>=0?'+':''}${simProfit.toLocaleString()}円</div>
+        </div>
+      </div>
+      <div style="margin-top:6px;text-align:center;font-size:10px;font-weight:900;color:${rateColor(simRet/simInv*100)};">回収率 ${(simRet/simInv*100).toFixed(1)}% / 的中 ${simHit}/${simCount}件(${(simHit/simCount*100).toFixed(1)}%)</div>
+    </div>
+
+    <!-- 負担重量別 -->
+    <div style="font-size:10px;font-weight:900;margin-bottom:6px;color:#1a1a2e;">⚖️ 負担重量別成績</div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+      <tr><th style="${thStyle}">種別</th><th style="${thStyle}">件数</th><th style="${thStyle}">的中</th><th style="${thStyle}">回収率</th></tr>
+      ${wtRows}
+    </table>
+
+    <!-- ペース別 -->
+    <div style="font-size:10px;font-weight:900;margin-bottom:6px;color:#1a1a2e;">🔥 ペース別成績</div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+      <tr><th style="${thStyle}">ペース</th><th style="${thStyle}">件数</th><th style="${thStyle}">的中</th><th style="${thStyle}">回収率</th></tr>
+      ${paceRows}
+    </table>
+
+    <!-- 穴馬精度 -->
+    <div style="font-size:10px;font-weight:900;margin-bottom:6px;color:#1a1a2e;">🎰 穴馬候補の精度(別定・ハンデ)</div>
+    <div style="background:#f0f4ff;border-radius:8px;padding:10px;font-size:10px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;">
+        <div>
+          <div style="font-size:8px;color:#6080a0;">全候補</div>
+          <div style="font-size:16px;font-weight:900;color:${rateColor(anaTotal>0?anaHit/anaTotal*100:0)};">${anaTotal>0?(anaHit/anaTotal*100).toFixed(1):'-'}%</div>
+          <div style="font-size:8px;color:#888;">${anaHit}/${anaTotal}頭</div>
+        </div>
+        <div>
+          <div style="font-size:8px;color:#6080a0;">1番手候補</div>
+          <div style="font-size:16px;font-weight:900;color:${rateColor(ana1Total>0?ana1Hit/ana1Total*100:0)};">${ana1Total>0?(ana1Hit/ana1Total*100).toFixed(1):'-'}%</div>
+          <div style="font-size:8px;color:#888;">${ana1Hit}/${ana1Total}頭</div>
+        </div>
+        <div>
+          <div style="font-size:8px;color:#6080a0;">2番手候補</div>
+          <div style="font-size:16px;font-weight:900;color:${rateColor(ana2Total>0?ana2Hit/ana2Total*100:0)};">${ana2Total>0?(ana2Hit/ana2Total*100).toFixed(1):'-'}%</div>
+          <div style="font-size:8px;color:#888;">${ana2Hit}/${ana2Total}頭</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 // ===== 成績グラフ =====
 let barChart = null, lineChart = null, typeChart = null;
