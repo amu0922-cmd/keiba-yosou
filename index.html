@@ -212,14 +212,10 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
     <!-- JSON保存セクション -->
     <div class="card">
       <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
-        <span>🎯 レース用統合バックアップ</span>
+        <span>🎯 レース一覧</span>
         <button id="sort-btn" onclick="toggleSortOrder()" style="font-size:9px;padding:3px 8px;background:#e8f0fe;border:1px solid #2563eb;border-radius:4px;color:#2563eb;font-weight:700;cursor:pointer;">🔽 新しい順</button>
       </div>
-      <div style="display: flex; gap: 6px; margin-bottom: 10px; align-items: center;">
-        <input type="text" id="save-name" class="inp" placeholder="レース名（例：日本ダービー、東京芝1600m）" style="flex: 1; font-size: 10px;">
-        <button class="btn btn-green" onclick="saveRaceBackup()" style="font-size: 10px; padding: 6px 12px;">💾 保存</button>
-      </div>
-      <div style="font-size: 8px; color: #666; margin-bottom: 10px;">※ 出馬表の全データ＋DB設定を自動ダウンロード保存</div>
+      <div style="font-size:8px;color:#6080a0;margin-bottom:8px;">レース名を設定して馬を読込むと自動登録されます</div>
       <div id="saved-list" style="max-height: 200px; overflow-y: auto;"></div>
     </div>
 
@@ -779,6 +775,31 @@ function setRaceName(name) {
   currentRaceName = name || '';
   const raceInput = document.getElementById('race-name-input');
   if (raceInput) raceInput.value = currentRaceName;
+
+  // 馬データがある場合は自動でsavedJsonsに登録・更新
+  if (name && horses && horses.length > 0) {
+    const now = new Date().toLocaleString('ja-JP');
+    if (!savedJsons[name]) {
+      // 新規登録
+      savedJsons[name] = {
+        horses, db,
+        horseCount: horses.length,
+        weightType: currentWeightType,
+        savedAt: now
+      };
+    } else {
+      // 既存更新(馬数・DB・重量種別のみ更新)
+      savedJsons[name] = {
+        ...savedJsons[name],
+        horses, db,
+        horseCount: horses.length,
+        weightType: currentWeightType,
+        savedAt: now
+      };
+    }
+    localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
+    renderSavedJsonList();
+  }
   const el = document.getElementById('race-name-badge');
   if (!el) return;
   if (name) {
