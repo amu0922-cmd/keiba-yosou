@@ -784,19 +784,19 @@ function setRaceName(name) {
   // 馬データがある場合は自動でsavedJsonsに登録・更新
   if (name && horses && horses.length > 0) {
     const now = new Date().toLocaleString('ja-JP');
+    const dbStr = JSON.stringify(db);
+    const horsesStr = JSON.stringify(horses);
     if (!savedJsons[name]) {
-      // 新規登録
       savedJsons[name] = {
-        horses, db,
+        horses: horsesStr, db: dbStr,
         horseCount: horses.length,
         weightType: currentWeightType,
         savedAt: now
       };
     } else {
-      // 既存更新(馬数・DB・重量種別のみ更新)
       savedJsons[name] = {
         ...savedJsons[name],
-        horses, db,
+        horses: horsesStr, db: dbStr,
         horseCount: horses.length,
         weightType: currentWeightType,
         savedAt: now
@@ -855,10 +855,11 @@ function registerNewRace() {
     if (!confirm(`「${name}」は既に登録済みです。DB設定を更新しますか？`)) return;
   }
   // 現在のDB設定を保存(出馬表は空)
+  const existingHorses = savedJsons[name]?.horses || '[]';
   savedJsons[name] = {
-    horses: savedJsons[name]?.horses || [],
-    db,
-    horseCount: savedJsons[name]?.horses?.length || 0,
+    horses: typeof existingHorses === 'string' ? existingHorses : JSON.stringify(existingHorses),
+    db: JSON.stringify(db),
+    horseCount: Array.isArray(existingHorses) ? existingHorses.length : (JSON.parse(existingHorses instanceof String ? existingHorses : '[]')).length,
     weightType: currentWeightType || '',
     savedAt: now
   };
@@ -1912,21 +1913,32 @@ function renderSavedJsonList() {
 function loadSavedJSON(name) {
   try {
     const data = savedJsons[name];
-    const dbData = JSON.parse(data.db);
 
-    // 馬配列を正規化（ネスト構造の違いを吸収）
-    let horseData = JSON.parse(data.horses);
-    let horseArray = horseData;
-    while (horseArray && !Array.isArray(horseArray) && horseArray.horses !== undefined) {
-      horseArray = horseArray.horses;
+    // db: 文字列でもオブジェクトでも対応
+    const dbData = (typeof data.db === 'string') ? JSON.parse(data.db) : data.db;
+
+    // 馬配列を正規化
+    let horseArray;
+    if (Array.isArray(data.horses)) {
+      horseArray = data.horses;
+    } else if (typeof data.horses === 'string') {
+      let horseData = JSON.parse(data.horses);
+      horseArray = horseData;
+      while (horseArray && !Array.isArray(horseArray) && horseArray.horses !== undefined) {
+        horseArray = horseArray.horses;
+      }
+    } else {
+      horseArray = [];
     }
+
+    // 出馬表なし(DB設定のみ登録)の場合は馬なしで続行
     if (!Array.isArray(horseArray)) {
       setStatus('❌ 読込エラー：馬データが不正です', 'err');
       return;
     }
 
-    document.getElementById('json-input').value = JSON.stringify({ horses: horseArray }, null, 2);
-    document.getElementById('db-json').value = data.db;
+    document.getElementById('json-input').value = horseArray.length > 0 ? JSON.stringify({ horses: horseArray }, null, 2) : '';
+    document.getElementById('db-json').value = typeof data.db === 'string' ? data.db : JSON.stringify(dbData, null, 2);
 
     _resetAnalysisOnNextRender = true;
     horses = horseArray;
