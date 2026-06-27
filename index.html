@@ -3990,13 +3990,7 @@ async function loadFromSupabase() {
     const rows = await res.json();
     if (!rows || rows.length === 0) return false;
     const data = rows[0].data;
-    if (data.horses && data.horses.length > 0) {
-      horses = data.horses;
-      document.getElementById('count-badge').textContent = horses.length;
-      setRaceName(data.raceName || '');
-      setWeightType(data.weightType || '');
-      renderTable();
-    }
+    // db・savedJsonsを先に復元(setRaceNameより前に)
     if (data.db && Object.keys(data.db).length > 0) {
       db = data.db;
     }
@@ -4006,9 +4000,18 @@ async function loadFromSupabase() {
     }
     if (data.paceBonus) paceBonus = data.paceBonus;
     if (data.savedJsons) { savedJsons = data.savedJsons; renderSavedJsonList(); }
-    // netkeiba URLを復元
     if (data.raceUrls) {
       Object.entries(data.raceUrls).forEach(([k, v]) => localStorage.setItem(k, v));
+    }
+    // horsesは最後に復元(調教・コメントを保持)
+    if (data.horses && data.horses.length > 0) {
+      horses = data.horses;
+      document.getElementById('count-badge').textContent = horses.length;
+      _justLoadedHorses = true;
+      setRaceName(data.raceName || '');
+      setWeightType(data.weightType || '');
+      _justLoadedHorses = false;
+      renderTable();
     }
     return true;
   } catch(e) {
