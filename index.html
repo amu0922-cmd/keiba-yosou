@@ -767,8 +767,9 @@ let savedJsons = {};
 let savedListSortOrder = 'desc'; // desc=新しい順, asc=古い順
 let currentRaceName = '';
 let currentWeightType = '';
-let _lastRecTickets = null; // 推奨券種を画像生成で参照するためグローバル保持
-let _resetAnalysisOnNextRender = false; // 新レース読込時のみ予想タブをリセット
+let _lastRecTickets = null;
+let _resetAnalysisOnNextRender = false;
+let _justLoadedHorses = false; // horses読込直後のみtrue(setRaceNameでのsavedJsons更新を制御)
 
 function setWeightType(type) {
   currentWeightType = type || '';
@@ -781,8 +782,9 @@ function setRaceName(name) {
   const raceInput = document.getElementById('race-name-input');
   if (raceInput) raceInput.value = currentRaceName;
 
-  // 馬データがある場合は自動でsavedJsonsに登録・更新
-  if (name && horses && horses.length > 0) {
+  // 馬データがある場合で、かつ新規読込直後のみsavedJsonsに登録・更新
+  // (調教・コメント変更などの場合は更新しない)
+  if (name && horses && horses.length > 0 && _resetAnalysisOnNextRender === false && _justLoadedHorses) {
     const now = new Date().toLocaleString('ja-JP');
     const dbStr = JSON.stringify(db);
     const horsesStr = JSON.stringify(horses);
@@ -804,6 +806,7 @@ function setRaceName(name) {
     }
     localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
     renderSavedJsonList();
+    _justLoadedHorses = false; // フラグリセット
   }
   const el = document.getElementById('race-name-badge');
   if (!el) return;
@@ -1103,6 +1106,7 @@ function importJSON() {
     };
     
     _resetAnalysisOnNextRender = true;
+    _justLoadedHorses = true;
     horses = list.map((h, i) => ({
       id: Date.now() + i,
       banum: parseInt(h.banum || 0),
@@ -1551,9 +1555,9 @@ function renderTable() {
       <td><input class="inp" style="width: 40px;" value="${h.odds.toFixed(1)}" onchange="horses[${idx}].odds=parseFloat(this.value); renderTable();"></td>
       <td><input class="inp" style="width: 42px; text-align:center;" value="${h.baju || ''}" placeholder="460" onchange="horses[${idx}].baju=getBajuBand(this.value); renderTable();"></td>
       <td><input class="inp" style="width: 40px; text-align:center;" value="${h.weight || ''}" placeholder="57.0" onchange="horses[${idx}].weight=parseFloat(this.value)||null; renderTable();"></td>
-      <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].chokyoFinal=this.value; renderTable();"><option ${h.chokyoFinal==='A'?'selected':''}>A</option><option ${h.chokyoFinal==='B'?'selected':''}>B</option><option ${h.chokyoFinal==='C'?'selected':''}>C</option></select></td>
-      <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].chokyoPrev=this.value; renderTable();"><option ${h.chokyoPrev==='A'?'selected':''}>A</option><option ${h.chokyoPrev==='B'?'selected':''}>B</option><option ${h.chokyoPrev==='C'?'selected':''}>C</option></select></td>
-      <td><button onclick="(function(){const vals=['◎','◯','△','×'];const cur=horses[${idx}].comment||'◯';const next=vals[(vals.indexOf(cur)+1)%vals.length];horses[${idx}].comment=next;renderTable();})()" style="width:34px;height:30px;font-size:18px;font-weight:900;border:1px solid #ccc;border-radius:4px;background:${h.comment==='◎'?'#ffe0e0':h.comment==='△'?'#fff3cd':h.comment==='×'?'#e0e0e0':'#fff'};cursor:pointer;padding:0;line-height:1;">${h.comment||'◯'}</button></td>
+      <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].chokyoFinal=this.value; renderTable(); scheduleAutoSave();"><option ${h.chokyoFinal==='A'?'selected':''}>A</option><option ${h.chokyoFinal==='B'?'selected':''}>B</option><option ${h.chokyoFinal==='C'?'selected':''}>C</option></select></td>
+      <td><select class="sel" style="width: 100%;" onchange="horses[${idx}].chokyoPrev=this.value; renderTable(); scheduleAutoSave();"><option ${h.chokyoPrev==='A'?'selected':''}>A</option><option ${h.chokyoPrev==='B'?'selected':''}>B</option><option ${h.chokyoPrev==='C'?'selected':''}>C</option></select></td>
+      <td><button onclick="(function(){const vals=['◎','◯','△','×'];const cur=horses[${idx}].comment||'◯';const next=vals[(vals.indexOf(cur)+1)%vals.length];horses[${idx}].comment=next;renderTable();scheduleAutoSave();})()" style="width:34px;height:30px;font-size:18px;font-weight:900;border:1px solid #ccc;border-radius:4px;background:${h.comment==='◎'?'#ffe0e0':h.comment==='△'?'#fff3cd':h.comment==='×'?'#e0e0e0':'#fff'};cursor:pointer;padding:0;line-height:1;">${h.comment||'◯'}</button></td>
       <td style="font-weight: 900; color: #2563eb;">${Math.round(trendScore)}</td>
       <td style="font-weight: 700; color: #27ae60; font-size:8px;">調${chokyoScore>=0?'+':''}${chokyoScore} 厩${commentScore>=0?'+':''}${commentScore} 展${paceAdj>=0?'+':''}${paceAdj}</td>
       <td>
@@ -1941,6 +1945,7 @@ function loadSavedJSON(name) {
     document.getElementById('db-json').value = typeof data.db === 'string' ? data.db : JSON.stringify(dbData, null, 2);
 
     _resetAnalysisOnNextRender = true;
+    _justLoadedHorses = true;
     horses = horseArray;
     db = dbData;
     setRaceName(name);
@@ -6691,6 +6696,7 @@ window.addEventListener('load', () => {
     const savedRace = localStorage.getItem('kp_last_race');
     if (savedHorses) {
       _resetAnalysisOnNextRender = true;
+    _justLoadedHorses = true;
       horses = JSON.parse(savedHorses);
       if (savedRace) setRaceName(savedRace);
       document.getElementById('count-badge').textContent = horses.length;
