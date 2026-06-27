@@ -1948,8 +1948,8 @@ function loadSavedJSON(name) {
     _justLoadedHorses = true;
     horses = horseArray;
     db = dbData;
+    setWeightType(data.weightType || ''); // setRaceNameより前にweightTypeをセット
     setRaceName(name);
-    setWeightType(data.weightType || '');
 
     renderTable();
     renderDBSection();
@@ -4008,8 +4008,8 @@ async function loadFromSupabase() {
       horses = data.horses;
       document.getElementById('count-badge').textContent = horses.length;
       _justLoadedHorses = true;
+      setWeightType(data.weightType || ''); // setRaceNameより前にセット
       setRaceName(data.raceName || '');
-      setWeightType(data.weightType || '');
       _justLoadedHorses = false;
       renderTable();
     }
