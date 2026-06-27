@@ -263,7 +263,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <span id="race-name-badge" style="display:flex;align-items:center;justify-content:center;margin-top:6px;padding:4px 14px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;font-size:14px;font-weight:900;border-radius:20px;letter-spacing:0.05em;position:relative;"></span>
         <div style="display:flex;gap:6px;width:100%;margin-top:6px;">
           <input type="text" id="race-name-input" class="inp" placeholder="レース名を入力（例：宝塚記念）" style="flex:1;font-size:10px;">
-          <select id="weight-type-select" class="inp" style="font-size:10px;flex:0 0 70px;">
+          <select id="weight-type-select" class="inp" style="font-size:10px;flex:0 0 70px;" onchange="setWeightType(this.value);scheduleAutoSave();">
             <option value="">負担重量</option>
             <option value="定量">定量</option>
             <option value="別定">別定</option>
