@@ -2119,6 +2119,7 @@ function addRecord() {
   const betLines    = pt.betLines    || [];
   const hitLabels   = pt.hitLabels   || [];
   const horsesSnapshot = pt.horsesSnapshot || JSON.parse(JSON.stringify(horses));
+  const rankedSnapshot = pt.rankedSnapshot || null;
   const dbSnapshot     = pt.dbSnapshot     || JSON.parse(JSON.stringify(db));
   const paceInfo       = pt.paceInfo       || '';
   window._pendingTransfer = null; // 使用後クリア
@@ -2127,37 +2128,28 @@ function addRecord() {
   let anaResult = null;
   const wt = weightType || currentWeightType;
   if (wt === '別定' || wt === 'ハンデ') {
-    const pace = paceInfo || '';
-    const PACE_BONUS_MAP = {
-      'high': {'逃げ':-15,'先行':-10,'差し':15,'追い込み':20,'自在':0},
-      'mid':  {'逃げ':0,'先行':5,'差し':5,'追い込み':0,'自在':5},
-      'slow': {'逃げ':20,'先行':15,'差し':-5,'追い込み':-15,'自在':5}
-    };
-    const paceKey = pace.includes('ハイ') ? 'high' : pace.includes('スロー') ? 'slow' : 'mid';
-    const scored = [...horsesSnapshot].sort((a, b) => {
-      const sa = (dbSnapshot.jockey?.[a.jockey]||0)+(dbSnapshot.sire?.[a.sire]||0)
-                +(dbSnapshot.kyakushitsu?.[a.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(a.ninki)]||0)
-                +(dbSnapshot.maejun?.[String(a.maejun)]||0)+(dbSnapshot.maeclass?.[a.maeclass]||0)
-                +(dbSnapshot.waku?.[String(a.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[a.kyakushitsu]||0);
-      const sb = (dbSnapshot.jockey?.[b.jockey]||0)+(dbSnapshot.sire?.[b.sire]||0)
-                +(dbSnapshot.kyakushitsu?.[b.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(b.ninki)]||0)
-                +(dbSnapshot.maejun?.[String(b.maejun)]||0)+(dbSnapshot.maeclass?.[b.maeclass]||0)
-                +(dbSnapshot.waku?.[String(b.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[b.kyakushitsu]||0);
-      return sb - sa;
+    // rankedSnapshot（totalScore付き）があればそれを使用（予想タブと同一ロジック）
+    const scored = rankedSnapshot || [...horsesSnapshot].sort((a, b) => {
+      const s = h => (dbSnapshot.jockey?.[h.jockey]||0)+(dbSnapshot.sire?.[h.sire]||0)
+        +(dbSnapshot.kyakushitsu?.[h.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(h.ninki)]||0)
+        +(dbSnapshot.maejun?.[String(h.maejun)]||0)+(dbSnapshot.maeclass?.[h.maeclass]||0)
+        +(dbSnapshot.waku?.[String(h.waku)]||0);
+      return s(b) - s(a);
     });
-    const calcScoreA = (h) =>
+    const getScore = h => rankedSnapshot ? (h.totalScore||0) : (
       (dbSnapshot.jockey?.[h.jockey]||0)+(dbSnapshot.sire?.[h.sire]||0)
       +(dbSnapshot.kyakushitsu?.[h.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(h.ninki)]||0)
       +(dbSnapshot.maejun?.[String(h.maejun)]||0)+(dbSnapshot.maeclass?.[h.maeclass]||0)
-      +(dbSnapshot.waku?.[String(h.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[h.kyakushitsu]||0);
-    const topScore = scored[0] ? calcScoreA(scored[0]) : 0;
+      +(dbSnapshot.waku?.[String(h.waku)]||0)
+    );
+    const topScore = scored[0] ? getScore(scored[0]) : 0;
     const wideJikuBanum = scored[0]?.banum;
     const n = scored.length;
     const anaCandidates = scored.filter((h, idx) => {
       const ninki = Number(h.ninki);
       const isDashi = h.kyakushitsu === '差し';
       const isMaejun = [1,2,3,4].includes(Number(h.maejun));
-      const scoreDiff = topScore - calcScoreA(h);
+      const scoreDiff = topScore - getScore(h);
       return ninki >= 4 && (idx+1)/n <= 0.5 && scoreDiff <= 50 && (isDashi || isMaejun) && h.banum !== wideJikuBanum;
     }).slice(0, 2);
     const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
@@ -6443,6 +6435,41 @@ function transferToRecord() {
   // 的中した買い目からpurchaseを生成
   const purchaseStr = hitLabels.length > 0 ? hitLabels.join('・') : 'ハズレ';
 
+  // ranked（totalScore付き）を生成してsnapshotに含める
+  let rankedSnapshot = null;
+  try {
+    rankedSnapshot = (() => {
+      const dbS = db;
+      const paceKey2 = (() => {
+        try { const p = getPaceLabel(calcPaceFromHorses(horses)); return p.includes('ハイ') ? 'high' : p.includes('スロー') ? 'slow' : 'mid'; } catch(e) { return 'mid'; }
+      })();
+      const PACE_MAP2 = {
+        'high': {'逃げ':-15,'先行':-10,'差し':15,'追い込み':20,'自在':0},
+        'mid':  {'逃げ':0,'先行':5,'差し':5,'追い込み':0,'自在':5},
+        'slow': {'逃げ':20,'先行':15,'差し':-5,'追い込み':-15,'自在':5}
+      };
+      return horses.map(h => {
+        const _paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
+        const trendScore = (getJockeyScore(dbS.jockey,h.jockey))+(dbS.sire?.[h.sire]||0)+getMuddySireBonus(h.sire)
+          +(dbS.age?.[h.age]||0)+(dbS.kyakushitsu?.[h.kyakushitsu]||0)+(dbS.ninki?.[h.ninki]||0)
+          +(dbS.maejun?.[h.maejun]||0)+(dbS.maeclass?.[h.maeclass]||0)+(dbS.waku?.[h.waku]||0)
+          +(dbS.timdev?.[h.timdev]||0)+(dbS.baju?.[h.baju]||0)+_paddockPt;
+        const chokyoScore = h.chokyo==='A'?20:h.chokyo==='C'?-20:0;
+        const commentScore = h.comment==='A'?20:h.comment==='C'?-20:0;
+        const paceAdj = PACE_MAP2[paceKey2]?.[h.kyakushitsu]||0;
+        const negAdj = h.negativeAdj||0;
+        const weightScore = dbS.weight?.[(() => {
+          const w=parseInt(h.weight);
+          if(isNaN(w))return'';
+          if(w<420)return'〜419';if(w<440)return'420〜439';if(w<460)return'440〜459';
+          if(w<480)return'460〜479';if(w<500)return'480〜499';return'500〜';
+        })()]||0;
+        const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj+weightScore;
+        return {...h, totalScore};
+      }).sort((a,b)=>b.totalScore-a.totalScore);
+    })();
+  } catch(e) { rankedSnapshot = null; }
+
   // グローバルに保存（addRecord時に参照）
   window._pendingTransfer = {
     finishRanks: { rank1: r1, rank2: r2, rank3: r3 },
@@ -6450,6 +6477,7 @@ function transferToRecord() {
     purchase: purchaseStr,
     hitLabels,
     horsesSnapshot: JSON.parse(JSON.stringify(horses)),
+    rankedSnapshot,
     dbSnapshot: JSON.parse(JSON.stringify(db)),
     paceInfo: (() => { try { return getPaceLabel(calcPaceFromHorses(horses)); } catch(e) { return ''; } })(),
     raceName: currentRaceName || ''
