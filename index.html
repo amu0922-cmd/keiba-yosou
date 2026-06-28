@@ -541,7 +541,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
       <div style="margin-bottom: 8px;">
         <input type="text" id="record-score" class="inp" placeholder="偏差値（任意）" style="width:100%;font-size: 10px;">
       </div>
-      <div style="margin-bottom: 8px;" id="ana-input-wrap" style="display:none;">
+      <div id="ana-input-wrap" style="margin-bottom:8px;display:none;">
         <input type="text" id="record-ana" class="inp" placeholder="🎰 穴馬候補 馬番（例: 8,10）別定・ハンデのみ" style="width: 100%; font-size: 10px;">
       </div>
       <div style="margin-bottom: 8px;">
@@ -1995,7 +1995,7 @@ function editRecord(idx) {
   const anaEl = document.getElementById('record-ana');
   if (anaEl) {
     anaEl.value = (r.anaResult||[]).map(a=>a.banum).join(',');
-    document.getElementById('ana-input-wrap').style.display = (r.weightType==='別定'||r.weightType==='ハンデ') ? '' : 'none';
+    document.getElementById('ana-input-wrap').style.display = ''; // 常に表示
   }
   setPayoutInputs(r.payouts || {});
   
