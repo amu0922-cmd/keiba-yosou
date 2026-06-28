@@ -7059,6 +7059,28 @@ const GRADED_RACES_2026 = [
   {date:'2026-12-27', name:'有馬記念', grade:'G1', course:'中山', surface:'芝', dist:2500, weight:'定量'},
 ]
 
+
+// ===== カレンダーからレース切り替え =====
+function calendarRaceClick(raceName) {
+  // savedJsonsにレース名が部分一致するキーを探す
+  const matchKey = Object.keys(savedJsons).find(k => k.includes(raceName));
+
+  if (matchKey) {
+    // 保存データあり → 読込してJSONタブへ（既存と同じloadSavedJSON）
+    loadSavedJSON(matchKey);
+    switchTo('input');
+    setStatus('📥 ' + matchKey + ' を読込みました', 'ok');
+  } else {
+    // 保存データなし → JSONタブに移動してレース名をセット
+    switchTo('input');
+    const raceInput = document.getElementById('race-input') || document.querySelector('input[placeholder*="レース名"]');
+    if (raceInput) {
+      raceInput.value = raceName;
+      raceInput.focus();
+    }
+    setStatus('📋 ' + raceName + ' ― 出馬表・DBを登録してください', 'ok');
+  }
+}
 function renderGradedCalendar() {
   const el = document.getElementById('graded-calendar');
   if (!el) return;
@@ -7091,15 +7113,18 @@ function renderGradedCalendar() {
   const DAYS_JA = ['日','月','火','水','木','金','土'];
   const todayWeekKey = getWeekStart(today).toISOString();
 
-  // 表示範囲内・外に分割
-  const inRangeWeeks = [];
-  const futureWeeks  = [];
+  // 表示範囲内・外・過去に分割
+  const pastWeeks    = []; // 2週間より前
+  const inRangeWeeks = []; // 前後2週間
+  const futureWeeks  = []; // 2週間より未来
   for (const [key, val] of weekMap) {
     const we = new Date(val.weekStart); we.setDate(we.getDate() + 6);
     if (val.weekStart <= rangeEnd && we >= rangeStart) {
       inRangeWeeks.push([key, val]);
     } else if (val.weekStart > rangeEnd) {
       futureWeeks.push([key, val]);
+    } else {
+      pastWeeks.push([key, val]); // rangeStartより前
     }
   }
 
@@ -7124,16 +7149,24 @@ function renderGradedCalendar() {
       const gc = gradeColor[r.grade]  || '#666';
       const wc = weightColor[r.weight] || '#999';
 
-      h += '<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;margin-bottom:3px;'
+      // savedJsonsにデータがあるか確認してバッジ表示
+      const hasData = Object.keys(savedJsons).some(k => k.includes(r.name));
+      const matchKey = Object.keys(savedJsons).find(k => k.includes(r.name)) || '';
+      const raceNameEncoded = encodeURIComponent(matchKey);
+
+      h += '<div onclick="calendarRaceClick(' + "'" + r.name + "'" + ')" style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;margin-bottom:3px;cursor:pointer;'
          + 'background:' + (isToday ? '#fffbe6' : isPast ? '#f7f7f7' : '#fff') + ';'
          + 'border:1px solid ' + (isToday ? '#f39c12' : isPast ? '#eee' : gc+'33') + ';'
-         + 'opacity:' + (isPast ? '0.5' : '1') + ';">';
+         + 'opacity:' + (isPast ? '0.5' : '1') + ';'
+         + '-webkit-tap-highlight-color:rgba(0,0,0,0.05);">';
       // 日付
       h += '<div style="font-size:10px;font-weight:700;color:#888;min-width:58px;flex-shrink:0;">' + dayStr + '</div>';
       // グレードバッジ
       h += '<div style="background:' + gc + ';color:#fff;font-size:8px;font-weight:900;padding:2px 5px;border-radius:4px;min-width:22px;text-align:center;flex-shrink:0;">' + r.grade + '</div>';
       // レース名
       h += '<div style="flex:1;font-size:12px;font-weight:900;color:#1a1a2e;line-height:1.2;">' + r.name + '</div>';
+      // 保存データバッジ
+      h += hasData ? '<div style="font-size:8px;font-weight:900;color:#fff;background:#27ae60;border-radius:4px;padding:1px 5px;flex-shrink:0;">📥</div>' : '<div style="font-size:8px;color:#ddd;flex-shrink:0;">―</div>';
       // 負担重量
       h += '<div style="font-size:8px;font-weight:900;color:' + wc + ';flex-shrink:0;">' + (r.weight||'') + '</div>';
       // 場所・条件
@@ -7145,6 +7178,16 @@ function renderGradedCalendar() {
   };
 
   let html = '';
+
+  // 過去の折りたたみ（2週間より前）
+  if (pastWeeks.length > 0) {
+    html += '<div style="margin-bottom:8px;">';
+    html += '<button onclick="togglePastRaces(this)" style="width:100%;background:#f0f0f5;border:1px solid #ddd;border-radius:8px;padding:8px;font-size:11px;font-weight:900;color:#888;cursor:pointer;">⏪ 2週間より前の重賞を見る（' + pastWeeks.length + '週分）▼</button>';
+    html += '<div id="past-races" style="display:none;margin-top:8px;">';
+    for (const [key, val] of pastWeeks) html += buildWeekHTML(key, val);
+    html += '</div></div>';
+  }
+
   for (const [key, val] of inRangeWeeks) html += buildWeekHTML(key, val);
 
   // 今後の折りたたみ
@@ -7157,6 +7200,18 @@ function renderGradedCalendar() {
   }
 
   el.innerHTML = html;
+}
+
+function togglePastRaces(btn) {
+  const el = document.getElementById('past-races');
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  const weeks = btn.dataset.weeks || btn.textContent.match(/\d+/)?.[0] || '';
+  btn.textContent = isOpen
+    ? '⏪ 2週間より前の重賞を見る（' + weeks + '週分）▼'
+    : '⏪ 2週間より前の重賞を閉じる ▲';
+  if (!btn.dataset.weeks) btn.dataset.weeks = weeks;
 }
 
 function toggleFutureRaces(btn) {
