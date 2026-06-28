@@ -2169,14 +2169,17 @@ function addRecord() {
     );
     const topScore = scored[0] ? getScore(scored[0]) : 0;
     const wideJikuBanum = scored[0]?.banum;
-    const n = scored.length;
-    const anaCandidates = scored.filter((h, idx) => {
+    const totalHorses = scored.length;
+    // 予想タブと完全同一: wideJiku除外はfilter後に行う
+    const anaHorses = scored.filter((h, idx) => {
       const ninki = Number(h.ninki);
       const isDashi = h.kyakushitsu === '差し';
       const isMaejun = [1,2,3,4].includes(Number(h.maejun));
       const scoreDiff = topScore - getScore(h);
-      return ninki >= 4 && (idx+1)/n <= 0.5 && scoreDiff <= 50 && (isDashi || isMaejun) && h.banum !== wideJikuBanum;
-    }).slice(0, 2);
+      const isUpperHalf = (idx + 1) <= Math.ceil(totalHorses * 0.5);
+      return ninki >= 4 && isUpperHalf && scoreDiff <= 50 && (isDashi || isMaejun);
+    });
+    const anaCandidates = anaHorses.filter(h => h.banum !== wideJikuBanum).slice(0, 2);
     const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
     anaResult = anaCandidates.map(h => ({
       banum: h.banum, name: h.name, ninki: h.ninki,
