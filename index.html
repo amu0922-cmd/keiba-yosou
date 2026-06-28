@@ -2297,9 +2297,9 @@ function addRecord() {
     const anaCandidates = scored.filter((h, idx) => {
       const ninki = Number(h.ninki);
       const isDashi = h.kyakushitsu === '差し';
-      const isMaejun = [1,2,3,4].includes(Number(h.maejun));
+      const isMaejun13 = [1,2,3].includes(Number(h.maejun));
       const scoreDiff = topScore - calcScoreA(h);
-      return ninki >= 4 && (idx+1)/n <= 0.5 && scoreDiff <= 50 && (isDashi || isMaejun) && h.banum !== wideJikuBanum;
+      return ninki >= 6 && (idx+1) <= Math.ceil(n * 0.5) && scoreDiff <= 50 && isDashi && isMaejun13 && h.banum !== wideJikuBanum;
     }).slice(0, 2);
     const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
     anaResult = anaCandidates.map(h => ({
@@ -3212,27 +3212,21 @@ function renderAnalysis() {
         const scoreDiff = topScore - (h.totalScore || 0);
         const isUpperHalf = (idx + 1) <= Math.ceil(totalHorses * 0.5);
         const isNearTop = scoreDiff <= 50;
-        const isAnaBeta = ninki >= 4;
+        const isAnaBeta = ninki >= 6;
         const isDashi = h.kyakushitsu === '差し';
-        const isMaejunGood = [1,2,3,4].includes(Number(h.maejun));
-        return isAnaBeta && isUpperHalf && isNearTop && (isDashi || isMaejunGood);
+        const isMaejunGood = [1,2,3].includes(Number(h.maejun));
+        return isAnaBeta && isUpperHalf && isNearTop && isDashi && isMaejunGood;
       });
       const anaNums = anaHorses.map(h => String(h.banum)).filter(n => n !== wideJiku);
       const bestAna = anaNums[0] || null;
-      const secondAna = anaNums[1] || null;
       const tickets = [];
-      let reason = `🎯 ${currentWeightType}戦：シミュレーション回収率258%の最良戦略\n過去データで2-3着の87.5%が4人気以下\n💴 配分例: 複勝400円・ワイド各300円×2点`;
+      let reason = `🎯 ${currentWeightType}戦：シミュレーション回収率797%\n差し馬×前走1-3着×6人気以上 → 複勝1000円1点集中\n💴 配分: 複勝1000円`;
       if (bestAna) {
         tickets.push(`《複勝 ${bestAna}》`);
-        tickets.push(`《ワイド ${wideJiku}-${bestAna}》`);
-        if (secondAna) tickets.push(`《ワイド ${wideJiku}-${secondAna}》`);
-        reason += `✅ 穴馬候補: ${anaNums.slice(0,2).map(n=>n+'番').join('・')}\n`;
-        reason += `📌 スコア上位50%以内・トップ差50pt以内・4人気以下`;
+        reason += `\n✅ 穴馬候補: ${bestAna}番`;
+        reason += `\n📌 差し×前走1-3着×6人気以上×スコア上位50%`;
       } else {
-        const fallback = ranked.filter(h => Number(h.ninki) >= 4).slice(0,2).map(h=>String(h.banum));
-        tickets.push(`《複勝 ${fallback[0] || wideJiku}》`);
-        if (fallback[0]) tickets.push(`《ワイド ${wideJiku}-${fallback[0]}》`);
-        reason += `⚠️ 穴馬候補なし → スコア上位の穴馬で複勝+ワイド`;
+        reason += `\n⚠️ 穴馬候補なし → 見送り推奨`;
       }
       if (bestPurchase) reason += `\n📊 あなたの成績最良: ${bestPurchase.name}（的中率${bestPurchase.rate}%）`;
       return { tickets, reason, label: tickets.map(t=>t.replace(/《|》/g,'')).join(' / '), isHandicap: true, anaHorses: anaHorses.slice(0,2), wideJiku };
@@ -5131,21 +5125,15 @@ function imgCalcBets() {
       const scoreDiff = topScoreImg2 - (h.totalScore || 0);
       const isUpperHalf = (idx + 1) <= Math.ceil(totalHorsesImg2 * 0.5);
       const isNearTop = scoreDiff <= 50;
-      const isAnaBeta = ninki >= 4;
+      const isAnaBeta = ninki >= 6;
       const isDashi = h.kyakushitsu === '差し';
-      const isMaejunGood = [1,2,3,4].includes(Number(h.maejun));
-      return isAnaBeta && isUpperHalf && isNearTop && (isDashi || isMaejunGood);
+      const isMaejunGood = [1,2,3].includes(Number(h.maejun));
+      return isAnaBeta && isUpperHalf && isNearTop && isDashi && isMaejunGood;
     });
     const anaNums = anaHorsesImg.map(h => Number(h.banum)).filter(n => n !== wideJikuImg);
     const bestAnaImg = anaNums[0] || null;
-    const secondAnaImg = anaNums[1] || null;
     if (bestAnaImg) {
       recLines.push(`複勝  ${bestAnaImg}`);
-      recLines.push(`ワイド ${wideJikuImg}-${bestAnaImg}`);
-      if (secondAnaImg) recLines.push(`ワイド ${wideJikuImg}-${secondAnaImg}`);
-    } else {
-      const fb = ranked.filter(h => Number(h.ninki) >= 4).slice(0,1).map(h => h.banum);
-      if (fb[0]) { recLines.push(`複勝  ${fb[0]}`); recLines.push(`ワイド ${wideJikuImg}-${fb[0]}`); }
     }
   } else if (ninkiBadImg || oddsBadImg) {
     recLines.push(`複勝  ${jiku1Num}`);
