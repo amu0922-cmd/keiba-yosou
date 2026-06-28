@@ -5230,7 +5230,14 @@ function imgGenerate(type) {
   const betLabels = ['単勝','馬連','ワイド','三連複'];
   const betColors = ['#ff2d55','#007aff','#34c759','#ff9500'];
   const W = 450;
-  const H = type === 'score' ? 1000 : type === 'buy' ? 1100 : 800;
+  // buy時はdrawLines数に応じて高さを動的決定
+  const _calcLines = (() => {
+    const r = (recLines && recLines.length > 0) ? recLines : [];
+    const a = lines || [];
+    const same = JSON.stringify(r) === JSON.stringify(a);
+    return r.length > 0 && !same ? [...r, ...a] : (r.length > 0 ? r : a);
+  })();
+  const H = type === 'score' ? 1000 : type === 'buy' ? Math.max(1000, 600 + _calcLines.length * 74) : 800;
   const DPR = Math.min(window.devicePixelRatio || 2, 3); // 最大3倍
 
   const canvas = document.createElement('canvas');
@@ -5273,9 +5280,16 @@ function imgGenerate(type) {
     }
 
     // ── タイプ別 ──
-    const drawLines = (recLines && recLines.length > 0) ? recLines : lines;
-    const drawLabels = drawLines.map(l => { const m = l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m ? m[1] : ''; });
     const colorMap3 = {'単勝':'#ff2d55','複勝':'#9b59b6','馬連':'#007aff','ワイド':'#34c759','三連複':'#ff9500'};
+    // 推奨（recLines）と全買い目（lines）を結合（重複除去）
+    const recLinesArr = (recLines && recLines.length > 0) ? recLines : [];
+    const allLinesArr = lines || [];
+    const recSame = JSON.stringify(recLinesArr) === JSON.stringify(allLinesArr);
+    // drawLines: 推奨→全買い目の順で結合（推奨=全買い目なら重複しない）
+    const drawLines = recLinesArr.length > 0 && !recSame
+      ? [...recLinesArr, ...allLinesArr]
+      : (recLinesArr.length > 0 ? recLinesArr : allLinesArr);
+    const drawLabels = drawLines.map(l => { const m = l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m ? m[1] : ''; });
     const drawColors = drawLabels.map(l => colorMap3[l] || '#888');
     if (type === 'score') {
       drawScoreRanking(ctx, W, imgH, tc, comment);
@@ -5341,11 +5355,56 @@ function imgGenerate(type) {
         contentY += recCardH + 16;
       }
 
-      drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, contentY, W - 36, type);
+      // 推奨と全買い目に分けて描画
+      if (recLinesArr.length > 0 && !recSame) {
+        // 推奨セクション
+        ctx.fillStyle = '#FFD700'; ctx.font = '700 10px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText('🎯 今回の推奨', 18, contentY - 4);
+        const recLabels = recLinesArr.map(l => { const m = l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m?m[1]:''; });
+        const recColors = recLabels.map(l => colorMap3[l]||'#888');
+        drawBetCards(ctx, recLinesArr, recLabels, recColors, null, 18, contentY, W - 36, type);
+        contentY += recLinesArr.length * 74 + 16;
+        // 全買い目セクション
+        ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '700 10px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText('📋 全買い目', 18, contentY - 4);
+        const allLabels = allLinesArr.map(l => { const m = l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m?m[1]:''; });
+        const allColors = allLabels.map(l => colorMap3[l]||'#888');
+        drawBetCards(ctx, allLinesArr, allLabels, allColors, null, 18, contentY, W - 36, type);
+      } else {
+        drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, contentY, W - 36, type);
+      }
     } else if (type === 'hit') {
-      drawBetCards(ctx, drawLines, drawLabels, drawColors, hitTypes, 18, 120, W - 36, type);
+      if (recLinesArr.length > 0 && !recSame) {
+        ctx.fillStyle = '#FFD700'; ctx.font = '700 10px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText('🎯 今回の推奨', 18, 114);
+        const recL = recLinesArr.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';});
+        const recC = recL.map(l=>colorMap3[l]||'#888');
+        drawBetCards(ctx, recLinesArr, recL, recC, hitTypes, 18, 120, W-36, type);
+        const sepY = 120 + recLinesArr.length * 44 + 10;
+        ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='700 10px sans-serif';ctx.textAlign='left';
+        ctx.fillText('📋 全買い目', 18, sepY);
+        const allL = allLinesArr.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';});
+        const allC = allL.map(l=>colorMap3[l]||'#888');
+        drawBetCards(ctx, allLinesArr, allL, allC, hitTypes, 18, sepY+6, W-36, type);
+      } else {
+        drawBetCards(ctx, drawLines, drawLabels, drawColors, hitTypes, 18, 120, W - 36, type);
+      }
     } else {
-      drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, 120, W - 36, type);
+      if (recLinesArr.length > 0 && !recSame) {
+        ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = '700 10px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText('🎯 今回の推奨', 18, 114);
+        const recL = recLinesArr.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';});
+        const recC = recL.map(l=>colorMap3[l]||'#888');
+        drawBetCards(ctx, recLinesArr, recL, recC, null, 18, 120, W-36, type);
+        const sepY = 120 + recLinesArr.length * 44 + 10;
+        ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='700 10px sans-serif';ctx.textAlign='left';
+        ctx.fillText('📋 全買い目', 18, sepY);
+        const allL = allLinesArr.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';});
+        const allC = allL.map(l=>colorMap3[l]||'#888');
+        drawBetCards(ctx, allLinesArr, allL, allC, null, 18, sepY+6, W-36, type);
+      } else {
+        drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, 120, W - 36, type);
+      }
     }
 
     // ── ハズレスタンプ（最前面）──
