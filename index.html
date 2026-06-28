@@ -4523,19 +4523,32 @@ function generateBuyImage() {
     return html;
   }
 
-  let betRows = '';
+  const colorMap = {'単勝':'#ff2d55','複勝':'#9b59b6','馬連':'#007aff','ワイド':'#34c759','三連複':'#ff9500','馬単':'#e67e22','三連単':'#1a9c6e'};
   const displayLines = (typeof recLines !== 'undefined' && recLines && recLines.length > 0) ? recLines : lines;
-  const colorMap = {'単勝':'#ff2d55','複勝':'#9b59b6','馬連':'#007aff','ワイド':'#34c759','三連複':'#ff9500'};
-  displayLines.forEach((line, i) => {
-    const typeMatch = line.match(/^(単勝|複勝|馬連|ワイド|三連複)/);
+
+  function buildBuyRow(line, i) {
+    const typeMatch = line.match(/^(単勝|複勝|馬連|ワイド|三連複|馬単|三連単)/);
     const label = typeMatch ? typeMatch[1] : (betLabels[i] || '');
-    const cnt = line.replace(/^(単勝|複勝|馬連|ワイド|三連複)\s+/, '');
+    const cnt = line.replace(/^(単勝|複勝|馬連|ワイド|三連複|馬単|三連単)\s+/, '');
     const col = colorMap[label] || accent;
-    betRows += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:${rowBg};margin-bottom:6px;border:1px solid ${divider};">
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;background:${rowBg};margin-bottom:5px;border:1px solid ${divider};">
       <div style="background:${col};color:#fff;font-size:9px;font-weight:900;padding:3px 7px;border-radius:6px;white-space:nowrap;flex-shrink:0;">${label}</div>
       <div style="display:flex;align-items:center;flex-wrap:wrap;gap:3px;">${renderBanums(cnt)}</div>
     </div>`;
-  });
+  }
+
+  let betRows = '';
+  // 推奨買い目
+  if (displayLines.length > 0) {
+    betRows += `<div style="font-size:9px;font-weight:900;color:${accent};margin-bottom:5px;padding:0 2px;">🎯 今回の推奨</div>`;
+    displayLines.forEach((line, i) => { betRows += buildBuyRow(line, i); });
+  }
+  // 全買い目（推奨と異なる場合のみ）
+  const allLinesBuy = lines || [];
+  if (allLinesBuy.length > 0 && JSON.stringify(displayLines) !== JSON.stringify(allLinesBuy)) {
+    betRows += `<div style="font-size:9px;font-weight:900;color:${textSub};margin:8px 0 5px;padding:0 2px;border-top:1px solid ${divider};padding-top:8px;">📋 全買い目</div>`;
+    allLinesBuy.forEach((line, i) => { betRows += buildBuyRow(line, i); });
+  }
 
   const commentBlock = userComment
     ? `<div style="margin:0 12px 12px;padding:9px 12px;background:${isDark?'rgba(255,255,255,0.05)':'rgba(201,168,76,0.08)'};border-radius:10px;border-left:3px solid ${accent};"><div style="font-size:10px;color:${textMain};line-height:1.6;">💬 ${userComment}</div></div>`
@@ -4688,29 +4701,45 @@ function generateResultImage(isHit) {
   // 的中タイプのセット
   const hitSet = new Set(hitTypes.split(/[\s,、]+/).filter(Boolean));
 
-  // 別定・ハンデ戦は穴馬用のrecLinesを優先
+  // 別定・ハンデ戦は穴馬用のrecLinesを優先（推奨買い目）
   const displayLines2 = (recLines && recLines.length > 0) ? recLines : lines;
-  const colorMap2 = {'単勝':'#ff2d55','複勝':'#9b59b6','馬連':'#007aff','ワイド':'#34c759','三連複':'#ff9500'};
+  const colorMap2 = {'単勝':'#ff2d55','複勝':'#9b59b6','馬連':'#007aff','ワイド':'#34c759','三連複':'#ff9500','馬単':'#e67e22','三連単':'#1a9c6e'};
 
-  let betRows = '';
-  displayLines2.forEach((line, i) => {
-    const typeMatch = line.match(/^(単勝|複勝|馬連|ワイド|三連複)/);
+  function buildBetRow(line, i, allLines) {
+    const typeMatch = line.match(/^(単勝|複勝|馬連|ワイド|三連複|馬単|三連単)/);
     const label = typeMatch ? typeMatch[1] : (betLabels[i] || '');
-    const cnt = line.replace(/^(単勝|複勝|馬連|ワイド|三連複)\s+/, '');
+    const cnt = line.replace(/^(単勝|複勝|馬連|ワイド|三連複|馬単|三連単)\s+/, '');
     const col = colorMap2[label] || accent;
     const isLineHit = isHit && hitSet.has(label);
     const rowStyle = isLineHit
       ? `background:rgba(233,69,96,0.18);border:1.5px solid #e94560;`
       : `background:${rowBg};border:1px solid ${divider};`;
     const stamp = isLineHit
-      ? `<div style="position:absolute;right:8px;top:50%;transform:translateY(-50%) rotate(-15deg);font-size:18px;font-weight:900;color:#e94560;border:2px solid #e94560;border-radius:4px;padding:1px 5px;opacity:0.85;white-space:nowrap;">的中</div>`
-      : '';
-    betRows += `<div style="position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;${rowStyle}margin-bottom:6px;">
+      ? `<div style="position:absolute;right:8px;top:50%;transform:translateY(-50%) rotate(-15deg);font-size:16px;font-weight:900;color:#e94560;border:2px solid #e94560;border-radius:4px;padding:1px 5px;opacity:0.9;white-space:nowrap;">的中✓</div>`
+      : (isHit ? `<div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;color:#aaa;opacity:0.7;">ハズレ</div>` : '');
+    return `<div style="position:relative;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;${rowStyle}margin-bottom:5px;">
       <div style="background:${col};color:#fff;font-size:9px;font-weight:900;padding:3px 7px;border-radius:6px;white-space:nowrap;flex-shrink:0;">${label}</div>
       <div style="display:flex;align-items:center;flex-wrap:wrap;gap:3px;">${renderBanums2(cnt)}</div>
       ${stamp}
     </div>`;
-  });
+  }
+
+  // 推奨買い目セクション
+  let betRows = '';
+  if (displayLines2.length > 0) {
+    betRows += `<div style="font-size:9px;font-weight:900;color:${accent};margin-bottom:5px;padding:0 2px;">🎯 今回の推奨</div>`;
+    displayLines2.forEach((line, i) => { betRows += buildBetRow(line, i, displayLines2); });
+  }
+
+  // 全買い目セクション（linesがdisplayLines2と異なる場合のみ表示）
+  const allLines = lines || [];
+  const recDiff = JSON.stringify(displayLines2) !== JSON.stringify(allLines);
+  if (allLines.length > 0 && recDiff) {
+    betRows += `<div style="font-size:9px;font-weight:900;color:${textSub};margin:8px 0 5px;padding:0 2px;border-top:1px solid ${divider};padding-top:8px;">📋 全買い目</div>`;
+    allLines.forEach((line, i) => { betRows += buildBetRow(line, i, allLines); });
+  } else if (allLines.length > 0 && !recDiff) {
+    // 推奨=全買い目の場合は全買い目セクションなし（重複しない）
+  }
 
   const topImg = isHit ? './10413.webp' : './10414.webp';
   const stampOverlay = isHit
