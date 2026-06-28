@@ -169,6 +169,12 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 
   <!-- JSON/プロンプトタブ -->
   <div id="input" class="tab-content active">
+    <!-- 重賞カレンダー -->
+    <div class="card" id="graded-calendar-card">
+      <div class="card-title">🗓 重賞カレンダー（G1〜G3）</div>
+      <div id="graded-calendar"></div>
+    </div>
+
     <div class="card">
       <div class="card-title">🤖 Geminiプロンプト集</div>
       <div style="margin-bottom: 10px;">
@@ -860,6 +866,7 @@ function switchTo(tab) {
   if (tab === 'analysis') renderAnalysis();
   if (tab === 'pace') { initPaceBonusGrid(); renderPaceAnalysis(); }
   if (tab === 'xpost') { /* ready */ }
+  if (tab === 'input') renderGradedCalendar();
 }
 
 const PROMPTS = {
@@ -6882,6 +6889,268 @@ if ('serviceWorker' in navigator) {
     keys.forEach(k => caches.delete(k));
   });
 }
+
+// ===== 重賞カレンダー =====
+const GRADED_RACES_2026 = [
+  // 1月
+  {date:'2026-01-04', name:'中山金杯', grade:'G3', course:'中山', surface:'芝', dist:2000, weight:'ハンデ'},
+  {date:'2026-01-04', name:'京都金杯', grade:'G3', course:'京都', surface:'芝', dist:1600, weight:'ハンデ'},
+  {date:'2026-01-11', name:'フェアリーS', grade:'G3', course:'中山', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-01-12', name:'シンザン記念', grade:'G3', course:'京都', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-01-18', name:'京成杯', grade:'G3', course:'中山', surface:'芝', dist:2000, weight:'馬齢'},
+  {date:'2026-01-18', name:'日経新春杯', grade:'G2', course:'京都', surface:'芝', dist:2400, weight:'ハンデ'},
+  {date:'2026-01-24', name:'小倉牝馬S', grade:'G3', course:'小倉', surface:'芝', dist:2000, weight:'ハンデ'},
+  {date:'2026-01-25', name:'アメリカJCC', grade:'G2', course:'中山', surface:'芝', dist:2200, weight:'別定'},
+  {date:'2026-01-25', name:'プロキオンS', grade:'G2', course:'京都', surface:'ダ', dist:1800, weight:'別定'},
+  // 2月
+  {date:'2026-02-01', name:'根岸S', grade:'G3', course:'東京', surface:'ダ', dist:1400, weight:'別定'},
+  {date:'2026-02-01', name:'シルクロードS', grade:'G3', course:'京都', surface:'芝', dist:1200, weight:'ハンデ'},
+  {date:'2026-02-10', name:'東京新聞杯', grade:'G3', course:'東京', surface:'芝', dist:1600, weight:'別定'},
+  {date:'2026-02-10', name:'きさらぎ賞', grade:'G3', course:'京都', surface:'芝', dist:1800, weight:'馬齢'},
+  {date:'2026-02-14', name:'クイーンC', grade:'G3', course:'東京', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-02-15', name:'共同通信杯', grade:'G3', course:'東京', surface:'芝', dist:1800, weight:'馬齢'},
+  {date:'2026-02-15', name:'京都記念', grade:'G2', course:'京都', surface:'芝', dist:2200, weight:'別定'},
+  {date:'2026-02-21', name:'ダイヤモンドS', grade:'G3', course:'東京', surface:'芝', dist:3400, weight:'ハンデ'},
+  {date:'2026-02-21', name:'阪急杯', grade:'G3', course:'阪神', surface:'芝', dist:1400, weight:'別定'},
+  {date:'2026-02-22', name:'フェブラリーS', grade:'G1', course:'東京', surface:'ダ', dist:1600, weight:'定量'},
+  {date:'2026-02-22', name:'小倉大賞典', grade:'G3', course:'小倉', surface:'芝', dist:1800, weight:'ハンデ'},
+  {date:'2026-02-28', name:'オーシャンS', grade:'G3', course:'中山', surface:'芝', dist:1200, weight:'別定'},
+  // 3月
+  {date:'2026-03-01', name:'中山記念', grade:'G2', course:'中山', surface:'芝', dist:1800, weight:'別定'},
+  {date:'2026-03-01', name:'チューリップ賞', grade:'G2', course:'阪神', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-03-07', name:'中山牝馬S', grade:'G3', course:'中山', surface:'芝', dist:1800, weight:'ハンデ'},
+  {date:'2026-03-07', name:'フィリーズレビュー', grade:'G2', course:'阪神', surface:'芝', dist:1400, weight:'馬齢'},
+  {date:'2026-03-08', name:'弥生賞ディープインパクト記念', grade:'G2', course:'中山', surface:'芝', dist:2000, weight:'馬齢'},
+  {date:'2026-03-15', name:'スプリングS', grade:'G2', course:'中山', surface:'芝', dist:1800, weight:'馬齢'},
+  {date:'2026-03-15', name:'金鯱賞', grade:'G2', course:'中京', surface:'芝', dist:2000, weight:'別定'},
+  {date:'2026-03-21', name:'フラワーC', grade:'G3', course:'中山', surface:'芝', dist:1800, weight:'馬齢'},
+  {date:'2026-03-21', name:'ファルコンS', grade:'G3', course:'中京', surface:'芝', dist:1400, weight:'馬齢'},
+  {date:'2026-03-22', name:'阪神大賞典', grade:'G2', course:'阪神', surface:'芝', dist:3000, weight:'別定'},
+  {date:'2026-03-22', name:'愛知杯', grade:'G3', course:'中京', surface:'芝', dist:1400, weight:'別定'},
+  {date:'2026-03-28', name:'日経賞', grade:'G2', course:'中山', surface:'芝', dist:2500, weight:'別定'},
+  {date:'2026-03-28', name:'毎日杯', grade:'G3', course:'阪神', surface:'芝', dist:1800, weight:'馬齢'},
+  {date:'2026-03-29', name:'マーチS', grade:'G3', course:'中山', surface:'ダ', dist:1800, weight:'ハンデ'},
+  {date:'2026-03-29', name:'高松宮記念', grade:'G1', course:'中京', surface:'芝', dist:1200, weight:'定量'},
+  // 4月
+  {date:'2026-04-04', name:'ダービー卿CT', grade:'G3', course:'中山', surface:'芝', dist:1600, weight:'ハンデ'},
+  {date:'2026-04-04', name:'チャーチルダウンズC', grade:'G3', course:'阪神', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-04-05', name:'大阪杯', grade:'G1', course:'阪神', surface:'芝', dist:2000, weight:'定量'},
+  {date:'2026-04-11', name:'ニュージーランドT', grade:'G2', course:'中山', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-04-11', name:'阪神牝馬S', grade:'G2', course:'阪神', surface:'芝', dist:1600, weight:'別定'},
+  {date:'2026-04-12', name:'桜花賞', grade:'G1', course:'阪神', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-04-18', name:'アンタレスS', grade:'G3', course:'阪神', surface:'ダ', dist:1800, weight:'別定'},
+  {date:'2026-04-19', name:'皐月賞', grade:'G1', course:'中山', surface:'芝', dist:2000, weight:'馬齢'},
+  {date:'2026-04-19', name:'福島牝馬S', grade:'G3', course:'福島', surface:'芝', dist:1800, weight:'別定'},
+  {date:'2026-04-25', name:'青葉賞', grade:'G2', course:'東京', surface:'芝', dist:2400, weight:'馬齢'},
+  {date:'2026-04-26', name:'フローラS', grade:'G2', course:'東京', surface:'芝', dist:2000, weight:'馬齢'},
+  {date:'2026-04-26', name:'マイラーズC', grade:'G2', course:'京都', surface:'芝', dist:1600, weight:'別定'},
+  // 5月
+  {date:'2026-05-02', name:'京王杯スプリングC', grade:'G2', course:'東京', surface:'芝', dist:1400, weight:'別定'},
+  {date:'2026-05-02', name:'ユニコーンS', grade:'G3', course:'京都', surface:'ダ', dist:1900, weight:'馬齢'},
+  {date:'2026-05-03', name:'天皇賞(春)', grade:'G1', course:'京都', surface:'芝', dist:3200, weight:'定量'},
+  {date:'2026-05-09', name:'エプソムC', grade:'G3', course:'東京', surface:'芝', dist:1800, weight:'別定'},
+  {date:'2026-05-09', name:'京都新聞杯', grade:'G2', course:'京都', surface:'芝', dist:2200, weight:'馬齢'},
+  {date:'2026-05-10', name:'NHKマイルC', grade:'G1', course:'東京', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-05-16', name:'新潟大賞典', grade:'G3', course:'新潟', surface:'芝', dist:2000, weight:'ハンデ'},
+  {date:'2026-05-17', name:'ヴィクトリアマイル', grade:'G1', course:'東京', surface:'芝', dist:1600, weight:'定量'},
+  {date:'2026-05-23', name:'平安S', grade:'G3', course:'京都', surface:'ダ', dist:1900, weight:'別定'},
+  {date:'2026-05-24', name:'オークス', grade:'G1', course:'東京', surface:'芝', dist:2400, weight:'馬齢'},
+  {date:'2026-05-30', name:'葵S', grade:'G3', course:'京都', surface:'芝', dist:1200, weight:'馬齢'},
+  {date:'2026-05-31', name:'ダービー', grade:'G1', course:'東京', surface:'芝', dist:2400, weight:'馬齢'},
+  {date:'2026-05-31', name:'目黒記念', grade:'G2', course:'東京', surface:'芝', dist:2500, weight:'ハンデ'},
+  // 6月
+  {date:'2026-06-07', name:'安田記念', grade:'G1', course:'東京', surface:'芝', dist:1600, weight:'定量'},
+  {date:'2026-06-13', name:'函館スプリントS', grade:'G3', course:'函館', surface:'芝', dist:1200, weight:'別定'},
+  {date:'2026-06-14', name:'宝塚記念', grade:'G1', course:'阪神', surface:'芝', dist:2200, weight:'定量'},
+  {date:'2026-06-21', name:'府中牝馬S', grade:'G3', course:'東京', surface:'芝', dist:1800, weight:'ハンデ'},
+  {date:'2026-06-21', name:'しらさぎS', grade:'G3', course:'阪神', surface:'芝', dist:1600, weight:'別定'},
+  {date:'2026-06-28', name:'ラジオNIKKEI賞', grade:'G3', course:'福島', surface:'芝', dist:1800, weight:'ハンデ'},
+  {date:'2026-06-28', name:'函館記念', grade:'G3', course:'函館', surface:'芝', dist:2000, weight:'ハンデ'},
+  // 7月
+  {date:'2026-07-05', name:'北九州記念', grade:'G3', course:'小倉', surface:'芝', dist:1200, weight:'ハンデ'},
+  {date:'2026-07-12', name:'七夕賞', grade:'G3', course:'福島', surface:'芝', dist:2000, weight:'ハンデ'},
+  {date:'2026-07-19', name:'小倉記念', grade:'G3', course:'小倉', surface:'芝', dist:2000, weight:'ハンデ'},
+  {date:'2026-07-19', name:'函館2歳S', grade:'G3', course:'函館', surface:'芝', dist:1200, weight:'馬齢'},
+  {date:'2026-07-26', name:'関屋記念', grade:'G3', course:'新潟', surface:'芝', dist:1600, weight:'ハンデ'},
+  {date:'2026-07-26', name:'東海S', grade:'G3', course:'中京', surface:'ダ', dist:1400, weight:'別定'},
+  // 8月
+  {date:'2026-08-02', name:'アイビスサマーダッシュ', grade:'G3', course:'新潟', surface:'芝', dist:1000, weight:'別定'},
+  {date:'2026-08-02', name:'クイーンS', grade:'G3', course:'札幌', surface:'芝', dist:1800, weight:'別定'},
+  {date:'2026-08-08', name:'エルムS', grade:'G3', course:'札幌', surface:'ダ', dist:1700, weight:'別定'},
+  {date:'2026-08-09', name:'レパードS', grade:'G3', course:'新潟', surface:'ダ', dist:1800, weight:'馬齢'},
+  {date:'2026-08-09', name:'CBC賞', grade:'G3', course:'中京', surface:'芝', dist:1200, weight:'ハンデ'},
+  {date:'2026-08-16', name:'中京記念', grade:'G3', course:'中京', surface:'芝', dist:1600, weight:'別定'},
+  {date:'2026-08-16', name:'札幌記念', grade:'G2', course:'札幌', surface:'芝', dist:2000, weight:'定量'},
+  {date:'2026-08-23', name:'新潟2歳S', grade:'G3', course:'新潟', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-08-23', name:'キーンランドC', grade:'G3', course:'札幌', surface:'芝', dist:1200, weight:'別定'},
+  {date:'2026-08-30', name:'新潟記念', grade:'G3', course:'新潟', surface:'芝', dist:2000, weight:'別定'},
+  {date:'2026-08-30', name:'中京2歳S', grade:'G3', course:'中京', surface:'芝', dist:1400, weight:'馬齢'},
+  // 9月
+  {date:'2026-09-05', name:'京成杯AH', grade:'G3', course:'中山', surface:'芝', dist:1600, weight:'ハンデ'},
+  {date:'2026-09-05', name:'札幌2歳S', grade:'G3', course:'札幌', surface:'芝', dist:1800, weight:'馬齢'},
+  {date:'2026-09-06', name:'紫苑S', grade:'G2', course:'中山', surface:'芝', dist:2000, weight:'馬齢'},
+  {date:'2026-09-06', name:'セントウルS', grade:'G2', course:'阪神', surface:'芝', dist:1200, weight:'別定'},
+  {date:'2026-09-12', name:'チャレンジC', grade:'G3', course:'阪神', surface:'芝', dist:2000, weight:'ハンデ'},
+  {date:'2026-09-13', name:'セントライト記念', grade:'G2', course:'中山', surface:'芝', dist:2200, weight:'馬齢'},
+  {date:'2026-09-13', name:'ローズS', grade:'G2', course:'阪神', surface:'芝', dist:1800, weight:'馬齢'},
+  {date:'2026-09-20', name:'オールカマー', grade:'G2', course:'中山', surface:'芝', dist:2200, weight:'別定'},
+  {date:'2026-09-21', name:'神戸新聞杯', grade:'G2', course:'阪神', surface:'芝', dist:2400, weight:'馬齢'},
+  {date:'2026-09-26', name:'シリウスS', grade:'G3', course:'阪神', surface:'ダ', dist:2000, weight:'ハンデ'},
+  {date:'2026-09-27', name:'スプリンターズS', grade:'G1', course:'中山', surface:'芝', dist:1200, weight:'定量'},
+  // 10月
+  {date:'2026-10-04', name:'毎日王冠', grade:'G2', course:'東京', surface:'芝', dist:1800, weight:'別定'},
+  {date:'2026-10-04', name:'京都大賞典', grade:'G2', course:'京都', surface:'芝', dist:2400, weight:'別定'},
+  {date:'2026-10-10', name:'サウジアラビアRC', grade:'G3', course:'東京', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-10-11', name:'アイルランドT', grade:'G2', course:'東京', surface:'芝', dist:1800, weight:'別定'},
+  {date:'2026-10-12', name:'スワンS', grade:'G2', course:'京都', surface:'芝', dist:1400, weight:'別定'},
+  {date:'2026-10-17', name:'富士S', grade:'G2', course:'東京', surface:'芝', dist:1600, weight:'別定'},
+  {date:'2026-10-18', name:'秋華賞', grade:'G1', course:'京都', surface:'芝', dist:2000, weight:'馬齢'},
+  {date:'2026-10-24', name:'アルテミスS', grade:'G3', course:'東京', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-10-25', name:'菊花賞', grade:'G1', course:'京都', surface:'芝', dist:3000, weight:'馬齢'},
+  {date:'2026-10-31', name:'ファンタジーS', grade:'G3', course:'京都', surface:'芝', dist:1400, weight:'馬齢'},
+  {date:'2026-11-01', name:'天皇賞(秋)', grade:'G1', course:'東京', surface:'芝', dist:2000, weight:'定量'},
+  // 11月
+  {date:'2026-11-07', name:'京王杯2歳S', grade:'G2', course:'東京', surface:'芝', dist:1400, weight:'馬齢'},
+  {date:'2026-11-08', name:'アルゼンチン共和国杯', grade:'G2', course:'東京', surface:'芝', dist:2500, weight:'ハンデ'},
+  {date:'2026-11-08', name:'みやこS', grade:'G3', course:'京都', surface:'ダ', dist:1800, weight:'別定'},
+  {date:'2026-11-14', name:'武蔵野S', grade:'G3', course:'東京', surface:'ダ', dist:1600, weight:'別定'},
+  {date:'2026-11-14', name:'デイリー杯2歳S', grade:'G2', course:'京都', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-11-15', name:'エリザベス女王杯', grade:'G1', course:'京都', surface:'芝', dist:2200, weight:'定量'},
+  {date:'2026-11-21', name:'福島記念', grade:'G3', course:'福島', surface:'芝', dist:2000, weight:'ハンデ'},
+  {date:'2026-11-22', name:'マイルCS', grade:'G1', course:'京都', surface:'芝', dist:1600, weight:'定量'},
+  {date:'2026-11-23', name:'東京スポーツ杯2歳S', grade:'G2', course:'東京', surface:'芝', dist:1800, weight:'馬齢'},
+  {date:'2026-11-28', name:'京都2歳S', grade:'G3', course:'京都', surface:'芝', dist:2000, weight:'馬齢'},
+  {date:'2026-11-29', name:'ジャパンC', grade:'G1', course:'東京', surface:'芝', dist:2400, weight:'定量'},
+  {date:'2026-11-29', name:'京阪杯', grade:'G3', course:'京都', surface:'芝', dist:1200, weight:'別定'},
+  // 12月
+  {date:'2026-12-05', name:'ステイヤーズS', grade:'G2', course:'中山', surface:'芝', dist:3600, weight:'別定'},
+  {date:'2026-12-05', name:'鳴尾記念', grade:'G3', course:'阪神', surface:'芝', dist:1800, weight:'別定'},
+  {date:'2026-12-06', name:'チャンピオンズC', grade:'G1', course:'中京', surface:'ダ', dist:1800, weight:'定量'},
+  {date:'2026-12-12', name:'中日新聞杯', grade:'G3', course:'中京', surface:'芝', dist:2000, weight:'ハンデ'},
+  {date:'2026-12-13', name:'カペラS', grade:'G3', course:'中山', surface:'ダ', dist:1200, weight:'別定'},
+  {date:'2026-12-13', name:'阪神JF', grade:'G1', course:'阪神', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-12-19', name:'ターコイズS', grade:'G3', course:'中山', surface:'芝', dist:1600, weight:'ハンデ'},
+  {date:'2026-12-20', name:'朝日杯FS', grade:'G1', course:'阪神', surface:'芝', dist:1600, weight:'馬齢'},
+  {date:'2026-12-26', name:'ホープフルS', grade:'G1', course:'中山', surface:'芝', dist:2000, weight:'馬齢'},
+  {date:'2026-12-26', name:'阪神C', grade:'G2', course:'阪神', surface:'芝', dist:1400, weight:'定量'},
+  {date:'2026-12-27', name:'有馬記念', grade:'G1', course:'中山', surface:'芝', dist:2500, weight:'定量'},
+]
+
+function renderGradedCalendar() {
+  const el = document.getElementById('graded-calendar');
+  if (!el) return;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const getWeekStart = (d) => {
+    const dt = new Date(d); const day = dt.getDay();
+    dt.setDate(dt.getDate() - day); dt.setHours(0,0,0,0); return dt;
+  };
+
+  // 前後2週間の範囲
+  const rangeStart = new Date(today); rangeStart.setDate(rangeStart.getDate() - 14);
+  const rangeEnd   = new Date(today); rangeEnd.setDate(rangeEnd.getDate() + 14);
+
+  const all = [...GRADED_RACES_2026].sort((a,b) => a.date.localeCompare(b.date));
+
+  // 週ごとにグループ化
+  const weekMap = new Map();
+  for (const r of all) {
+    const rd = new Date(r.date);
+    const ws = getWeekStart(rd);
+    const key = ws.toISOString();
+    if (!weekMap.has(key)) weekMap.set(key, { weekStart: ws, races: [] });
+    weekMap.get(key).races.push(r);
+  }
+
+  const gradeColor  = { 'G1':'#e94560', 'G2':'#9b59b6', 'G3':'#2563eb' };
+  const weightColor = { '定量':'#27ae60', '別定':'#e67e22', 'ハンデ':'#e74c3c', '馬齢':'#8090a0' };
+  const DAYS_JA = ['日','月','火','水','木','金','土'];
+  const todayWeekKey = getWeekStart(today).toISOString();
+
+  // 表示範囲内・外に分割
+  const inRangeWeeks = [];
+  const futureWeeks  = [];
+  for (const [key, val] of weekMap) {
+    const we = new Date(val.weekStart); we.setDate(we.getDate() + 6);
+    if (val.weekStart <= rangeEnd && we >= rangeStart) {
+      inRangeWeeks.push([key, val]);
+    } else if (val.weekStart > rangeEnd) {
+      futureWeeks.push([key, val]);
+    }
+  }
+
+  const buildWeekHTML = (key, { weekStart, races }) => {
+    const isThisWeek = key === todayWeekKey;
+    const we = new Date(weekStart); we.setDate(we.getDate() + 6);
+    const label = (weekStart.getMonth()+1) + '/' + weekStart.getDate()
+                + '〜' + (we.getMonth()+1) + '/' + we.getDate();
+
+    let h = '<div style="margin-bottom:10px;">';
+    // 週ヘッダー
+    h += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">';
+    if (isThisWeek) h += '<span style="background:#e94560;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;">今週</span>';
+    h += '<span style="font-size:11px;font-weight:900;color:' + (isThisWeek?'#e94560':'#1a1a2e') + ';">' + label + '</span>';
+    h += '<div style="flex:1;height:1px;background:' + (isThisWeek?'#e94560':'#ddd') + ';opacity:0.6;"></div></div>';
+
+    for (const r of races) {
+      const rd = new Date(r.date);
+      const isToday = rd.getTime() === today.getTime();
+      const isPast  = rd < today;
+      const dayStr  = (rd.getMonth()+1) + '/' + rd.getDate() + '(' + DAYS_JA[rd.getDay()] + ')';
+      const gc = gradeColor[r.grade]  || '#666';
+      const wc = weightColor[r.weight] || '#999';
+
+      h += '<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;margin-bottom:3px;'
+         + 'background:' + (isToday ? '#fffbe6' : isPast ? '#f7f7f7' : '#fff') + ';'
+         + 'border:1px solid ' + (isToday ? '#f39c12' : isPast ? '#eee' : gc+'33') + ';'
+         + 'opacity:' + (isPast ? '0.5' : '1') + ';">';
+      // 日付
+      h += '<div style="font-size:10px;font-weight:700;color:#888;min-width:58px;flex-shrink:0;">' + dayStr + '</div>';
+      // グレードバッジ
+      h += '<div style="background:' + gc + ';color:#fff;font-size:8px;font-weight:900;padding:2px 5px;border-radius:4px;min-width:22px;text-align:center;flex-shrink:0;">' + r.grade + '</div>';
+      // レース名
+      h += '<div style="flex:1;font-size:12px;font-weight:900;color:#1a1a2e;line-height:1.2;">' + r.name + '</div>';
+      // 負担重量
+      h += '<div style="font-size:8px;font-weight:900;color:' + wc + ';flex-shrink:0;">' + (r.weight||'') + '</div>';
+      // 場所・条件
+      h += '<div style="font-size:9px;color:#aaa;text-align:right;flex-shrink:0;">' + r.course + ' ' + r.surface + r.dist + 'm</div>';
+      h += '</div>';
+    }
+    h += '</div>';
+    return h;
+  };
+
+  let html = '';
+  for (const [key, val] of inRangeWeeks) html += buildWeekHTML(key, val);
+
+  // 今後の折りたたみ
+  if (futureWeeks.length > 0) {
+    html += '<div style="border-top:1px dashed #ddd;margin-top:4px;padding-top:8px;">';
+    html += '<button onclick="toggleFutureRaces(this)" style="width:100%;background:#f0f0f5;border:1px solid #ddd;border-radius:8px;padding:8px;font-size:11px;font-weight:900;color:#555;cursor:pointer;">📅 この先の重賞を見る（' + futureWeeks.length + '週分）▼</button>';
+    html += '<div id="future-races" style="display:none;margin-top:8px;">';
+    for (const [key, val] of futureWeeks) html += buildWeekHTML(key, val);
+    html += '</div></div>';
+  }
+
+  el.innerHTML = html;
+}
+
+function toggleFutureRaces(btn) {
+  const el = document.getElementById('future-races');
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  const weeks = btn.dataset.weeks || btn.textContent.match(/\d+/)?.[0] || '';
+  btn.textContent = isOpen
+    ? '📅 この先の重賞を見る（' + weeks + '週分）▼'
+    : '📅 この先の重賞を閉じる ▲';
+  // 週数保持
+  if (!btn.dataset.weeks) btn.dataset.weeks = weeks;
+}
+// JSONタブ表示時に自動描画
+document.addEventListener('DOMContentLoaded', () => { renderGradedCalendar(); });
+
 </script>
 </body>
 </html>
