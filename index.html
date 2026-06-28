@@ -4546,7 +4546,7 @@ function generateBuyImage() {
   // 全買い目（推奨と異なる場合のみ）
   const allLinesBuy = lines || [];
   if (allLinesBuy.length > 0 && JSON.stringify(displayLines) !== JSON.stringify(allLinesBuy)) {
-    betRows += `<div style="font-size:9px;font-weight:900;color:${textSub};margin:8px 0 5px;padding:0 2px;border-top:1px solid ${divider};padding-top:8px;">📋 全買い目</div>`;
+    betRows += `<div style="font-size:9px;font-weight:900;color:#ffffff;margin:8px 0 5px;padding:0 2px;border-top:1px solid ${divider};padding-top:8px;">📋 全買い目</div>`;
     allLinesBuy.forEach((line, i) => { betRows += buildBuyRow(line, i); });
   }
 
@@ -4735,7 +4735,7 @@ function generateResultImage(isHit) {
   const allLines = lines || [];
   const recDiff = JSON.stringify(displayLines2) !== JSON.stringify(allLines);
   if (allLines.length > 0 && recDiff) {
-    betRows += `<div style="font-size:9px;font-weight:900;color:${textSub};margin:8px 0 5px;padding:0 2px;border-top:1px solid ${divider};padding-top:8px;">📋 全買い目</div>`;
+    betRows += `<div style="font-size:9px;font-weight:900;color:#ffffff;margin:8px 0 5px;padding:0 2px;border-top:1px solid ${divider};padding-top:8px;">📋 全買い目</div>`;
     allLines.forEach((line, i) => { betRows += buildBetRow(line, i, allLines); });
   } else if (allLines.length > 0 && !recDiff) {
     // 推奨=全買い目の場合は全買い目セクションなし（重複しない）
@@ -5313,7 +5313,7 @@ function imgGenerate(type) {
         drawBetCards(ctx, recLinesArr, recLabels, recColors, null, 18, contentY, W - 36, type);
         contentY += recLinesArr.length * 74 + 16;
         // 全買い目セクション
-        ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '700 10px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillStyle = '#ffffff'; ctx.font = '900 11px sans-serif'; ctx.textAlign = 'left';
         ctx.fillText('📋 全買い目', 18, contentY - 4);
         const allLabels = allLinesArr.map(l => { const m = l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m?m[1]:''; });
         const allColors = allLabels.map(l => colorMap3[l]||'#888');
@@ -5329,8 +5329,8 @@ function imgGenerate(type) {
         const recC = recL.map(l=>colorMap3[l]||'#888');
         drawBetCards(ctx, recLinesArr, recL, recC, hitTypes, 18, 120, W-36, type);
         const sepY = 120 + recLinesArr.length * 44 + 10;
-        ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='700 10px sans-serif';ctx.textAlign='left';
-        ctx.fillText('📋 全買い目', 18, sepY);
+        ctx.fillStyle='#ffffff';ctx.font='700 11px sans-serif';ctx.textAlign='left';
+        ctx.fillText('🗒️ 全買い目', 18, sepY);
         const allL = allLinesArr.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';});
         const allC = allL.map(l=>colorMap3[l]||'#888');
         drawBetCards(ctx, allLinesArr, allL, allC, hitTypes, 18, sepY+6, W-36, type);
@@ -5345,8 +5345,8 @@ function imgGenerate(type) {
         const recC = recL.map(l=>colorMap3[l]||'#888');
         drawBetCards(ctx, recLinesArr, recL, recC, null, 18, 120, W-36, type);
         const sepY = 120 + recLinesArr.length * 44 + 10;
-        ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='700 10px sans-serif';ctx.textAlign='left';
-        ctx.fillText('📋 全買い目', 18, sepY);
+        ctx.fillStyle='#ffffff';ctx.font='700 11px sans-serif';ctx.textAlign='left';
+        ctx.fillText('🗒️ 全買い目', 18, sepY);
         const allL = allLinesArr.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';});
         const allC = allL.map(l=>colorMap3[l]||'#888');
         drawBetCards(ctx, allLinesArr, allL, allC, null, 18, sepY+6, W-36, type);
