@@ -1549,8 +1549,8 @@ function renderTable() {
     // カードを生成してhorse-cardsに追加
     if (cardsEl) {
       const card = document.createElement('div');
-      const cardBg = (isHighScore && isHighOdds) ? '#fff8e1' : isHighScore ? '#f0fff4' : isLowScore ? '#fff0f0' : '#0d1b2a';
-      const cardBorder = (isHighScore && isHighOdds) ? '#f39c12' : isHighScore ? '#27ae60' : isLowScore ? '#e94560' : '#1e2d3d';
+      const cardBg = (isHighScore && isHighOdds) ? '#fffbe6' : isHighScore ? '#f0fff4' : isLowScore ? '#fff0f0' : '#f8f8f8';
+      const cardBorder = (isHighScore && isHighOdds) ? '#f39c12' : isHighScore ? '#27ae60' : isLowScore ? '#e94560' : '#ddd';
       card.style.cssText = 'background:' + cardBg + ';border:1.5px solid ' + cardBorder + ';border-radius:10px;padding:8px 10px;margin-bottom:6px;';
 
       // 行1: 馬番・印・馬名・スコア
@@ -1571,7 +1571,7 @@ function renderTable() {
       row1.appendChild(jiDiv);
       const nameDiv = document.createElement('div');
       nameDiv.style.cssText = 'flex:1;';
-      nameDiv.innerHTML = '<div style="font-weight:900;font-size:14px;' + nameColor + '">' + h.name + '</div><div style="font-size:10px;color:#8090a0;">' + h.jockey + ' / ' + h.sire + '</div>';
+      nameDiv.innerHTML = '<div style="font-weight:900;font-size:14px;color:#1a1a2e;">' + h.name + '</div><div style="font-size:10px;color:#888;">' + h.jockey + ' / ' + h.sire + '</div>';
       row1.appendChild(nameDiv);
       const scoreDiv = document.createElement('div');
       scoreDiv.style.cssText = 'text-align:right;';
@@ -1585,15 +1585,15 @@ function renderTable() {
 
       function makeCell(label, inner) {
         const c = document.createElement('div');
-        c.style.cssText = 'background:#0a1520;border-radius:5px;padding:4px 6px;';
-        c.innerHTML = '<div style="font-size:8px;color:#8090a0;">' + label + '</div>';
+        c.style.cssText = 'background:#f0f0f5;border-radius:5px;padding:4px 6px;';
+        c.innerHTML = '<div style="font-size:8px;color:#888;font-weight:700;">' + label + '</div>';
         c.appendChild(inner);
         return c;
       }
 
       const padSel = document.createElement('select');
       padSel.className = 'sel';
-      padSel.style.cssText = 'width:100%;font-size:12px;font-weight:900;background:transparent;border:none;color:#fff;padding:0;';
+      padSel.style.cssText = 'width:100%;font-size:12px;font-weight:900;background:transparent;border:none;color:#1a1a2e;padding:0;';
       padSel.innerHTML = '<option value="">-</option><option value="A" style="color:#34c759;">A</option><option value="B" style="color:#ff9500;">B</option><option value="C" style="color:#ff3b30;">C</option>';
       padSel.value = h.paddock || '';
       padSel.onchange = (function(i){return function(){horses[i].paddock=this.value;renderTable();};})(idx);
@@ -1601,7 +1601,7 @@ function renderTable() {
 
       const kyakuSel = document.createElement('select');
       kyakuSel.className = 'sel';
-      kyakuSel.style.cssText = 'width:100%;font-size:11px;font-weight:700;background:transparent;border:none;color:#fff;padding:0;';
+      kyakuSel.style.cssText = 'width:100%;font-size:11px;font-weight:700;background:transparent;border:none;color:#1a1a2e;padding:0;';
       kyakuSel.innerHTML = ['','逃げ','先行','差し','追い込み','自在'].map(v=>'<option'+(h.kyakushitsu===v?' selected':'')+'>'+v+'</option>').join('');
       kyakuSel.onchange = (function(i){return function(){horses[i].kyakushitsu=this.value;renderTable();};})(idx);
       row2.appendChild(makeCell('脚質', kyakuSel));
@@ -1620,28 +1620,28 @@ function renderTable() {
 
       const ninkiInp = document.createElement('input');
       ninkiInp.className = 'inp';
-      ninkiInp.style.cssText = 'width:100%;font-size:12px;font-weight:900;background:transparent;border:none;color:#FFD700;padding:0;';
+      ninkiInp.style.cssText = 'width:100%;font-size:12px;font-weight:900;background:transparent;border:none;color:#1a1a2e;font-weight:900;padding:0;';
       ninkiInp.value = h.ninki;
       ninkiInp.onchange = (function(i){return function(){horses[i].ninki=this.value;renderTable();};})(idx);
       row3.appendChild(makeCell('人気', ninkiInp));
 
       const maejunSel = document.createElement('select');
       maejunSel.className = 'sel';
-      maejunSel.style.cssText = 'width:100%;font-size:11px;background:transparent;border:none;color:#fff;padding:0;';
+      maejunSel.style.cssText = 'width:100%;font-size:11px;background:transparent;border:none;color:#1a1a2e;padding:0;';
       maejunSel.innerHTML = '<option>-</option>' + [1,2,3,4,5,6,7,8,9,10,11,12].map(n=>'<option'+(h.maejun===String(n)?' selected':'')+'>'+n+'</option>').join('');
       maejunSel.onchange = (function(i){return function(){horses[i].maejun=this.value;renderTable();};})(idx);
       row3.appendChild(makeCell('前走着', maejunSel));
 
       const maeclassSel = document.createElement('select');
       maeclassSel.className = 'sel';
-      maeclassSel.style.cssText = 'width:100%;font-size:9px;background:transparent;border:none;color:#fff;padding:0;';
+      maeclassSel.style.cssText = 'width:100%;font-size:9px;background:transparent;border:none;color:#1a1a2e;padding:0;';
       maeclassSel.innerHTML = '<option>-</option>' + ['GI','GII','GIII','L','OP','3勝','2勝','1勝'].map(c=>'<option'+(h.maeclass===c?' selected':'')+'>'+c+'</option>').join('');
       maeclassSel.onchange = (function(i){return function(){horses[i].maeclass=this.value;renderTable();};})(idx);
       row3.appendChild(makeCell('前走クラス', maeclassSel));
 
       const timdevSel = document.createElement('select');
       timdevSel.className = 'sel';
-      timdevSel.style.cssText = 'width:100%;font-size:9px;background:transparent;border:none;color:#fff;padding:0;';
+      timdevSel.style.cssText = 'width:100%;font-size:9px;background:transparent;border:none;color:#1a1a2e;padding:0;';
       timdevSel.innerHTML = '<option>-</option>' + ['0～','35～','40～','45～','50～','55～','60～','65～','70～','75～'].map(v=>'<option'+(h.timdev===v?' selected':'')+'>'+v+'</option>').join('');
       timdevSel.onchange = (function(i){return function(){horses[i].timdev=this.value;renderTable();};})(idx);
       row3.appendChild(makeCell('偏差値', timdevSel));
@@ -1653,28 +1653,28 @@ function renderTable() {
 
       const bajuInp = document.createElement('input');
       bajuInp.className = 'inp';
-      bajuInp.style.cssText = 'width:100%;font-size:11px;background:transparent;border:none;color:#fff;padding:0;';
+      bajuInp.style.cssText = 'width:100%;font-size:11px;background:transparent;border:none;color:#1a1a2e;padding:0;';
       bajuInp.value = h.baju || ''; bajuInp.placeholder = '460';
       bajuInp.onchange = (function(i){return function(){horses[i].baju=getBajuBand(this.value);renderTable();};})(idx);
       row4.appendChild(makeCell('馬体重', bajuInp));
 
       const weightInp = document.createElement('input');
       weightInp.className = 'inp';
-      weightInp.style.cssText = 'width:100%;font-size:11px;background:transparent;border:none;color:#fff;padding:0;';
+      weightInp.style.cssText = 'width:100%;font-size:11px;background:transparent;border:none;color:#1a1a2e;padding:0;';
       weightInp.value = h.weight || ''; weightInp.placeholder = '57.0';
       weightInp.onchange = (function(i){return function(){horses[i].weight=parseFloat(this.value)||null;renderTable();};})(idx);
       row4.appendChild(makeCell('斤量', weightInp));
 
       const choFSel = document.createElement('select');
       choFSel.className = 'sel';
-      choFSel.style.cssText = 'width:100%;font-size:14px;font-weight:900;background:transparent;border:none;color:#fff;padding:0;';
+      choFSel.style.cssText = 'width:100%;font-size:14px;font-weight:900;background:transparent;border:none;color:#1a1a2e;padding:0;';
       choFSel.innerHTML = ['A','B','C'].map(v=>'<option'+(h.chokyoFinal===v?' selected':'')+'>'+v+'</option>').join('');
       choFSel.onchange = (function(i){return function(){horses[i].chokyoFinal=this.value;renderTable();scheduleAutoSave();};})(idx);
       row4.appendChild(makeCell('最終調教', choFSel));
 
       const choPSel = document.createElement('select');
       choPSel.className = 'sel';
-      choPSel.style.cssText = 'width:100%;font-size:14px;font-weight:900;background:transparent;border:none;color:#fff;padding:0;';
+      choPSel.style.cssText = 'width:100%;font-size:14px;font-weight:900;background:transparent;border:none;color:#1a1a2e;padding:0;';
       choPSel.innerHTML = ['A','B','C'].map(v=>'<option'+(h.chokyoPrev===v?' selected':'')+'>'+v+'</option>').join('');
       choPSel.onchange = (function(i){return function(){horses[i].chokyoPrev=this.value;renderTable();scheduleAutoSave();};})(idx);
       row4.appendChild(makeCell('一週前調教', choPSel));
@@ -1686,7 +1686,7 @@ function renderTable() {
 
       const negSel = document.createElement('select');
       negSel.className = 'sel';
-      negSel.style.cssText = 'font-size:9px;color:' + (h.negAdj>0?'#34c759':h.negAdj<0?'#ff6b35':'#aaa') + ';background:#0a1520;border:1px solid #1e2d3d;border-radius:4px;padding:2px 4px;';
+      negSel.style.cssText = 'font-size:9px;color:' + (h.negAdj>0?'#34c759':h.negAdj<0?'#ff6b35':'#aaa') + ';background:#f0f0f5;border:1px solid #ccc;border-radius:4px;padding:2px 4px;';
       negSel.innerHTML = '<option value="0"'+((!h.negAdj||h.negAdj===0)?' selected':'')+'>なし</option><option value="15"'+(h.negAdj===15?' selected':'')+'>弱+15</option><option value="30"'+(h.negAdj===30?' selected':'')+'>中+30</option><option value="50"'+(h.negAdj===50?' selected':'')+'>強+50</option><option value="-15"'+(h.negAdj===-15?' selected':'')+'>弱-15</option><option value="-30"'+(h.negAdj===-30?' selected':'')+'>中-30</option><option value="-50"'+(h.negAdj===-50?' selected':'')+'>強-50</option>';
       negSel.onchange = (function(i){return function(){horses[i].negAdj=parseInt(this.value);renderTable();};})(idx);
       row5.appendChild(negSel);
@@ -1712,7 +1712,7 @@ function renderTable() {
 
       // 行6: スコア内訳
       const row6 = document.createElement('div');
-      row6.style.cssText = 'margin-top:5px;font-size:9px;color:#5a7a9a;';
+      row6.style.cssText = 'margin-top:5px;font-size:9px;color:#888;border-top:1px solid #eee;padding-top:4px;';
       row6.textContent = '傾向:' + Math.round(trendScore) + ' / 調' + (chokyoScore>=0?'+':'') + chokyoScore + ' 厩' + (commentScore>=0?'+':'') + commentScore + ' 展' + (paceAdj>=0?'+':'') + paceAdj;
       card.appendChild(row6);
 
