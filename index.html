@@ -5237,7 +5237,8 @@ function imgGenerate(type) {
     const same = JSON.stringify(r) === JSON.stringify(a);
     return r.length > 0 && !same ? [...r, ...a] : (r.length > 0 ? r : a);
   })();
-  const H = type === 'score' ? 1000 : type === 'buy' ? Math.max(1000, 600 + _calcLines.length * 74) : 800;
+  // buy: 背景画像(520px) + ラベル(14px) + カード数×74px + 余白
+  const H = type === 'score' ? 1000 : type === 'buy' ? Math.max(800, 540 + _calcLines.length * 76) : 800;
   const DPR = Math.min(window.devicePixelRatio || 2, 3); // 最大3倍
 
   const canvas = document.createElement('canvas');
@@ -5299,61 +5300,8 @@ function imgGenerate(type) {
       // [100〜520]  背景画像エリア(420px)
       // [528〜...]  推奨券種カード → 買い目カード
 
-      // 推奨券種カード(_lastRecTicketsがなければrecLinesから組み立て)
-      const recData = _lastRecTickets || (recLines && recLines.length > 0
-        ? { tickets: recLines.map(l => `《${l}》`), reason: '' }
-        : null);
-      let contentY = 540;
-      // コメントがある場合はその分下にずらす(余白40px)
-      if (comment) contentY = 536 + 42 + 40;
-
-      if (recData && recData.tickets && recData.tickets.length > 0) {
-        const cardX = 18, cardW = W - 36, recCardH = 104;
-        ctx.fillStyle = 'rgba(20,20,40,0.95)';
-        roundRect(ctx, cardX, contentY, cardW, recCardH, 6);
-        ctx.fill();
-        ctx.strokeStyle = '#f39c12';
-        ctx.lineWidth = 1.5;
-        roundRect(ctx, cardX, contentY, cardW, recCardH, 6);
-        ctx.stroke();
-
-        ctx.fillStyle = '#f39c12';
-        ctx.font = '700 11px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText('🎯 今回の推奨券種', cardX + 10, contentY + 18);
-
-        let bx = cardX + 10;
-        const by = contentY + 26;
-        (recData.tickets || []).forEach((t) => {
-          const label = t.replace(/《|》/g, '');
-          ctx.font = '700 13px sans-serif';
-          const tw = ctx.measureText(label).width + 18;
-          ctx.fillStyle = 'rgba(249,200,66,0.25)';
-          roundRect(ctx, bx, by, tw, 28, 4);
-          ctx.fill();
-          ctx.strokeStyle = '#f39c12';
-          ctx.lineWidth = 1.5;
-          roundRect(ctx, bx, by, tw, 28, 4);
-          ctx.stroke();
-          ctx.fillStyle = '#fff';
-          ctx.textAlign = 'left';
-          ctx.fillText(label, bx + 9, by + 19);
-          bx += tw + 8;
-        });
-
-        const reasonLines = (recData.reason || '').split('\n')
-          .map(l => l.replace(/[✅⚠️🎯📊📌]/g, '').trim())
-          .filter(l => l.length > 0 && !l.includes('成績最良') && !l.includes('的中率'))
-          .slice(0, 2);
-        ctx.fillStyle = '#ccd0e0';
-        ctx.font = '400 11px sans-serif';
-        ctx.textAlign = 'left';
-        reasonLines.forEach((line, i) => {
-          ctx.fillText(line.substring(0, 45), cardX + 10, contentY + 68 + i * 16);
-        });
-
-        contentY += recCardH + 16;
-      }
+      // 推奨券種カードは削除 → 買い目カードを背景画像直下から表示
+      let contentY = comment ? 536 + 42 + 16 : 528;
 
       // 推奨と全買い目に分けて描画
       if (recLinesArr.length > 0 && !recSame) {
