@@ -4543,11 +4543,13 @@ function generateBuyImage() {
     betRows += `<div style="font-size:9px;font-weight:900;color:${accent};margin-bottom:5px;padding:0 2px;">🎯 今回の推奨</div>`;
     displayLines.forEach((line, i) => { betRows += buildBuyRow(line, i); });
   }
-  // 全買い目（推奨と異なる場合のみ）
+  // 全買い目（推奨と被る券種を除外）
   const allLinesBuy = lines || [];
-  if (allLinesBuy.length > 0 && JSON.stringify(displayLines) !== JSON.stringify(allLinesBuy)) {
+  const recTypesBuy = new Set(displayLines.map(l => { const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m?m[1]:''; }));
+  const allLinesBuyFiltered = allLinesBuy.filter(l => { const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m ? !recTypesBuy.has(m[1]) : true; });
+  if (allLinesBuyFiltered.length > 0) {
     betRows += `<div style="font-size:9px;font-weight:900;color:#ffffff;margin:8px 0 5px;padding:0 2px;border-top:1px solid ${divider};padding-top:8px;">📋 全買い目</div>`;
-    allLinesBuy.forEach((line, i) => { betRows += buildBuyRow(line, i); });
+    allLinesBuyFiltered.forEach((line, i) => { betRows += buildBuyRow(line, i); });
   }
 
   const commentBlock = userComment
@@ -4735,8 +4737,12 @@ function generateResultImage(isHit) {
   const allLines = lines || [];
   const recDiff = JSON.stringify(displayLines2) !== JSON.stringify(allLines);
   if (allLines.length > 0 && recDiff) {
-    betRows += `<div style="font-size:9px;font-weight:900;color:#ffffff;margin:8px 0 5px;padding:0 2px;border-top:1px solid ${divider};padding-top:8px;">📋 全買い目</div>`;
-    allLines.forEach((line, i) => { betRows += buildBetRow(line, i, allLines); });
+    const recTypesHit = new Set(displayLines2.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';}));
+    const allLinesFiltered2 = allLines.filter(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?!recTypesHit.has(m[1]):true;});
+    if (allLinesFiltered2.length > 0) {
+      betRows += `<div style="font-size:9px;font-weight:900;color:#ffffff;margin:8px 0 5px;padding:0 2px;border-top:1px solid ${divider};padding-top:8px;">📋 全買い目</div>`;
+      allLinesFiltered2.forEach((line, i) => { betRows += buildBetRow(line, i, allLinesFiltered2); });
+    }
   } else if (allLines.length > 0 && !recDiff) {
     // 推奨=全買い目の場合は全買い目セクションなし（重複しない）
   }
@@ -5312,12 +5318,16 @@ function imgGenerate(type) {
         const recColors = recLabels.map(l => colorMap3[l]||'#888');
         drawBetCards(ctx, recLinesArr, recLabels, recColors, null, 18, contentY, W - 36, type);
         contentY += recLinesArr.length * 74 + 16;
-        // 全買い目セクション
-        ctx.fillStyle = '#ffffff'; ctx.font = '900 11px sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText('📋 全買い目', 18, contentY - 4);
-        const allLabels = allLinesArr.map(l => { const m = l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m?m[1]:''; });
-        const allColors = allLabels.map(l => colorMap3[l]||'#888');
-        drawBetCards(ctx, allLinesArr, allLabels, allColors, null, 18, contentY, W - 36, type);
+        // 全買い目セクション（推奨と被る券種を除外）
+        const recTypeSet = new Set(recLinesArr.map(l => { const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m?m[1]:''; }));
+        const allLinesFiltered = allLinesArr.filter(l => { const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m ? !recTypeSet.has(m[1]) : true; });
+        if (allLinesFiltered.length > 0) {
+          ctx.fillStyle = '#ffffff'; ctx.font = '900 11px sans-serif'; ctx.textAlign = 'left';
+          ctx.fillText('📋 全買い目', 18, contentY - 4);
+          const allLabels = allLinesFiltered.map(l => { const m = l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m?m[1]:''; });
+          const allColors = allLabels.map(l => colorMap3[l]||'#888');
+          drawBetCards(ctx, allLinesFiltered, allLabels, allColors, null, 18, contentY, W - 36, type);
+        }
       } else {
         drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, contentY, W - 36, type);
       }
@@ -5331,9 +5341,11 @@ function imgGenerate(type) {
         const sepY = 120 + recLinesArr.length * 44 + 10;
         ctx.fillStyle='#ffffff';ctx.font='700 11px sans-serif';ctx.textAlign='left';
         ctx.fillText('🗒️ 全買い目', 18, sepY);
-        const allL = allLinesArr.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';});
+        const recTypeSetH = new Set(recLinesArr.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';}));
+        const allLinesH = allLinesArr.filter(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?!recTypeSetH.has(m[1]):true;});
+        const allL = allLinesH.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';});
         const allC = allL.map(l=>colorMap3[l]||'#888');
-        drawBetCards(ctx, allLinesArr, allL, allC, hitTypes, 18, sepY+6, W-36, type);
+        if(allLinesH.length>0) drawBetCards(ctx, allLinesH, allL, allC, hitTypes, 18, sepY+6, W-36, type);
       } else {
         drawBetCards(ctx, drawLines, drawLabels, drawColors, hitTypes, 18, 120, W - 36, type);
       }
@@ -5345,11 +5357,15 @@ function imgGenerate(type) {
         const recC = recL.map(l=>colorMap3[l]||'#888');
         drawBetCards(ctx, recLinesArr, recL, recC, null, 18, 120, W-36, type);
         const sepY = 120 + recLinesArr.length * 44 + 10;
-        ctx.fillStyle='#ffffff';ctx.font='700 11px sans-serif';ctx.textAlign='left';
-        ctx.fillText('🗒️ 全買い目', 18, sepY);
-        const allL = allLinesArr.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';});
-        const allC = allL.map(l=>colorMap3[l]||'#888');
-        drawBetCards(ctx, allLinesArr, allL, allC, null, 18, sepY+6, W-36, type);
+        const recTypeSetM = new Set(recLinesArr.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';}));
+        const allLinesM = allLinesArr.filter(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?!recTypeSetM.has(m[1]):true;});
+        if (allLinesM.length > 0) {
+          ctx.fillStyle='#ffffff';ctx.font='700 11px sans-serif';ctx.textAlign='left';
+          ctx.fillText('🗒️ 全買い目', 18, sepY);
+          const allL = allLinesM.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';});
+          const allC = allL.map(l=>colorMap3[l]||'#888');
+          drawBetCards(ctx, allLinesM, allL, allC, null, 18, sepY+6, W-36, type);
+        }
       } else {
         drawBetCards(ctx, drawLines, drawLabels, drawColors, null, 18, 120, W - 36, type);
       }
