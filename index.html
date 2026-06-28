@@ -541,6 +541,9 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
       <div style="margin-bottom: 8px;">
         <input type="text" id="record-score" class="inp" placeholder="偏差値（任意）" style="width:100%;font-size: 10px;">
       </div>
+      <div style="margin-bottom: 8px;" id="ana-input-wrap" style="display:none;">
+        <input type="text" id="record-ana" class="inp" placeholder="🎰 穴馬候補 馬番（例: 8,10）別定・ハンデのみ" style="width: 100%; font-size: 10px;">
+      </div>
       <div style="margin-bottom: 8px;">
         <input type="text" id="record-memo" class="inp" placeholder="備考" style="width: 100%; font-size: 10px;">
       </div>
@@ -1988,6 +1991,12 @@ function editRecord(idx) {
   document.getElementById('record-invest').value = r.invest;
   document.getElementById('record-return').value = r.return;
   document.getElementById('record-memo').value = r.memo || '';
+  // 穴馬候補を馬番カンマ区切りで表示（編集用）
+  const anaEl = document.getElementById('record-ana');
+  if (anaEl) {
+    anaEl.value = (r.anaResult||[]).map(a=>a.banum).join(',');
+    document.getElementById('ana-input-wrap').style.display = (r.weightType==='別定'||r.weightType==='ハンデ') ? '' : 'none';
+  }
   setPayoutInputs(r.payouts || {});
   
   const btn = document.querySelector('button[onclick*="addRecord"]');
@@ -2020,11 +2029,25 @@ function updateRecord(idx) {
   
   // 既存データ（出馬表スナップショット・着順・買い目等）を引き継ぎ
   const existing = records[idx];
+  // anaResult: フォームに馬番が入力されていれば更新、なければ既存データ引き継ぎ
+  const anaInputVal = document.getElementById('record-ana')?.value.trim();
+  let anaResult = existing.anaResult;
+  if (anaInputVal !== undefined && anaInputVal !== '' && (weightType === '別定' || weightType === 'ハンデ')) {
+    const banums = anaInputVal.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+    const hs = existing.horsesSnapshot || [];
+    const finR = existing.finishRanks || {};
+    const top3 = [finR.rank1, finR.rank2, finR.rank3].filter(Boolean);
+    anaResult = banums.map(bn => {
+      const h = hs.find(x=>x.banum===bn) || {};
+      const rnk = bn===finR.rank1?1:bn===finR.rank2?2:bn===finR.rank3?3:null;
+      return { banum: bn, name: h.name||'', ninki: h.ninki||null, hit: top3.includes(bn), rank: rnk };
+    });
+  }
   records[idx] = {
     ...existing,
     race, date, formation, purchase, distance, course, condition, rank, score, weightType,
-    invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo, payouts
-    // anaResultは既存データを引き継ぎ(editでは再計算しない)
+    invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo, payouts,
+    anaResult
   };
   
   saveRecordsLocal();
@@ -2053,6 +2076,8 @@ function resetRecordForm() {
   document.getElementById('record-condition').value = '';
 
   document.getElementById('record-score').value = '';
+  const anaEl2 = document.getElementById('record-ana');
+  if (anaEl2) { anaEl2.value = ''; document.getElementById('ana-input-wrap').style.display = 'none'; }
   document.getElementById('record-invest').value = '';
   document.getElementById('record-return').value = '';
   document.getElementById('record-memo').value = '';
