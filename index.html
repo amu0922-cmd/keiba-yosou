@@ -2145,14 +2145,20 @@ function addRecord() {
                 +(dbSnapshot.waku?.[String(b.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[b.kyakushitsu]||0);
       return sb - sa;
     });
-    const topScore = scored[0] ? ((dbSnapshot.jockey?.[scored[0].jockey]||0)+(dbSnapshot.sire?.[scored[0].sire]||0)) : 0;
+    const calcScoreA = (h) =>
+      (dbSnapshot.jockey?.[h.jockey]||0)+(dbSnapshot.sire?.[h.sire]||0)
+      +(dbSnapshot.kyakushitsu?.[h.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(h.ninki)]||0)
+      +(dbSnapshot.maejun?.[String(h.maejun)]||0)+(dbSnapshot.maeclass?.[h.maeclass]||0)
+      +(dbSnapshot.waku?.[String(h.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[h.kyakushitsu]||0);
+    const topScore = scored[0] ? calcScoreA(scored[0]) : 0;
     const wideJikuBanum = scored[0]?.banum;
     const n = scored.length;
     const anaCandidates = scored.filter((h, idx) => {
       const ninki = Number(h.ninki);
       const isDashi = h.kyakushitsu === '差し';
       const isMaejun = [1,2,3,4].includes(Number(h.maejun));
-      return ninki >= 4 && (idx+1)/n <= 0.5 && (isDashi || isMaejun) && h.banum !== wideJikuBanum;
+      const scoreDiff = topScore - calcScoreA(h);
+      return ninki >= 4 && (idx+1)/n <= 0.5 && scoreDiff <= 50 && (isDashi || isMaejun) && h.banum !== wideJikuBanum;
     }).slice(0, 2);
     const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
     anaResult = anaCandidates.map(h => ({
