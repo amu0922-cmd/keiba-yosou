@@ -281,41 +281,8 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
 
       <!-- 的中判定カード（着順入力後に表示） -->
 
-      <div style="overflow-x: auto; overflow-y: auto; max-height: 650px;">
-        <table class="table" id="main-table" style="min-width: 1200px;">
-          <thead style="background: linear-gradient(135deg, #0f3460, #1a3a52); color: #FFD700; position: sticky; top: 0; z-index: 10;">
-            <tr style="font-weight: 900; font-size: 11px;">
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">馬番</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; background:#2a1a0a; color:#ff9500;">パドック</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">印</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">馬名</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">年</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">騎手</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">種牡馬</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">脚質</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">人気</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">前着</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">前ク</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">偏差値</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">オッズ</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">馬体重</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">斤量</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; background: #1a4d2e;">最終調教</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; background: #1a4d2e;">一週前調教</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a;">厩舎</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #2563eb;">傾向</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #27ae60;">補正</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #ff6b35;">補正</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #9b59b6;">🕶穴</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #27ae60;">⬆乗替</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #e94560;">取消</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #e94560;">総合</th>
-              <th style="padding: 6px 2px; border: 1px solid #2a3a5a; color: #f39c12;">期待値</th>
-            </tr>
-          </thead>
-          <tbody id="table-body"></tbody>
-        </table>
-      </div>
+      <div id="horse-cards" style="padding:0 2px;"></div>
+      <table style="display:none"><tbody id="table-body"></tbody></table>
 
       <div id="finish-rank-area" style="display:none;background:#1a1a2e;border-radius:8px;padding:10px 12px;margin:8px 0;border:1.5px solid #7c3aed;">
         <div style="font-size:10px;color:#FFD700;font-weight:700;margin-bottom:8px;">🏆 着順入力 → 的中/ハズレ自動判定</div>
@@ -540,9 +507,6 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
       </div>
       <div style="margin-bottom: 8px;">
         <input type="text" id="record-score" class="inp" placeholder="偏差値（任意）" style="width:100%;font-size: 10px;">
-      </div>
-      <div id="ana-input-wrap" style="margin-bottom:8px;">
-        <input type="text" id="record-ana" class="inp" placeholder="🎰 穴馬候補 馬番（例: 8,10）別定・ハンデのみ" style="width: 100%; font-size: 10px;">
       </div>
       <div style="margin-bottom: 8px;">
         <input type="text" id="record-memo" class="inp" placeholder="備考" style="width: 100%; font-size: 10px;">
@@ -1458,6 +1422,8 @@ function renderTable() {
   scheduleAutoSave();
   const tbody = document.getElementById('table-body');
   tbody.innerHTML = '';
+  const cardsEl = document.getElementById('horse-cards');
+  if (cardsEl) cardsEl.innerHTML = '';
   // 展開ペース取得
   const _overrideEl = document.getElementById('pace-override');
   const _override = _overrideEl ? _overrideEl.value : 'auto';
@@ -1580,7 +1546,179 @@ function renderTable() {
       <td style="font-weight: 900; color: ${negAdj>0?'#34c759':negAdj<0?'#ff6b35':'#e94560'};">${totalScore}</td>
       <td style="font-weight:900;color:${evTextColor};font-size:10px;">${evLabel}</td>
     `;
-    tbody.appendChild(row);
+    // カードを生成してhorse-cardsに追加
+    if (cardsEl) {
+      const card = document.createElement('div');
+      const cardBg = (isHighScore && isHighOdds) ? '#fff8e1' : isHighScore ? '#f0fff4' : isLowScore ? '#fff0f0' : '#0d1b2a';
+      const cardBorder = (isHighScore && isHighOdds) ? '#f39c12' : isHighScore ? '#27ae60' : isLowScore ? '#e94560' : '#1e2d3d';
+      card.style.cssText = 'background:' + cardBg + ';border:1.5px solid ' + cardBorder + ';border-radius:10px;padding:8px 10px;margin-bottom:6px;';
+
+      // 行1: 馬番・印・馬名・スコア
+      const row1 = document.createElement('div');
+      row1.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px;';
+      const wakuDiv = document.createElement('div');
+      wakuDiv.style.cssText = 'position:relative;flex-shrink:0;';
+      wakuDiv.innerHTML = '<div style="' + getWakuStyle(h.waku) + 'width:38px;height:38px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;">' + h.banum + '</div>';
+      const wakuInp = document.createElement('input');
+      wakuInp.style.cssText = 'position:absolute;top:1px;left:2px;width:14px;background:transparent;border:none;font-size:7px;font-weight:900;color:transparent;padding:0;cursor:pointer;';
+      wakuInp.value = h.waku; wakuInp.maxLength = 1;
+      wakuInp.onchange = (function(i){return function(){horses[i].waku=this.value;renderTable();};})(idx);
+      wakuDiv.appendChild(wakuInp);
+      row1.appendChild(wakuDiv);
+      const jiDiv = document.createElement('div');
+      jiDiv.style.cssText = 'font-size:16px;font-weight:900;color:' + ji.color + ';width:20px;text-align:center;';
+      jiDiv.textContent = ji.jirushi;
+      row1.appendChild(jiDiv);
+      const nameDiv = document.createElement('div');
+      nameDiv.style.cssText = 'flex:1;';
+      nameDiv.innerHTML = '<div style="font-weight:900;font-size:14px;' + nameColor + '">' + h.name + '</div><div style="font-size:10px;color:#8090a0;">' + h.jockey + ' / ' + h.sire + '</div>';
+      row1.appendChild(nameDiv);
+      const scoreDiv = document.createElement('div');
+      scoreDiv.style.cssText = 'text-align:right;';
+      scoreDiv.innerHTML = '<div style="font-weight:900;font-size:18px;color:' + (negAdj>0?'#34c759':negAdj<0?'#ff6b35':'#e94560') + ';">' + totalScore + '</div><div style="font-size:9px;color:#f39c12;">' + evLabel + ' ' + h.odds.toFixed(1) + '倍</div>';
+      row1.appendChild(scoreDiv);
+      card.appendChild(row1);
+
+      // 行2: パドック・脚質・厩舎コメント
+      const row2 = document.createElement('div');
+      row2.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:6px;';
+
+      function makeCell(label, inner) {
+        const c = document.createElement('div');
+        c.style.cssText = 'background:#0a1520;border-radius:5px;padding:4px 6px;';
+        c.innerHTML = '<div style="font-size:8px;color:#8090a0;">' + label + '</div>';
+        c.appendChild(inner);
+        return c;
+      }
+
+      const padSel = document.createElement('select');
+      padSel.className = 'sel';
+      padSel.style.cssText = 'width:100%;font-size:12px;font-weight:900;background:transparent;border:none;color:#fff;padding:0;';
+      padSel.innerHTML = '<option value="">-</option><option value="A" style="color:#34c759;">A</option><option value="B" style="color:#ff9500;">B</option><option value="C" style="color:#ff3b30;">C</option>';
+      padSel.value = h.paddock || '';
+      padSel.onchange = (function(i){return function(){horses[i].paddock=this.value;renderTable();};})(idx);
+      row2.appendChild(makeCell('パドック', padSel));
+
+      const kyakuSel = document.createElement('select');
+      kyakuSel.className = 'sel';
+      kyakuSel.style.cssText = 'width:100%;font-size:11px;font-weight:700;background:transparent;border:none;color:#fff;padding:0;';
+      kyakuSel.innerHTML = ['','逃げ','先行','差し','追い込み','自在'].map(v=>'<option'+(h.kyakushitsu===v?' selected':'')+'>'+v+'</option>').join('');
+      kyakuSel.onchange = (function(i){return function(){horses[i].kyakushitsu=this.value;renderTable();};})(idx);
+      row2.appendChild(makeCell('脚質', kyakuSel));
+
+      const cmtBtn = document.createElement('button');
+      const cmtVals = ['◎','◯','△','×'];
+      cmtBtn.textContent = h.comment || '◯';
+      cmtBtn.style.cssText = 'background:none;border:none;font-size:20px;font-weight:900;cursor:pointer;padding:0;color:' + (h.comment==='◎'?'#ff3b30':h.comment==='△'?'#ff9500':h.comment==='×'?'#aaa':'#27ae60') + ';';
+      cmtBtn.onclick = (function(i,cur){return function(){const next=cmtVals[(cmtVals.indexOf(horses[i].comment||'◯')+1)%cmtVals.length];horses[i].comment=next;renderTable();scheduleAutoSave();};})(idx, h.comment);
+      row2.appendChild(makeCell('厩舎コメント', cmtBtn));
+      card.appendChild(row2);
+
+      // 行3: 人気・前走着・前走クラス・偏差値
+      const row3 = document.createElement('div');
+      row3.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px;';
+
+      const ninkiInp = document.createElement('input');
+      ninkiInp.className = 'inp';
+      ninkiInp.style.cssText = 'width:100%;font-size:12px;font-weight:900;background:transparent;border:none;color:#FFD700;padding:0;';
+      ninkiInp.value = h.ninki;
+      ninkiInp.onchange = (function(i){return function(){horses[i].ninki=this.value;renderTable();};})(idx);
+      row3.appendChild(makeCell('人気', ninkiInp));
+
+      const maejunSel = document.createElement('select');
+      maejunSel.className = 'sel';
+      maejunSel.style.cssText = 'width:100%;font-size:11px;background:transparent;border:none;color:#fff;padding:0;';
+      maejunSel.innerHTML = '<option>-</option>' + [1,2,3,4,5,6,7,8,9,10,11,12].map(n=>'<option'+(h.maejun===String(n)?' selected':'')+'>'+n+'</option>').join('');
+      maejunSel.onchange = (function(i){return function(){horses[i].maejun=this.value;renderTable();};})(idx);
+      row3.appendChild(makeCell('前走着', maejunSel));
+
+      const maeclassSel = document.createElement('select');
+      maeclassSel.className = 'sel';
+      maeclassSel.style.cssText = 'width:100%;font-size:9px;background:transparent;border:none;color:#fff;padding:0;';
+      maeclassSel.innerHTML = '<option>-</option>' + ['GI','GII','GIII','L','OP','3勝','2勝','1勝'].map(c=>'<option'+(h.maeclass===c?' selected':'')+'>'+c+'</option>').join('');
+      maeclassSel.onchange = (function(i){return function(){horses[i].maeclass=this.value;renderTable();};})(idx);
+      row3.appendChild(makeCell('前走クラス', maeclassSel));
+
+      const timdevSel = document.createElement('select');
+      timdevSel.className = 'sel';
+      timdevSel.style.cssText = 'width:100%;font-size:9px;background:transparent;border:none;color:#fff;padding:0;';
+      timdevSel.innerHTML = '<option>-</option>' + ['0～','35～','40～','45～','50～','55～','60～','65～','70～','75～'].map(v=>'<option'+(h.timdev===v?' selected':'')+'>'+v+'</option>').join('');
+      timdevSel.onchange = (function(i){return function(){horses[i].timdev=this.value;renderTable();};})(idx);
+      row3.appendChild(makeCell('偏差値', timdevSel));
+      card.appendChild(row3);
+
+      // 行4: 馬体重・斤量・最終調教・一週前調教
+      const row4 = document.createElement('div');
+      row4.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px;';
+
+      const bajuInp = document.createElement('input');
+      bajuInp.className = 'inp';
+      bajuInp.style.cssText = 'width:100%;font-size:11px;background:transparent;border:none;color:#fff;padding:0;';
+      bajuInp.value = h.baju || ''; bajuInp.placeholder = '460';
+      bajuInp.onchange = (function(i){return function(){horses[i].baju=getBajuBand(this.value);renderTable();};})(idx);
+      row4.appendChild(makeCell('馬体重', bajuInp));
+
+      const weightInp = document.createElement('input');
+      weightInp.className = 'inp';
+      weightInp.style.cssText = 'width:100%;font-size:11px;background:transparent;border:none;color:#fff;padding:0;';
+      weightInp.value = h.weight || ''; weightInp.placeholder = '57.0';
+      weightInp.onchange = (function(i){return function(){horses[i].weight=parseFloat(this.value)||null;renderTable();};})(idx);
+      row4.appendChild(makeCell('斤量', weightInp));
+
+      const choFSel = document.createElement('select');
+      choFSel.className = 'sel';
+      choFSel.style.cssText = 'width:100%;font-size:14px;font-weight:900;background:transparent;border:none;color:#fff;padding:0;';
+      choFSel.innerHTML = ['A','B','C'].map(v=>'<option'+(h.chokyoFinal===v?' selected':'')+'>'+v+'</option>').join('');
+      choFSel.onchange = (function(i){return function(){horses[i].chokyoFinal=this.value;renderTable();scheduleAutoSave();};})(idx);
+      row4.appendChild(makeCell('最終調教', choFSel));
+
+      const choPSel = document.createElement('select');
+      choPSel.className = 'sel';
+      choPSel.style.cssText = 'width:100%;font-size:14px;font-weight:900;background:transparent;border:none;color:#fff;padding:0;';
+      choPSel.innerHTML = ['A','B','C'].map(v=>'<option'+(h.chokyoPrev===v?' selected':'')+'>'+v+'</option>').join('');
+      choPSel.onchange = (function(i){return function(){horses[i].chokyoPrev=this.value;renderTable();scheduleAutoSave();};})(idx);
+      row4.appendChild(makeCell('一週前調教', choPSel));
+      card.appendChild(row4);
+
+      // 行5: 補正・ブリンカー・乗替・取消
+      const row5 = document.createElement('div');
+      row5.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;';
+
+      const negSel = document.createElement('select');
+      negSel.className = 'sel';
+      negSel.style.cssText = 'font-size:9px;color:' + (h.negAdj>0?'#34c759':h.negAdj<0?'#ff6b35':'#aaa') + ';background:#0a1520;border:1px solid #1e2d3d;border-radius:4px;padding:2px 4px;';
+      negSel.innerHTML = '<option value="0"'+((!h.negAdj||h.negAdj===0)?' selected':'')+'>なし</option><option value="15"'+(h.negAdj===15?' selected':'')+'>弱+15</option><option value="30"'+(h.negAdj===30?' selected':'')+'>中+30</option><option value="50"'+(h.negAdj===50?' selected':'')+'>強+50</option><option value="-15"'+(h.negAdj===-15?' selected':'')+'>弱-15</option><option value="-30"'+(h.negAdj===-30?' selected':'')+'>中-30</option><option value="-50"'+(h.negAdj===-50?' selected':'')+'>強-50</option>';
+      negSel.onchange = (function(i){return function(){horses[i].negAdj=parseInt(this.value);renderTable();};})(idx);
+      row5.appendChild(negSel);
+
+      const blinkBtn = document.createElement('button');
+      blinkBtn.textContent = h.blinker ? '🕶ON' : '🕶OFF';
+      blinkBtn.style.cssText = 'background:' + (h.blinker?'#9b59b6':'#2a2a3a') + ';color:' + (h.blinker?'#fff':'#777') + ';border:1px solid ' + (h.blinker?'#9b59b6':'#333') + ';border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer;font-weight:' + (h.blinker?'900':'400') + ';';
+      blinkBtn.onclick = (function(i){return function(){horses[i].blinker=!horses[i].blinker;renderTable();};})(idx);
+      row5.appendChild(blinkBtn);
+
+      const upJBtn = document.createElement('button');
+      upJBtn.textContent = h.upJockey ? '⬆乗替ON' : '⬆乗替OFF';
+      upJBtn.style.cssText = 'background:' + (h.upJockey?'#27ae60':'#2a2a3a') + ';color:' + (h.upJockey?'#fff':'#777') + ';border:1px solid ' + (h.upJockey?'#27ae60':'#333') + ';border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer;font-weight:' + (h.upJockey?'900':'400') + ';';
+      upJBtn.onclick = (function(i){return function(){horses[i].upJockey=!horses[i].upJockey;renderTable();};})(idx);
+      row5.appendChild(upJBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '✕ 取消';
+      delBtn.style.cssText = 'margin-left:auto;background:#e94560;color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:10px;cursor:pointer;';
+      delBtn.onclick = (function(i){return function(){horses.splice(i,1);renderTable();};})(idx);
+      row5.appendChild(delBtn);
+      card.appendChild(row5);
+
+      // 行6: スコア内訳
+      const row6 = document.createElement('div');
+      row6.style.cssText = 'margin-top:5px;font-size:9px;color:#5a7a9a;';
+      row6.textContent = '傾向:' + Math.round(trendScore) + ' / 調' + (chokyoScore>=0?'+':'') + chokyoScore + ' 厩' + (commentScore>=0?'+':'') + commentScore + ' 展' + (paceAdj>=0?'+':'') + paceAdj;
+      card.appendChild(row6);
+
+      cardsEl.appendChild(card);
+    }
+    tbody.appendChild(document.createElement('tr'));
   });
 }
 
@@ -1991,12 +2129,6 @@ function editRecord(idx) {
   document.getElementById('record-invest').value = r.invest;
   document.getElementById('record-return').value = r.return;
   document.getElementById('record-memo').value = r.memo || '';
-  // 穴馬候補を馬番カンマ区切りで表示（編集用）
-  const anaEl = document.getElementById('record-ana');
-  if (anaEl) {
-    anaEl.value = (r.anaResult||[]).map(a=>a.banum).join(',');
-    document.getElementById('ana-input-wrap').style.display = ''; // 常に表示
-  }
   setPayoutInputs(r.payouts || {});
   
   const btn = document.querySelector('button[onclick*="addRecord"]');
@@ -2029,25 +2161,11 @@ function updateRecord(idx) {
   
   // 既存データ（出馬表スナップショット・着順・買い目等）を引き継ぎ
   const existing = records[idx];
-  // anaResult: フォームに馬番が入力されていれば更新、なければ既存データ引き継ぎ
-  const anaInputVal = document.getElementById('record-ana')?.value.trim();
-  let anaResult = existing.anaResult;
-  if (anaInputVal !== undefined && anaInputVal !== '' && (weightType === '別定' || weightType === 'ハンデ')) {
-    const banums = anaInputVal.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
-    const hs = existing.horsesSnapshot || [];
-    const finR = existing.finishRanks || {};
-    const top3 = [finR.rank1, finR.rank2, finR.rank3].filter(Boolean);
-    anaResult = banums.map(bn => {
-      const h = hs.find(x=>x.banum===bn) || {};
-      const rnk = bn===finR.rank1?1:bn===finR.rank2?2:bn===finR.rank3?3:null;
-      return { banum: bn, name: h.name||'', ninki: h.ninki||null, hit: top3.includes(bn), rank: rnk };
-    });
-  }
   records[idx] = {
     ...existing,
     race, date, formation, purchase, distance, course, condition, rank, score, weightType,
-    invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo, payouts,
-    anaResult
+    invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo, payouts
+    // anaResultは既存データを引き継ぎ(editでは再計算しない)
   };
   
   saveRecordsLocal();
@@ -2076,8 +2194,6 @@ function resetRecordForm() {
   document.getElementById('record-condition').value = '';
 
   document.getElementById('record-score').value = '';
-  const anaEl2 = document.getElementById('record-ana');
-  if (anaEl2) { anaEl2.value = ''; document.getElementById('ana-input-wrap').style.display = 'none'; }
   document.getElementById('record-invest').value = '';
   document.getElementById('record-return').value = '';
   document.getElementById('record-memo').value = '';
@@ -2144,7 +2260,6 @@ function addRecord() {
   const betLines    = pt.betLines    || [];
   const hitLabels   = pt.hitLabels   || [];
   const horsesSnapshot = pt.horsesSnapshot || JSON.parse(JSON.stringify(horses));
-  const rankedSnapshot = pt.rankedSnapshot || null;
   const dbSnapshot     = pt.dbSnapshot     || JSON.parse(JSON.stringify(db));
   const paceInfo       = pt.paceInfo       || '';
   window._pendingTransfer = null; // 使用後クリア
@@ -2153,33 +2268,39 @@ function addRecord() {
   let anaResult = null;
   const wt = weightType || currentWeightType;
   if (wt === '別定' || wt === 'ハンデ') {
-    // rankedSnapshot（totalScore付き）があればそれを使用（予想タブと同一ロジック）
-    const scored = rankedSnapshot || [...horsesSnapshot].sort((a, b) => {
-      const s = h => (dbSnapshot.jockey?.[h.jockey]||0)+(dbSnapshot.sire?.[h.sire]||0)
-        +(dbSnapshot.kyakushitsu?.[h.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(h.ninki)]||0)
-        +(dbSnapshot.maejun?.[String(h.maejun)]||0)+(dbSnapshot.maeclass?.[h.maeclass]||0)
-        +(dbSnapshot.waku?.[String(h.waku)]||0);
-      return s(b) - s(a);
+    const pace = paceInfo || '';
+    const PACE_BONUS_MAP = {
+      'high': {'逃げ':-15,'先行':-10,'差し':15,'追い込み':20,'自在':0},
+      'mid':  {'逃げ':0,'先行':5,'差し':5,'追い込み':0,'自在':5},
+      'slow': {'逃げ':20,'先行':15,'差し':-5,'追い込み':-15,'自在':5}
+    };
+    const paceKey = pace.includes('ハイ') ? 'high' : pace.includes('スロー') ? 'slow' : 'mid';
+    const scored = [...horsesSnapshot].sort((a, b) => {
+      const sa = (dbSnapshot.jockey?.[a.jockey]||0)+(dbSnapshot.sire?.[a.sire]||0)
+                +(dbSnapshot.kyakushitsu?.[a.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(a.ninki)]||0)
+                +(dbSnapshot.maejun?.[String(a.maejun)]||0)+(dbSnapshot.maeclass?.[a.maeclass]||0)
+                +(dbSnapshot.waku?.[String(a.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[a.kyakushitsu]||0);
+      const sb = (dbSnapshot.jockey?.[b.jockey]||0)+(dbSnapshot.sire?.[b.sire]||0)
+                +(dbSnapshot.kyakushitsu?.[b.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(b.ninki)]||0)
+                +(dbSnapshot.maejun?.[String(b.maejun)]||0)+(dbSnapshot.maeclass?.[b.maeclass]||0)
+                +(dbSnapshot.waku?.[String(b.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[b.kyakushitsu]||0);
+      return sb - sa;
     });
-    const getScore = h => rankedSnapshot ? (h.totalScore||0) : (
+    const calcScoreA = (h) =>
       (dbSnapshot.jockey?.[h.jockey]||0)+(dbSnapshot.sire?.[h.sire]||0)
       +(dbSnapshot.kyakushitsu?.[h.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(h.ninki)]||0)
       +(dbSnapshot.maejun?.[String(h.maejun)]||0)+(dbSnapshot.maeclass?.[h.maeclass]||0)
-      +(dbSnapshot.waku?.[String(h.waku)]||0)
-    );
-    const topScore = scored[0] ? getScore(scored[0]) : 0;
+      +(dbSnapshot.waku?.[String(h.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[h.kyakushitsu]||0);
+    const topScore = scored[0] ? calcScoreA(scored[0]) : 0;
     const wideJikuBanum = scored[0]?.banum;
-    const totalHorses = scored.length;
-    // 予想タブと完全同一: wideJiku除外はfilter後に行う
-    const anaHorses = scored.filter((h, idx) => {
+    const n = scored.length;
+    const anaCandidates = scored.filter((h, idx) => {
       const ninki = Number(h.ninki);
       const isDashi = h.kyakushitsu === '差し';
       const isMaejun = [1,2,3,4].includes(Number(h.maejun));
-      const scoreDiff = topScore - getScore(h);
-      const isUpperHalf = (idx + 1) <= Math.ceil(totalHorses * 0.5);
-      return ninki >= 4 && isUpperHalf && scoreDiff <= 50 && (isDashi || isMaejun);
-    });
-    const anaCandidates = anaHorses.filter(h => h.banum !== wideJikuBanum).slice(0, 2);
+      const scoreDiff = topScore - calcScoreA(h);
+      return ninki >= 4 && (idx+1)/n <= 0.5 && scoreDiff <= 50 && (isDashi || isMaejun) && h.banum !== wideJikuBanum;
+    }).slice(0, 2);
     const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
     anaResult = anaCandidates.map(h => ({
       banum: h.banum, name: h.name, ninki: h.ninki,
@@ -6463,41 +6584,6 @@ function transferToRecord() {
   // 的中した買い目からpurchaseを生成
   const purchaseStr = hitLabels.length > 0 ? hitLabels.join('・') : 'ハズレ';
 
-  // ranked（totalScore付き）を生成してsnapshotに含める
-  let rankedSnapshot = null;
-  try {
-    rankedSnapshot = (() => {
-      const dbS = db;
-      const paceKey2 = (() => {
-        try { const p = getPaceLabel(calcPaceFromHorses(horses)); return p.includes('ハイ') ? 'high' : p.includes('スロー') ? 'slow' : 'mid'; } catch(e) { return 'mid'; }
-      })();
-      const PACE_MAP2 = {
-        'high': {'逃げ':-15,'先行':-10,'差し':15,'追い込み':20,'自在':0},
-        'mid':  {'逃げ':0,'先行':5,'差し':5,'追い込み':0,'自在':5},
-        'slow': {'逃げ':20,'先行':15,'差し':-5,'追い込み':-15,'自在':5}
-      };
-      return horses.map(h => {
-        const _paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
-        const trendScore = (getJockeyScore(dbS.jockey,h.jockey))+(dbS.sire?.[h.sire]||0)+getMuddySireBonus(h.sire)
-          +(dbS.age?.[h.age]||0)+(dbS.kyakushitsu?.[h.kyakushitsu]||0)+(dbS.ninki?.[h.ninki]||0)
-          +(dbS.maejun?.[h.maejun]||0)+(dbS.maeclass?.[h.maeclass]||0)+(dbS.waku?.[h.waku]||0)
-          +(dbS.timdev?.[h.timdev]||0)+(dbS.baju?.[h.baju]||0)+_paddockPt;
-        const chokyoScore = h.chokyo==='A'?20:h.chokyo==='C'?-20:0;
-        const commentScore = h.comment==='A'?20:h.comment==='C'?-20:0;
-        const paceAdj = PACE_MAP2[paceKey2]?.[h.kyakushitsu]||0;
-        const negAdj = h.negativeAdj||0;
-        const weightScore = dbS.weight?.[(() => {
-          const w=parseInt(h.weight);
-          if(isNaN(w))return'';
-          if(w<420)return'〜419';if(w<440)return'420〜439';if(w<460)return'440〜459';
-          if(w<480)return'460〜479';if(w<500)return'480〜499';return'500〜';
-        })()]||0;
-        const totalScore = trendScore+chokyoScore+commentScore+paceAdj+negAdj+weightScore;
-        return {...h, totalScore};
-      }).sort((a,b)=>b.totalScore-a.totalScore);
-    })();
-  } catch(e) { rankedSnapshot = null; }
-
   // グローバルに保存（addRecord時に参照）
   window._pendingTransfer = {
     finishRanks: { rank1: r1, rank2: r2, rank3: r3 },
@@ -6505,7 +6591,6 @@ function transferToRecord() {
     purchase: purchaseStr,
     hitLabels,
     horsesSnapshot: JSON.parse(JSON.stringify(horses)),
-    rankedSnapshot,
     dbSnapshot: JSON.parse(JSON.stringify(db)),
     paceInfo: (() => { try { return getPaceLabel(calcPaceFromHorses(horses)); } catch(e) { return ''; } })(),
     raceName: currentRaceName || ''
