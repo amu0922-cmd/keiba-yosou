@@ -1557,9 +1557,10 @@ function renderTable() {
     if (cardsEl) {
       const card = document.createElement('div');
       const scoreColor = totalScore >= 80 ? '#27ae60' : totalScore >= 50 ? '#2563eb' : totalScore >= 0 ? '#1a1a2e' : '#e94560';
-      const cardBg = (isHighScore && isHighOdds) ? '#fffbe6' : isHighScore ? '#f0fff4' : isLowScore ? '#fff0f0' : '#fff';
-      const cardBorder = (isHighScore && isHighOdds) ? '#f39c12' : isHighScore ? '#27ae60' : isLowScore ? '#e94560' : '#e0e0e0';
-      card.style.cssText = 'background:' + cardBg + ';border:2px solid ' + cardBorder + ';border-radius:12px;padding:10px;margin-bottom:8px;';
+      const isFinished = h.finishRank != null;
+      const cardBg = isFinished ? (h.finishRank===1?'#fffde7':h.finishRank===2?'#f5f5f5':'#fff8f0') : (isHighScore && isHighOdds) ? '#fffbe6' : isHighScore ? '#f0fff4' : isLowScore ? '#fff0f0' : '#fff';
+      const cardBorder = isFinished ? (h.finishRank===1?'#FFD700':h.finishRank===2?'#aaa':'#cd7f32') : (isHighScore && isHighOdds) ? '#f39c12' : isHighScore ? '#27ae60' : isLowScore ? '#e94560' : '#e0e0e0';
+      card.style.cssText = 'background:' + cardBg + ';border:' + (isFinished?'3px':'2px') + ' solid ' + cardBorder + ';border-radius:12px;padding:10px;margin-bottom:8px;';
 
       function makeCell(label, inner, bg) {
         const c = document.createElement('div');
@@ -1596,6 +1597,16 @@ function renderTable() {
       nameDiv.innerHTML = '<div style="font-weight:900;font-size:16px;color:#1a1a2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + h.name + '</div>'
         + '<div style="font-size:10px;color:#888;margin-top:1px;">' + (h.jockey||'-') + ' <span style="color:#bbb;">|</span> ' + (h.sire||'-') + '</div>';
       hdr.appendChild(nameDiv);
+
+      // 着順バッジ（finishRankがある場合）
+      if (h.finishRank) {
+        const rankBadge = document.createElement('div');
+        const rankBg = h.finishRank===1?'#FFD700':h.finishRank===2?'#c0c0c0':'#cd7f32';
+        const rankText = h.finishRank===1?'🥇1着':h.finishRank===2?'🥈2着':'🥉3着';
+        rankBadge.style.cssText = 'background:' + rankBg + ';color:#1a1a2e;font-size:11px;font-weight:900;padding:3px 8px;border-radius:6px;flex-shrink:0;';
+        rankBadge.textContent = rankText;
+        hdr.appendChild(rankBadge);
+      }
 
       // スコア（右端・大きく）
       const scoreDiv = document.createElement('div');
@@ -2126,6 +2137,21 @@ function loadSavedJSON(name) {
     renderDBSection();
     renderAnalysis();
     document.getElementById('count-badge').textContent = horses.length;
+
+    // 成績表から同名レースの着順を探して着順入力欄とカードに反映
+    const matchRecord = records.find(r => r.race && name.includes(r.race.replace(/\(.*\)/, '').trim().split(' ').pop()));
+    const r1El = document.getElementById('rank1-input');
+    const r2El = document.getElementById('rank2-input');
+    const r3El = document.getElementById('rank3-input');
+    if (matchRecord?.finishRanks?.rank1 && r1El && r2El && r3El) {
+      r1El.value = matchRecord.finishRanks.rank1 || '';
+      r2El.value = matchRecord.finishRanks.rank2 || '';
+      r3El.value = matchRecord.finishRanks.rank3 || '';
+      updateRankFromInput();
+    } else if (r1El) {
+      r1El.value = ''; r2El.value = ''; r3El.value = '';
+      updateRankFromInput();
+    }
 
     setStatus(`✅ 「${name}」を読込（${horses.length}頭・DB設定）`, 'ok');
   } catch (e) {
@@ -6729,6 +6755,7 @@ function updateRankFromInput() {
     if (!isNaN(r3) && h.banum === r3) h.finishRank = 3;
   });
   updateJudgment();
+  renderTable(); // 出馬表カードの着順バッジを即更新
 }
 // ===== 着順判定ここまで =====
 
