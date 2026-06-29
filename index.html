@@ -4272,43 +4272,194 @@ async function saveTableAsImage() {
   if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
   setStatus('📸 画像生成中...', 'ok');
 
-  // 一時的に全幅テーブルを作成
-  const original = document.getElementById('main-table');
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;background:#fff;padding:12px;font-family:sans-serif;';
+  // スコア計算
+  const pace = calcPaceFromHorses(horses);
+  const paceKey = getPaceLabel(pace).includes('ハイ') ? 'high' : getPaceLabel(pace).includes('スロー') ? 'slow' : 'mid';
+  const PACE_MAP = {'high':{'逃げ':-15,'先行':-10,'差し':15,'追い込み':20,'自在':0},'mid':{'逃げ':0,'先行':5,'差し':5,'追い込み':0,'自在':5},'slow':{'逃げ':20,'先行':15,'差し':-5,'追い込み':-15,'自在':5}};
 
-  // タイトル行
-  const title = document.createElement('div');
-  title.style.cssText = 'font-size:15px;font-weight:900;color:#1a1a2e;margin-bottom:6px;padding-bottom:6px;border-bottom:2px solid #e94560;';
-  title.textContent = '🏇 ' + (currentRaceName || '出馬表') + '　' + horses.length + '頭';
-  wrapper.appendChild(title);
+  const scored = horses.map(h => {
+    const pAdj = h.paddock==='A'?20:h.paddock==='C'?-15:0;
+    const cAdj = h.chokyoFinal==='A'||h.chokyoPrev==='A'?20:h.chokyoFinal==='C'||h.chokyoPrev==='C'?-20:0;
+    const cmAdj = h.comment==='A'?20:h.comment==='C'?-20:0;
+    const paceAdj = PACE_MAP[paceKey]?.[h.kyakushitsu]||0;
+    const neg = h.negAdj||0;
+    const wScore = db.weight?.[h.baju]||0;
+    const trend = (getJockeyScore(db.jockey,h.jockey))+(db.sire?.[h.sire]||0)+(db.kyakushitsu?.[h.kyakushitsu]||0)+(db.ninki?.[h.ninki]||0)+(db.maejun?.[h.maejun]||0)+(db.maeclass?.[h.maeclass]||0)+(db.waku?.[h.waku]||0)+(db.timdev?.[h.timdev]||0)+(db.baju?.[h.baju]||0)+pAdj;
+    const total = trend+cAdj+cmAdj+paceAdj+neg+wScore;
+    return {...h, totalScore: total};
+  }).sort((a,b)=>b.totalScore-a.totalScore);
 
-  // テーブルをクローン（スクロール外も含めて全行）
-  const clone = original.cloneNode(true);
-  clone.style.cssText = 'width:auto;min-width:auto;border-collapse:collapse;font-size:9px;';
-  // input/selectの値をtextに変換
-  const inputs = clone.querySelectorAll('input, select');
-  inputs.forEach(el => {
-    const span = document.createElement('span');
-    span.textContent = el.value;
-    span.style.cssText = el.style.cssText + 'display:inline-block;';
-    el.parentNode.replaceChild(span, el);
+  // Canvas設定（2列グリッド）
+  const COLS = 2;
+  const W = 900; // 全体幅
+  const CARD_W = (W - 48) / COLS; // カード幅（余白込み）
+  const CARD_H = 130; // カード高さ
+  const ROWS = Math.ceil(scored.length / COLS);
+  const HEADER_H = 60;
+  const FOOTER_H = 30;
+  const H = HEADER_H + ROWS * (CARD_H + 8) + FOOTER_H;
+
+  const canvas = document.createElement('canvas');
+  const DPR = 2;
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+
+  // 背景
+  ctx.fillStyle = '#f0f2f5';
+  ctx.fillRect(0, 0, W, H);
+
+  // ヘッダー
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, W, HEADER_H);
+  ctx.fillStyle = '#FFD700';
+  ctx.font = '900 20px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('🏇 ' + (currentRaceName || '出馬表'), 16, 28);
+  ctx.fillStyle = '#aaa';
+  ctx.font = '500 12px sans-serif';
+  ctx.fillText(scored.length + '頭 / ' + getPaceLabel(pace), 16, 48);
+
+  // 各馬カード描画
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+    return `${r},${g},${b}`;
+  }
+
+  scored.forEach((h, i) => {
+    const col = i % COLS;
+    const row = Math.floor(i / COLS);
+    const x = 16 + col * (CARD_W + 16);
+    const y = HEADER_H + 8 + row * (CARD_H + 8);
+
+    // カード背景
+    const rank = h.finishRank;
+    const bg = rank===1?'#fffde7':rank===2?'#f5f5f5':rank===3?'#fff8f0':'#ffffff';
+    const border = rank===1?'#FFD700':rank===2?'#aaa':rank===3?'#cd7f32':'#e0e0e0';
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.roundRect(x, y, CARD_W, CARD_H, 8);
+    ctx.fill();
+    ctx.strokeStyle = border;
+    ctx.lineWidth = rank ? 2.5 : 1.5;
+    ctx.beginPath();
+    ctx.roundRect(x, y, CARD_W, CARD_H, 8);
+    ctx.stroke();
+
+    // 枠番バッジ
+    const wakuColors = [['#fff','#fff'],['#000','#fff'],['#ff3b30','#fff'],['#007aff','#fff'],['#FFD700','#000'],['#27ae60','#fff'],['#ff9500','#fff'],['#ff85a1','#000'],['#555','#fff']];
+    const wc = wakuColors[parseInt(h.waku)||0] || ['#888','#fff'];
+    ctx.fillStyle = wc[0];
+    ctx.beginPath(); ctx.roundRect(x+8, y+8, 36, 36, 6); ctx.fill();
+    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(x+8, y+8, 36, 36, 6); ctx.stroke();
+    ctx.fillStyle = wc[1];
+    ctx.font = '900 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(h.banum, x+26, y+31);
+
+    // 着順バッジ
+    if (rank) {
+      const rankBg = rank===1?'#FFD700':rank===2?'#c0c0c0':'#cd7f32';
+      const rankLabel = rank===1?'🥇1着':rank===2?'🥈2着':'🥉3着';
+      ctx.fillStyle = rankBg;
+      ctx.beginPath(); ctx.roundRect(x+50, y+8, 52, 20, 5); ctx.fill();
+      ctx.fillStyle = '#1a1a2e';
+      ctx.font = '700 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(rankLabel, x+76, y+22);
+    }
+
+    // スコア（右上）
+    const sc = h.totalScore;
+    const scColor = sc>=80?'#27ae60':sc>=50?'#2563eb':sc>=0?'#1a1a2e':'#e94560';
+    ctx.fillStyle = scColor;
+    ctx.font = '900 22px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(sc, x+CARD_W-8, y+32);
+    ctx.fillStyle = '#aaa';
+    ctx.font = '500 9px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('SCORE', x+CARD_W-8, y+44);
+
+    // 馬名
+    ctx.fillStyle = '#1a1a2e';
+    ctx.font = '900 14px sans-serif';
+    ctx.textAlign = 'left';
+    const nameMaxW = CARD_W - 110;
+    let name = h.name || '';
+    while (ctx.measureText(name).width > nameMaxW && name.length > 1) name = name.slice(0,-1);
+    ctx.fillText(name, x+52, y+31);
+
+    // 騎手・種牡馬
+    ctx.fillStyle = '#888';
+    ctx.font = '400 10px sans-serif';
+    let jockey = (h.jockey||'-') + ' / ' + (h.sire||'-');
+    while (ctx.measureText(jockey).width > nameMaxW+30 && jockey.length > 1) jockey = jockey.slice(0,-1);
+    ctx.fillText(jockey, x+52, y+46);
+
+    // 区切り線
+    ctx.strokeStyle = '#eee'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x+8, y+56); ctx.lineTo(x+CARD_W-8, y+56); ctx.stroke();
+
+    // 下段: 人気・オッズ・脚質・前走・馬体重・斤量・調教・パドック
+    const fields = [
+      ['人気', h.ninki||'-', '#e94560'],
+      ['オッズ', h.odds?(h.odds.toFixed(1)+'倍'):'-', '#2563eb'],
+      ['脚質', h.kyakushitsu||'-', '#1a1a2e'],
+      ['前走', h.maejun?(h.maejun+'着'):'-', '#27ae60'],
+      ['前クラ', h.maeclass||'-', '#9b59b6'],
+      ['馬体重', h.baju||'-', '#555'],
+      ['斤量', h.weight?(h.weight+'kg'):'-', '#555'],
+      ['調教', (h.chokyoFinal||'?')+'/'+(h.chokyoPrev||'?'), h.chokyoFinal==='A'?'#27ae60':h.chokyoFinal==='C'?'#e94560':'#555'],
+      ['馬場', h.paddock||'-', h.paddock==='A'?'#27ae60':h.paddock==='C'?'#e94560':'#aaa'],
+    ];
+    const fW = (CARD_W-16) / fields.length;
+    fields.forEach((f, fi) => {
+      const fx = x+8+fi*fW;
+      ctx.fillStyle = '#aaa';
+      ctx.font = '400 8px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(f[0], fx+fW/2, y+69);
+      ctx.fillStyle = f[2];
+      ctx.font = '700 11px sans-serif';
+      ctx.fillText(f[1], fx+fW/2, y+84);
+    });
+
+    // 補正・ランク
+    const rankNum = i+1;
+    ctx.fillStyle = rankNum===1?'#e94560':rankNum===2?'#ff9500':rankNum===3?'#f39c12':'#ddd';
+    ctx.font = '700 9px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${rankNum}位`, x+8, y+CARD_H-8);
+
+    // ネガ補正
+    if (h.negAdj && h.negAdj !== 0) {
+      ctx.fillStyle = h.negAdj>0?'#27ae60':'#e94560';
+      ctx.font = '700 9px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('補正'+(h.negAdj>0?'+':'')+h.negAdj, x+36, y+CARD_H-8);
+    }
   });
-  wrapper.appendChild(clone);
-  document.body.appendChild(wrapper);
 
+  // フッター
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = '400 10px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('RACE PREDICT PRO', W-12, H-10);
+
+  // 保存
   try {
-    const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: '#fff', useCORS: true });
     const link = document.createElement('a');
     const raceName = currentRaceName ? currentRaceName.replace(/[\/\:*?"<>|]/g, '_') : '出馬表';
     link.download = raceName + '_' + new Date().toISOString().split('T')[0] + '.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
-    setStatus('✅ 画像を保存しました', 'ok');
+    setStatus('✅ 出馬表画像を保存しました', 'ok');
   } catch(e) {
     setStatus('❌ 画像生成エラー: ' + e.message.substring(0,30), 'err');
   }
-  document.body.removeChild(wrapper);
 }
 
 // ===== X投稿タブ =====
