@@ -1564,7 +1564,7 @@ function renderTable() {
 
       function makeCell(label, inner, bg) {
         const c = document.createElement('div');
-        c.style.cssText = 'background:' + (bg||'#f4f4f8') + ';border-radius:7px;padding:5px 7px;';
+        c.style.cssText = 'background:' + (bg||'#fafafa') + ';border-radius:7px;padding:5px 7px;border:1px solid #eee;';
         c.innerHTML = '<div style="font-size:8px;color:#999;font-weight:700;letter-spacing:0.3px;margin-bottom:2px;">' + label + '</div>';
         c.appendChild(inner);
         return c;
@@ -1640,7 +1640,7 @@ function renderTable() {
       kyakuSel.style.cssText = 'width:100%;font-size:12px;font-weight:700;background:transparent;border:none;color:#1a1a2e;padding:0;margin-top:2px;';
       kyakuSel.innerHTML = ['','逃げ','先行','差し','追い込み','自在'].map(v=>'<option'+(h.kyakushitsu===v?' selected':'')+'>'+v+'</option>').join('');
       kyakuSel.onchange = (function(i){return function(){horses[i].kyakushitsu=this.value;renderTable();};})(idx);
-      infoRow.appendChild(makeCell('脚質', kyakuSel));
+      infoRow.appendChild(makeCell('脚質', kyakuSel, '#e8f4fd'));
 
       // パドック
       const padSel = document.createElement('select');
@@ -1650,7 +1650,7 @@ function renderTable() {
       padSel.innerHTML = '<option value="">-</option><option value="A" style="color:#27ae60;">A</option><option value="B" style="color:#ff9500;">B</option><option value="C" style="color:#e94560;">C</option>';
       padSel.value = h.paddock || '';
       padSel.onchange = (function(i){return function(){horses[i].paddock=this.value;renderTable();};})(idx);
-      infoRow.appendChild(makeCell('パドック', padSel));
+      infoRow.appendChild(makeCell('パドック', padSel, '#fff3e0'));
       card.appendChild(infoRow);
 
       // ── 前走着・前走クラス・偏差値・厩舎コメント ──
@@ -1662,28 +1662,28 @@ function renderTable() {
       maejunSel.style.cssText = 'width:100%;font-size:14px;font-weight:700;background:transparent;border:none;color:#1a1a2e;padding:0;margin-top:2px;';
       maejunSel.innerHTML = '<option>-</option>' + [1,2,3,4,5,6,7,8,9,10,11,12].map(n=>'<option'+(h.maejun===String(n)?' selected':'')+'>'+n+'</option>').join('');
       maejunSel.onchange = (function(i){return function(){horses[i].maejun=this.value;renderTable();};})(idx);
-      row3.appendChild(makeCell('前走着順', maejunSel));
+      row3.appendChild(makeCell('前走着順', maejunSel, '#e8f8f0'));
 
       const maeclassSel = document.createElement('select');
       maeclassSel.className = 'sel';
       maeclassSel.style.cssText = 'width:100%;font-size:11px;background:transparent;border:none;color:#1a1a2e;padding:0;margin-top:3px;';
       maeclassSel.innerHTML = '<option>-</option>' + ['GI','GII','GIII','L','OP','3勝','2勝','1勝'].map(c=>'<option'+(h.maeclass===c?' selected':'')+'>'+c+'</option>').join('');
       maeclassSel.onchange = (function(i){return function(){horses[i].maeclass=this.value;renderTable();};})(idx);
-      row3.appendChild(makeCell('前走クラス', maeclassSel));
+      row3.appendChild(makeCell('前走クラス', maeclassSel, '#f3e8fd'));
 
       const timdevSel = document.createElement('select');
       timdevSel.className = 'sel';
       timdevSel.style.cssText = 'width:100%;font-size:11px;background:transparent;border:none;color:#1a1a2e;padding:0;margin-top:3px;';
       timdevSel.innerHTML = '<option>-</option>' + ['0～','35～','40～','45～','50～','55～','60～','65～','70～','75～'].map(v=>'<option'+(h.timdev===v?' selected':'')+'>'+v+'</option>').join('');
       timdevSel.onchange = (function(i){return function(){horses[i].timdev=this.value;renderTable();};})(idx);
-      row3.appendChild(makeCell('偏差値', timdevSel));
+      row3.appendChild(makeCell('偏差値', timdevSel, '#fffde7'));
 
       const cmtBtn = document.createElement('button');
       const cmtVals = ['◎','◯','△','×'];
       cmtBtn.textContent = h.comment || '◯';
       cmtBtn.style.cssText = 'background:none;border:none;font-size:22px;font-weight:900;cursor:pointer;padding:0;margin-top:1px;color:' + (h.comment==='◎'?'#e94560':h.comment==='△'?'#ff9500':h.comment==='×'?'#bbb':'#27ae60') + ';';
       cmtBtn.onclick = (function(i){return function(){const next=cmtVals[(cmtVals.indexOf(horses[i].comment||'◯')+1)%cmtVals.length];horses[i].comment=next;renderTable();scheduleAutoSave();};})(idx);
-      row3.appendChild(makeCell('厩舎', cmtBtn));
+      row3.appendChild(makeCell('厩舎', cmtBtn, '#fce4ec'));
       card.appendChild(row3);
 
       // ── 馬体重・斤量・最終調教・一週前調教 ──
@@ -1695,14 +1695,14 @@ function renderTable() {
       bajuInp.style.cssText = 'width:100%;font-size:13px;font-weight:700;background:transparent;border:none;color:#1a1a2e;padding:0;margin-top:2px;';
       bajuInp.value = h.baju || ''; bajuInp.placeholder = '460';
       bajuInp.onchange = (function(i){return function(){horses[i].baju=getBajuBand(this.value);renderTable();};})(idx);
-      row4.appendChild(makeCell('馬体重', bajuInp));
+      row4.appendChild(makeCell('馬体重', bajuInp, '#e8eaf6'));
 
       const weightInp = document.createElement('input');
       weightInp.className = 'inp';
       weightInp.style.cssText = 'width:100%;font-size:13px;font-weight:700;background:transparent;border:none;color:#1a1a2e;padding:0;margin-top:2px;';
       weightInp.value = h.weight || ''; weightInp.placeholder = '57.0';
       weightInp.onchange = (function(i){return function(){horses[i].weight=parseFloat(this.value)||null;renderTable();};})(idx);
-      row4.appendChild(makeCell('斤量', weightInp));
+      row4.appendChild(makeCell('斤量', weightInp, '#fff8e1'));
 
       const choFSel = document.createElement('select');
       choFSel.className = 'sel';
@@ -1710,7 +1710,7 @@ function renderTable() {
       choFSel.style.cssText = 'width:100%;font-size:16px;font-weight:900;background:transparent;border:none;color:'+choFColor+';padding:0;margin-top:1px;';
       choFSel.innerHTML = ['A','B','C'].map(v=>'<option'+(h.chokyoFinal===v?' selected':'')+'>'+v+'</option>').join('');
       choFSel.onchange = (function(i){return function(){horses[i].chokyoFinal=this.value;renderTable();scheduleAutoSave();};})(idx);
-      row4.appendChild(makeCell('最終調教', choFSel));
+      row4.appendChild(makeCell('最終調教', choFSel, '#e8f8f0'));
 
       const choPSel = document.createElement('select');
       choPSel.className = 'sel';
@@ -1718,7 +1718,7 @@ function renderTable() {
       choPSel.style.cssText = 'width:100%;font-size:16px;font-weight:900;background:transparent;border:none;color:'+choPColor+';padding:0;margin-top:1px;';
       choPSel.innerHTML = ['A','B','C'].map(v=>'<option'+(h.chokyoPrev===v?' selected':'')+'>'+v+'</option>').join('');
       choPSel.onchange = (function(i){return function(){horses[i].chokyoPrev=this.value;renderTable();scheduleAutoSave();};})(idx);
-      row4.appendChild(makeCell('一週前', choPSel));
+      row4.appendChild(makeCell('一週前', choPSel, '#f0fdf4'));
       card.appendChild(row4);
 
       // ── 補正・ブリンカー・乗替・取消 ──
@@ -1727,7 +1727,7 @@ function renderTable() {
 
       const negSel = document.createElement('select');
       negSel.className = 'sel';
-      negSel.style.cssText = 'font-size:10px;color:' + (h.negAdj>0?'#27ae60':h.negAdj<0?'#e94560':'#999') + ';background:#f4f4f8;border:1px solid #ddd;border-radius:5px;padding:3px 5px;';
+      negSel.style.cssText = 'font-size:10px;color:' + (h.negAdj>0?'#27ae60':h.negAdj<0?'#e94560':'#999') + ';background:#fafafa;border:1px solid #eee;border-radius:5px;padding:3px 5px;';
       negSel.innerHTML = '<option value="0"'+((!h.negAdj||h.negAdj===0)?' selected':'')+'>補正なし</option><option value="15"'+(h.negAdj===15?' selected':'')+'>弱+15</option><option value="30"'+(h.negAdj===30?' selected':'')+'>中+30</option><option value="50"'+(h.negAdj===50?' selected':'')+'>強+50</option><option value="-15"'+(h.negAdj===-15?' selected':'')+'>弱-15</option><option value="-30"'+(h.negAdj===-30?' selected':'')+'>中-30</option><option value="-50"'+(h.negAdj===-50?' selected':'')+'>強-50</option>';
       negSel.onchange = (function(i){return function(){horses[i].negAdj=parseInt(this.value);renderTable();};})(idx);
       row5.appendChild(negSel);
