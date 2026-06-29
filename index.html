@@ -754,6 +754,8 @@ function setRaceName(name) {
   currentRaceName = name || '';
   const raceInput = document.getElementById('race-name-input');
   if (raceInput) raceInput.value = currentRaceName;
+  // 最後に表示したレース名を記憶（起動時の復元に使用）
+  if (name) localStorage.setItem('kp_last_race', name);
 
   // 馬データがある場合で、かつ新規読込直後のみsavedJsonsに登録・更新
   // (調教・コメント変更などの場合は更新しない)
@@ -4201,12 +4203,29 @@ async function loadFromSupabase() {
     if (data.raceUrls) {
       Object.entries(data.raceUrls).forEach(([k, v]) => localStorage.setItem(k, v));
     }
-    // horsesは最後に復元(調教・コメントを保持)
-    if (data.horses && data.horses.length > 0) {
+    // 最後に表示していたレースをlocalStorageから確認
+    const lastRace = localStorage.getItem('kp_last_race');
+
+    // lastRaceがsavedJsonsにあればそちらを優先復元
+    if (lastRace && savedJsons && savedJsons[lastRace]) {
+      const sj = savedJsons[lastRace];
+      if (sj.horses) {
+        try { horses = JSON.parse(sj.horses); } catch(e) { horses = []; }
+      }
+      if (sj.db) { try { db = JSON.parse(sj.db); } catch(e) {} }
+      document.getElementById('count-badge').textContent = horses.length;
+      _justLoadedHorses = true;
+      setWeightType(sj.weightType || '');
+      setRaceName(lastRace);
+      _justLoadedHorses = false;
+      renderTable();
+      renderDBSection();
+    } else if (data.horses && data.horses.length > 0) {
+      // fallback: クラウド保存時のレースを復元
       horses = data.horses;
       document.getElementById('count-badge').textContent = horses.length;
       _justLoadedHorses = true;
-      setWeightType(data.weightType || ''); // setRaceNameより前にセット
+      setWeightType(data.weightType || '');
       setRaceName(data.raceName || '');
       _justLoadedHorses = false;
       renderTable();
