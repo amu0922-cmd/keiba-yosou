@@ -1558,9 +1558,10 @@ function renderTable() {
       const card = document.createElement('div');
       const scoreColor = totalScore >= 80 ? '#27ae60' : totalScore >= 50 ? '#2563eb' : totalScore >= 0 ? '#1a1a2e' : '#e94560';
       const isFinished = h.finishRank != null;
-      const cardBg = isFinished ? (h.finishRank===1?'#fffde7':h.finishRank===2?'#f5f5f5':'#fff8f0') : (isHighScore && isHighOdds) ? '#fffbe6' : isHighScore ? '#f0fff4' : isLowScore ? '#fff0f0' : '#fff';
+      // 背景は常に白、枠線の色とサイズだけ変化
       const cardBorder = isFinished ? (h.finishRank===1?'#FFD700':h.finishRank===2?'#aaa':'#cd7f32') : (isHighScore && isHighOdds) ? '#f39c12' : isHighScore ? '#27ae60' : isLowScore ? '#e94560' : '#e0e0e0';
-      card.style.cssText = 'background:' + cardBg + ';border:' + (isFinished?'3px':'2px') + ' solid ' + cardBorder + ';border-radius:12px;padding:10px;margin-bottom:8px;';
+      const cardBorderW = isFinished ? '3px' : (isHighScore || isLowScore || (isHighScore && isHighOdds)) ? '2.5px' : '1.5px';
+      card.style.cssText = 'background:#fff;border:' + cardBorderW + ' solid ' + cardBorder + ';border-radius:12px;padding:10px;margin-bottom:8px;';
 
       function makeCell(label, inner, bg) {
         const c = document.createElement('div');
