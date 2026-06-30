@@ -5880,7 +5880,7 @@ function drawBigStamp(ctx, text, color, cx, cy) {
 }
 
 function drawBetCards(ctx, lines, betLabels, betColors, hitTypes, x, y, w, type) {
-  const isBuy = (type === 'buy' || isManual);
+  const isBuy = (type === 'buy' || type === 'manual');
   const cardH = isBuy ? 62 : 38;
   const gap   = isBuy ? 12 : 6;
   const pillW = isBuy ? 52 : 36;
