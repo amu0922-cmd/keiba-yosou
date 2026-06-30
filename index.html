@@ -2763,25 +2763,157 @@ function renderSimulatorSection() {
       </div>
       <button class="btn btn-gold" onclick="runSimulator()" style="width:100%;font-size:11px;padding:8px;">🧪 シミュレーション実行</button>
       <div id="sim-result" style="margin-top:10px;"></div>
+
+      <div style="border-top:1px dashed #ddd;margin-top:12px;padding-top:10px;">
+        <button class="btn" onclick="runBestSimulator()" style="width:100%;font-size:11px;padding:8px;background:linear-gradient(135deg,#7c3aed,#4f1fb5);color:#fff;">🏆 最適条件を自動探索（全組み合わせ総当たり）</button>
+        <div id="sim-best-result" style="margin-top:10px;"></div>
+      </div>
     </div>
   `;
 }
 
-// シミュレーター実行（スコア計算は予想タブと同一ロジック）
-function runSimulator() {
-  const rateColor = r => r >= 150 ? '#16a34a' : r >= 100 ? '#f39c12' : '#e94560';
-  const wt = document.getElementById('sim-weighttype').value;
-  const kyakuFilter = document.getElementById('sim-kyaku').value;
-  const ninkiMin = parseInt(document.getElementById('sim-ninki-min').value) || 0;
-  const maejunMax = parseInt(document.getElementById('sim-maejun-max').value) || 99;
-  const ticketType = document.getElementById('sim-tickettype').value;
-  const investPerHorse = parseInt(document.getElementById('sim-invest').value) || 1000;
+// 全パラメータの組み合わせを総当たりして、回収率最大・的中率最大の条件を探す
+// パフォーマンス対策: 馬データを事前に1回だけフラット化し、各組み合わせはメモリ上でフィルタするだけにする
+function runBestSimulator() {
+  const el = document.getElementById('sim-best-result');
+  el.innerHTML = `<div style="font-size:10px;color:#888;text-align:center;padding:8px;">⏳ 計算中...</div>`;
 
+  setTimeout(() => {
+    // ① 事前準備: 全レース×全馬を1次元配列にフラット化（ループの度にrecords.filterし直さない）
+    const validRecs = records.filter(r => r.horsesSnapshot && r.horsesSnapshot.length > 0 && r.finishRanks?.rank1);
+    const flatHorses = [];
+    validRecs.forEach(r => {
+      const finish = r.finishRanks;
+      const top3 = new Set([finish.rank1, finish.rank2, finish.rank3].filter(Boolean));
+      const isWin = (banum) => banum === finish.rank1;
+      r.horsesSnapshot.forEach(h => {
+        flatHorses.push({
+          wt: r.weightType,
+          kyaku: h.kyakushitsu,
+          ninki: Number(h.ninki) || 0,
+          maejun: Number(h.maejun) || 99,
+          odds: parseFloat(h.odds) || 0,
+          isTop3: top3.has(h.banum),
+          isWin: isWin(h.banum),
+        });
+      });
+    });
+
+    const wtOptions = ['', '定量', '別定', 'ハンデ', '馬齢'];
+    const kyakuOptions = ['', '差し', '先行', '逃げ', '追い込み'];
+    const ninkiOptions = [1, 2, 3, 4, 5, 6, 7, 8, 10];
+    const maejunOptions = [1, 2, 3, 4, 5, 6, 99];
+    const ticketOptions = ['fuku', 'tan'];
+    const investPerHorse = 1000;
+    const MIN_SAMPLE = 5; // サンプル数が少なすぎる結果は除外
+
+    let bestRet = null, bestHit = null;
+
+    // ② 軽量化した計算: フラット配列を1回走査するだけ（オブジェクト生成やSet操作なし）
+    function calcFast(wt, kyakuFilter, ninkiMin, maejunMax, ticketType) {
+      let totalCount = 0, hitCount = 0, totalReturn = 0;
+      for (let i = 0; i < flatHorses.length; i++) {
+        const f = flatHorses[i];
+        if (wt && f.wt !== wt) continue;
+        if (kyakuFilter && f.kyaku !== kyakuFilter) continue;
+        if (f.ninki < ninkiMin) continue;
+        if (f.maejun > maejunMax) continue;
+        totalCount++;
+        const isHit = ticketType === 'tan' ? f.isWin : f.isTop3;
+        if (isHit) {
+          hitCount++;
+          const payoutOdds = ticketType === 'tan' ? f.odds : Math.max(1.1, f.odds * 0.35);
+          totalReturn += Math.round(investPerHorse * payoutOdds);
+        }
+      }
+      if (totalCount === 0) return null;
+      return {
+        totalCount, hitCount,
+        totalInvest: totalCount * investPerHorse,
+        totalReturn,
+        hitRate: hitCount / totalCount * 100,
+        retRate: totalReturn / (totalCount * investPerHorse) * 100,
+      };
+    }
+
+    wtOptions.forEach(wt => {
+      kyakuOptions.forEach(kyakuFilter => {
+        ninkiOptions.forEach(ninkiMin => {
+          maejunOptions.forEach(maejunMax => {
+            ticketOptions.forEach(ticketType => {
+              const r = calcFast(wt, kyakuFilter, ninkiMin, maejunMax, ticketType);
+              if (!r || r.totalCount < MIN_SAMPLE) return;
+              const cond = { wt, kyakuFilter, ninkiMin, maejunMax, ticketType, investPerHorse };
+
+              if (!bestRet || r.retRate > bestRet.retRate) bestRet = { ...r, cond };
+              if (!bestHit || r.hitRate > bestHit.hitRate) bestHit = { ...r, cond };
+            });
+          });
+        });
+      });
+    });
+
+    const fmtCond = c => {
+      const parts = [];
+      parts.push(c.wt || '全種別');
+      parts.push(c.kyakuFilter || '脚質指定なし');
+      parts.push(`${c.ninkiMin}人気以上`);
+      parts.push(c.maejunMax >= 99 ? '前走指定なし' : `前走${c.maejunMax}着以内`);
+      parts.push(c.ticketType === 'tan' ? '単勝' : '複勝');
+      return parts.join(' / ');
+    };
+
+    const rateColor = r => r >= 150 ? '#16a34a' : r >= 100 ? '#f39c12' : '#e94560';
+
+    if (!bestRet || !bestHit) {
+      el.innerHTML = `<div style="font-size:10px;color:#e94560;text-align:center;padding:8px;">十分なデータがありません（各条件で最低${MIN_SAMPLE}頭必要）</div>`;
+      return;
+    }
+
+    el.innerHTML = `
+      <div style="background:#fff8e1;border:2px solid #f39c12;border-radius:8px;padding:10px;margin-bottom:8px;">
+        <div style="font-size:9px;font-weight:900;color:#f39c12;margin-bottom:4px;">🥇 回収率が最も高い条件</div>
+        <div style="font-size:9px;color:#555;margin-bottom:6px;">${fmtCond(bestRet.cond)}</div>
+        <div style="display:flex;justify-content:center;gap:16px;">
+          <div style="text-align:center;">
+            <div style="font-size:8px;color:#888;">的中率</div>
+            <div style="font-size:16px;font-weight:900;color:#1a1a2e;">${bestRet.hitRate.toFixed(1)}%</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:8px;color:#888;">回収率</div>
+            <div style="font-size:16px;font-weight:900;color:${rateColor(bestRet.retRate)};">${bestRet.retRate.toFixed(1)}%</div>
+          </div>
+        </div>
+        <div style="font-size:8px;color:#888;text-align:center;margin-top:4px;">対象${bestRet.totalCount}頭 / 的中${bestRet.hitCount}件</div>
+      </div>
+      <div style="background:#e8f8f0;border:2px solid #27ae60;border-radius:8px;padding:10px;">
+        <div style="font-size:9px;font-weight:900;color:#27ae60;margin-bottom:4px;">🎯 的中率が最も高い条件</div>
+        <div style="font-size:9px;color:#555;margin-bottom:6px;">${fmtCond(bestHit.cond)}</div>
+        <div style="display:flex;justify-content:center;gap:16px;">
+          <div style="text-align:center;">
+            <div style="font-size:8px;color:#888;">的中率</div>
+            <div style="font-size:16px;font-weight:900;color:#27ae60;">${bestHit.hitRate.toFixed(1)}%</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:8px;color:#888;">回収率</div>
+            <div style="font-size:16px;font-weight:900;color:${rateColor(bestHit.retRate)};">${bestHit.retRate.toFixed(1)}%</div>
+          </div>
+        </div>
+        <div style="font-size:8px;color:#888;text-align:center;margin-top:4px;">対象${bestHit.totalCount}頭 / 的中${bestHit.hitCount}件</div>
+      </div>
+      <div style="font-size:8px;color:#aaa;text-align:center;margin-top:6px;">※最低サンプル数${MIN_SAMPLE}頭以上の条件のみ対象</div>
+    `;
+  }, 50);
+}
+
+// シミュレーター実行（スコア計算は予想タブと同一ロジック）
+// シミュレーション計算の共通ロジック（条件オブジェクトを受け取り結果を返す）
+function calcSimResult(cond) {
+  const { wt, kyakuFilter, ninkiMin, maejunMax, ticketType, investPerHorse } = cond;
   let validRecs = records.filter(r => r.horsesSnapshot && r.horsesSnapshot.length > 0 && r.finishRanks?.rank1);
   if (wt) validRecs = validRecs.filter(r => r.weightType === wt);
 
   let totalInvest = 0, totalReturn = 0, hitCount = 0, totalCount = 0;
-  const detailLines = [];
 
   validRecs.forEach(r => {
     const hs = r.horsesSnapshot;
@@ -2811,6 +2943,23 @@ function runSimulator() {
       }
     });
   });
+
+  return { totalInvest, totalReturn, hitCount, totalCount,
+    hitRate: totalCount > 0 ? hitCount/totalCount*100 : 0,
+    retRate: totalInvest > 0 ? totalReturn/totalInvest*100 : 0 };
+}
+
+function runSimulator() {
+  const rateColor = r => r >= 150 ? '#16a34a' : r >= 100 ? '#f39c12' : '#e94560';
+  const wt = document.getElementById('sim-weighttype').value;
+  const kyakuFilter = document.getElementById('sim-kyaku').value;
+  const ninkiMin = parseInt(document.getElementById('sim-ninki-min').value) || 0;
+  const maejunMax = parseInt(document.getElementById('sim-maejun-max').value) || 99;
+  const ticketType = document.getElementById('sim-tickettype').value;
+  const investPerHorse = parseInt(document.getElementById('sim-invest').value) || 1000;
+
+  const result = calcSimResult({ wt, kyakuFilter, ninkiMin, maejunMax, ticketType, investPerHorse });
+  const { totalInvest, totalReturn, hitCount, totalCount } = result;
 
   const el = document.getElementById('sim-result');
   if (totalCount === 0) {
