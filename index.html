@@ -677,14 +677,24 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <input id="img-payout" class="inp" style="width:100%;" placeholder="例: 単勝420円 馬連1320円（スペース区切りで複数OK）">
       </div>
 
+      <!-- 手動買い目入力 -->
+      <div style="margin-bottom:10px;border-top:1px dashed #ddd;padding-top:10px;">
+        <label style="font-size:9px;color:#7c3aed;font-weight:900;display:block;margin-bottom:3px;">✍️ 手動買い目入力（自動推奨を使わず自分で入力する場合）</label>
+        <textarea id="img-manual-bets" class="inp" style="width:100%;min-height:70px;font-size:11px;line-height:1.6;resize:vertical;" placeholder="1行に1券種ずつ入力&#10;例:&#10;単勝 5&#10;馬連 5-17.16&#10;ワイド 5-17.16&#10;三連複 5-1.2.16.17"></textarea>
+        <div style="font-size:8px;color:#aaa;margin-top:3px;">券種（単勝/複勝/馬連/ワイド/三連複/馬単/三連単）+ スペース + 馬番（・や.で区切り、軸-相手は半角ハイフン）</div>
+      </div>
+
       <!-- 生成ボタン -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
         <button class="btn" onclick="imgGenerate('hit')" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;">🎊 的中画像</button>
         <button class="btn" onclick="imgGenerate('miss')" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#444,#222);color:#fff;">💧 ハズレ画像</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-        <button class="btn" onclick="imgGenerate('buy')" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#7c3aed,#4f1fb5);color:#fff;">📋 買い目発表</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+        <button class="btn" onclick="imgGenerate('buy')" style="padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#7c3aed,#4f1fb5);color:#fff;">📋 買い目発表（自動）</button>
         <button class="btn btn-gold" onclick="imgGenerate('score')" style="padding:9px 4px;font-size:10px;">📊 スコアランキング</button>
+      </div>
+      <div>
+        <button class="btn" onclick="imgGenerate('manual')" style="width:100%;padding:9px 4px;font-size:10px;background:linear-gradient(135deg,#ff9500,#e07b00);color:#fff;">✍️ 買い目発表（手動入力）</button>
       </div>
     </div>
 
@@ -5422,10 +5432,27 @@ function imgWakuTextColor(banum) {
   return [1,5].includes(h.waku) ? '#222' : '#fff';
 }
 
+// 手動買い目テキストをパース（「券種 馬番」形式、1行1券種）
+function parseManualBets() {
+  const raw = (document.getElementById('img-manual-bets')?.value || '').trim();
+  if (!raw) return [];
+  const validTypes = ['単勝','複勝','馬連','ワイド','三連複','馬単','三連単'];
+  return raw.split('\n').map(l => l.trim()).filter(Boolean).filter(l => {
+    return validTypes.some(t => l.startsWith(t));
+  });
+}
+
 // メイン生成関数
 function imgGenerate(type) {
   if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
-  const { jiku, jikustr, paceLabel, lines, recLines, topHorse } = imgCalcBets();
+  const isManual = type === 'manual';
+  const autoCalc = imgCalcBets();
+  const jiku = autoCalc.jiku, jikustr = autoCalc.jikustr, paceLabel = autoCalc.paceLabel, topHorse = autoCalc.topHorse;
+  // 手動モード: 手動入力した買い目を「推奨」として扱い、全買い目は空に
+  const manualLines = isManual ? parseManualBets() : [];
+  if (isManual && manualLines.length === 0) { setStatus('❌ 手動買い目を入力してください', 'err'); return; }
+  const lines    = isManual ? [] : autoCalc.lines;
+  const recLines = isManual ? manualLines : autoCalc.recLines;
   const raceName  = currentRaceName || 'レース';
   const comment   = (document.getElementById('img-comment').value || '').trim();
   const hitTypes  = new Set((document.getElementById('img-hits').value || '').split(/[\s,、]+/).filter(Boolean));
@@ -5433,15 +5460,15 @@ function imgGenerate(type) {
   const betLabels = ['単勝','馬連','ワイド','三連複'];
   const betColors = ['#ff2d55','#007aff','#34c759','#ff9500'];
   const W = 450;
-  // buy時はdrawLines数に応じて高さを動的決定
+  // buy/manual時はdrawLines数に応じて高さを動的決定
   const _calcLines = (() => {
     const r = (recLines && recLines.length > 0) ? recLines : [];
     const a = lines || [];
     const same = JSON.stringify(r) === JSON.stringify(a);
     return r.length > 0 && !same ? [...r, ...a] : (r.length > 0 ? r : a);
   })();
-  // buy: 背景画像(520px) + ラベル(14px) + カード数×74px + 余白
-  const H = type === 'score' ? 1000 : type === 'buy' ? Math.max(800, 540 + _calcLines.length * 76) : 800;
+  // buy/manual: 背景画像(520px) + ラベル(14px) + カード数×76px + 余白
+  const H = type === 'score' ? 1000 : (type === 'buy' || isManual) ? Math.max(800, 540 + _calcLines.length * 76) : 800;
   const DPR = Math.min(window.devicePixelRatio || 2, 3); // 最大3倍
 
   const canvas = document.createElement('canvas');
@@ -5497,7 +5524,7 @@ function imgGenerate(type) {
     const drawColors = drawLabels.map(l => colorMap3[l] || '#888');
     if (type === 'score') {
       drawScoreRanking(ctx, W, imgH, tc, comment);
-    } else if (type === 'buy') {
+    } else if ((type === 'buy' || isManual)) {
       // === レイアウト ===
       // [0〜100]    レースタイトル・ペース
       // [100〜520]  背景画像エリア(420px)
@@ -5510,7 +5537,7 @@ function imgGenerate(type) {
       if (recLinesArr.length > 0 && !recSame) {
         // 推奨セクション
         ctx.fillStyle = '#FFD700'; ctx.font = '700 10px sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText('🎯 今回の推奨', 18, contentY - 4);
+        ctx.fillText(isManual ? '✍️ 買い目' : '🎯 今回の推奨', 18, contentY - 4);
         const recLabels = recLinesArr.map(l => { const m = l.match(/^(単勝|複勝|馬連|ワイド|三連複)/); return m?m[1]:''; });
         const recColors = recLabels.map(l => colorMap3[l]||'#888');
         drawBetCards(ctx, recLinesArr, recLabels, recColors, null, 18, contentY, W - 36, type);
@@ -5531,7 +5558,7 @@ function imgGenerate(type) {
     } else if (type === 'hit') {
       if (recLinesArr.length > 0 && !recSame) {
         ctx.fillStyle = '#FFD700'; ctx.font = '700 10px sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText('🎯 今回の推奨', 18, 114);
+        ctx.fillText(isManual ? '✍️ 買い目' : '🎯 今回の推奨', 18, 114);
         const recL = recLinesArr.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';});
         const recC = recL.map(l=>colorMap3[l]||'#888');
         drawBetCards(ctx, recLinesArr, recL, recC, hitTypes, 18, 120, W-36, type);
@@ -5549,7 +5576,7 @@ function imgGenerate(type) {
     } else {
       if (recLinesArr.length > 0 && !recSame) {
         ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = '700 10px sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText('🎯 今回の推奨', 18, 114);
+        ctx.fillText(isManual ? '✍️ 買い目' : '🎯 今回の推奨', 18, 114);
         const recL = recLinesArr.map(l=>{const m=l.match(/^(単勝|複勝|馬連|ワイド|三連複)/);return m?m[1]:'';});
         const recC = recL.map(l=>colorMap3[l]||'#888');
         drawBetCards(ctx, recLinesArr, recL, recC, null, 18, 120, W-36, type);
@@ -5601,7 +5628,7 @@ function imgGenerate(type) {
 
     // ── ブリンカー穴警戒（buy時のみ）──
     let blinkerCanvasOffsetY = 0;
-    if (type === 'buy') {
+    if ((type === 'buy' || isManual)) {
       const _blinkerHorses = horses.filter(h => h.blinker);
       if (_blinkerHorses.length > 0) {
         const _blinkerBaseY = 170 + lines.length * 44 + 8;
@@ -5638,7 +5665,7 @@ function imgGenerate(type) {
 
     // ── 格上乗替穴警戒（buy時のみ）──
     let upJockeyCanvasOffsetY = 0;
-    if (type === 'buy') {
+    if ((type === 'buy' || isManual)) {
       const _upJockeyHorses = horses.filter(h => h.upJockey);
       if (_upJockeyHorses.length > 0) {
         const _upBaseY = 170 + lines.length * 44 + 8 + blinkerCanvasOffsetY;
@@ -5675,7 +5702,7 @@ function imgGenerate(type) {
       if (type === 'score') {
         const scoreRows = comment ? 6 : 8;
         cy = 102 + scoreRows * (66 + 4) + 10;
-      } else if (type === 'buy') {
+      } else if ((type === 'buy' || isManual)) {
         // 画像エリア(100〜520)の直下・余白16px
         cy = 536;
       } else {
@@ -5729,8 +5756,8 @@ function imgGenerate(type) {
     img.onload = () => {
       const imgHh = type === 'score' ? Math.round(H * 0.50) : Math.round(H * 0.48);
       // buy画像はタイトル直下(Y=100)から420px固定
-      const imgTop = type === 'buy' ? 100 : H - imgHh;
-      const clipH  = type === 'buy' ? 420 : imgHh;
+      const imgTop = (type === 'buy' || isManual) ? 100 : H - imgHh;
+      const clipH  = (type === 'buy' || isManual) ? 420 : imgHh;
       const scale = Math.max(W / img.width, clipH / img.height);
       const dw = img.width * scale;
       const dh = img.height * scale;
@@ -5748,7 +5775,7 @@ function imgGenerate(type) {
       gradT.addColorStop(1, 'rgba(10,10,10,0)');
       ctx.fillStyle = gradT;
       ctx.fillRect(0, imgTop, W, 40);
-      if (type === 'buy') {
+      if ((type === 'buy' || isManual)) {
         const gradB = ctx.createLinearGradient(0, imgTop + clipH - 40, 0, imgTop + clipH);
         gradB.addColorStop(0, 'rgba(10,10,10,0)');
         gradB.addColorStop(1, 'rgba(10,10,10,1)');
@@ -5853,7 +5880,7 @@ function drawBigStamp(ctx, text, color, cx, cy) {
 }
 
 function drawBetCards(ctx, lines, betLabels, betColors, hitTypes, x, y, w, type) {
-  const isBuy = type === 'buy';
+  const isBuy = (type === 'buy' || isManual);
   const cardH = isBuy ? 62 : 38;
   const gap   = isBuy ? 12 : 6;
   const pillW = isBuy ? 52 : 36;
