@@ -2617,7 +2617,7 @@ function renderStats() {
 
     <!-- 穴馬精度 -->
     <div style="font-size:10px;font-weight:900;margin-bottom:6px;color:#1a1a2e;">🎰 穴馬候補の精度(別定・ハンデ)</div>
-    <div style="background:#f0f4ff;border-radius:8px;padding:10px;font-size:10px;">
+    <div style="background:#f0f4ff;border-radius:8px;padding:10px;font-size:10px;margin-bottom:12px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;">
         <div>
           <div style="font-size:8px;color:#6080a0;">全候補</div>
@@ -2635,6 +2635,205 @@ function renderStats() {
           <div style="font-size:8px;color:#888;">${ana2Hit}/${ana2Total}頭</div>
         </div>
       </div>
+    </div>
+
+    ${renderCourseBiasSection()}
+
+    ${renderSimulatorSection()}
+  `;
+}
+
+// ===== コースバイアス分析 =====
+function renderCourseBiasSection() {
+  const tdStyle = 'padding:6px 8px;border-bottom:1px solid #e0e6f0;font-size:10px;text-align:center;';
+  const thStyle = 'padding:6px 8px;background:#f0f4ff;font-size:9px;font-weight:700;text-align:center;color:#1a1a2e;';
+  const rateColor = r => r >= 150 ? '#16a34a' : r >= 100 ? '#f39c12' : '#e94560';
+  const validRecs = records.filter(r => r.horsesSnapshot && r.horsesSnapshot.length > 0 && r.finishRanks?.rank1 && r.course);
+  if (validRecs.length < 3) {
+    return `<div style="font-size:10px;font-weight:900;margin-bottom:6px;color:#1a1a2e;">🏟️ コースバイアス分析</div>
+    <div style="background:#f9f9fb;border-radius:8px;padding:12px;font-size:9px;color:#888;text-align:center;margin-bottom:12px;">出馬表データ付きの成績が3件以上必要です</div>`;
+  }
+
+  // コース×馬場状態別に脚質傾向を集計
+  const courseMap = {}; // key: course, value: {総レース数, 脚質別3着内数, 内外枠別3着内数}
+  validRecs.forEach(r => {
+    const course = r.course;
+    if (!courseMap[course]) courseMap[course] = { races: 0, kyaku: {}, waku: { inner: 0, outer: 0, innerTotal: 0, outerTotal: 0 } };
+    courseMap[course].races++;
+    const hs = r.horsesSnapshot;
+    const finish = r.finishRanks;
+    const top3 = new Set([finish.rank1, finish.rank2, finish.rank3].filter(Boolean));
+    hs.forEach(h => {
+      const k = h.kyakushitsu || '不明';
+      if (!courseMap[course].kyaku[k]) courseMap[course].kyaku[k] = { total: 0, hit: 0 };
+      courseMap[course].kyaku[k].total++;
+      if (top3.has(h.banum)) courseMap[course].kyaku[k].hit++;
+
+      const wakuNum = parseInt(h.waku) || 0;
+      const isInner = wakuNum >= 1 && wakuNum <= 4;
+      const isOuter = wakuNum >= 5 && wakuNum <= 8;
+      if (isInner) { courseMap[course].waku.innerTotal++; if (top3.has(h.banum)) courseMap[course].waku.inner++; }
+      if (isOuter) { courseMap[course].waku.outerTotal++; if (top3.has(h.banum)) courseMap[course].waku.outer++; }
+    });
+  });
+
+  let rows = '';
+  Object.entries(courseMap).sort((a,b) => b[1].races - a[1].races).forEach(([course, data]) => {
+    // 最も3着内率が高い脚質を特定
+    const kyakuEntries = Object.entries(data.kyaku).filter(([k,v]) => v.total >= 2);
+    kyakuEntries.sort((a,b) => (b[1].hit/b[1].total) - (a[1].hit/a[1].total));
+    const bestKyaku = kyakuEntries[0];
+    const bestKyakuRate = bestKyaku ? (bestKyaku[1].hit/bestKyaku[1].total*100) : 0;
+
+    const innerRate = data.waku.innerTotal > 0 ? (data.waku.inner/data.waku.innerTotal*100) : 0;
+    const outerRate = data.waku.outerTotal > 0 ? (data.waku.outer/data.waku.outerTotal*100) : 0;
+    const wakuTrend = data.waku.innerTotal >= 3 && data.waku.outerTotal >= 3
+      ? (innerRate > outerRate + 10 ? '内枠有利' : outerRate > innerRate + 10 ? '外枠有利' : '中立')
+      : '判定不可';
+
+    rows += `<tr>
+      <td style="${tdStyle}font-weight:900;">${course}</td>
+      <td style="${tdStyle}">${data.races}R</td>
+      <td style="${tdStyle}">${bestKyaku ? bestKyaku[0] : '-'}<span style="color:${rateColor(bestKyakuRate)};font-weight:900;"> ${bestKyakuRate.toFixed(0)}%</span></td>
+      <td style="${tdStyle}font-size:9px;">${wakuTrend}</td>
+    </tr>`;
+  });
+
+  return `
+    <div style="font-size:10px;font-weight:900;margin-bottom:6px;color:#1a1a2e;">🏟️ コースバイアス分析</div>
+    <div style="font-size:8px;color:#888;margin-bottom:6px;">競馬場別の有利脚質・枠順傾向（出馬表データ付き成績から自動集計）</div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+      <tr><th style="${thStyle}">競馬場</th><th style="${thStyle}">件数</th><th style="${thStyle}">有利脚質</th><th style="${thStyle}">枠順傾向</th></tr>
+      ${rows}
+    </table>
+  `;
+}
+
+// ===== 回収率シミュレーター =====
+function renderSimulatorSection() {
+  const validRecs = records.filter(r => r.horsesSnapshot && r.horsesSnapshot.length > 0 && r.finishRanks?.rank1 && r.dbSnapshot);
+  return `
+    <div style="font-size:10px;font-weight:900;margin-bottom:6px;color:#1a1a2e;">🧪 回収率シミュレーター</div>
+    <div style="font-size:8px;color:#888;margin-bottom:8px;">条件を変えて過去データに当てはめた場合の的中率・回収率を試算（出馬表データ付き成績: ${validRecs.length}件）</div>
+    <div style="background:#fafbfc;border:1px solid #e0e6f0;border-radius:8px;padding:10px;margin-bottom:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <label style="font-size:8px;color:#6080a0;font-weight:700;display:block;margin-bottom:2px;">対象レース種別</label>
+          <select id="sim-weighttype" class="sel" style="width:100%;font-size:10px;">
+            <option value="">全て</option>
+            <option value="定量">定量</option>
+            <option value="別定">別定</option>
+            <option value="ハンデ">ハンデ</option>
+            <option value="馬齢">馬齢</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:8px;color:#6080a0;font-weight:700;display:block;margin-bottom:2px;">脚質条件</label>
+          <select id="sim-kyaku" class="sel" style="width:100%;font-size:10px;">
+            <option value="">指定なし</option>
+            <option value="差し">差しのみ</option>
+            <option value="先行">先行のみ</option>
+            <option value="逃げ">逃げのみ</option>
+            <option value="追い込み">追い込みのみ</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <label style="font-size:8px;color:#6080a0;font-weight:700;display:block;margin-bottom:2px;">人気下限（以上）</label>
+          <input id="sim-ninki-min" class="inp" type="number" value="4" style="width:100%;font-size:10px;">
+        </div>
+        <div>
+          <label style="font-size:8px;color:#6080a0;font-weight:700;display:block;margin-bottom:2px;">前走着順上限（以下）</label>
+          <input id="sim-maejun-max" class="inp" type="number" value="3" style="width:100%;font-size:10px;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:8px;color:#6080a0;font-weight:700;display:block;margin-bottom:2px;">券種</label>
+          <select id="sim-tickettype" class="sel" style="width:100%;font-size:10px;">
+            <option value="fuku">複勝</option>
+            <option value="tan">単勝</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:8px;color:#6080a0;font-weight:700;display:block;margin-bottom:2px;">1点あたり投資額</label>
+          <input id="sim-invest" class="inp" type="number" value="1000" style="width:100%;font-size:10px;">
+        </div>
+      </div>
+      <button class="btn btn-gold" onclick="runSimulator()" style="width:100%;font-size:11px;padding:8px;">🧪 シミュレーション実行</button>
+      <div id="sim-result" style="margin-top:10px;"></div>
+    </div>
+  `;
+}
+
+// シミュレーター実行（スコア計算は予想タブと同一ロジック）
+function runSimulator() {
+  const rateColor = r => r >= 150 ? '#16a34a' : r >= 100 ? '#f39c12' : '#e94560';
+  const wt = document.getElementById('sim-weighttype').value;
+  const kyakuFilter = document.getElementById('sim-kyaku').value;
+  const ninkiMin = parseInt(document.getElementById('sim-ninki-min').value) || 0;
+  const maejunMax = parseInt(document.getElementById('sim-maejun-max').value) || 99;
+  const ticketType = document.getElementById('sim-tickettype').value;
+  const investPerHorse = parseInt(document.getElementById('sim-invest').value) || 1000;
+
+  let validRecs = records.filter(r => r.horsesSnapshot && r.horsesSnapshot.length > 0 && r.finishRanks?.rank1);
+  if (wt) validRecs = validRecs.filter(r => r.weightType === wt);
+
+  let totalInvest = 0, totalReturn = 0, hitCount = 0, totalCount = 0;
+  const detailLines = [];
+
+  validRecs.forEach(r => {
+    const hs = r.horsesSnapshot;
+    const finish = r.finishRanks;
+    const top3 = new Set([finish.rank1, finish.rank2, finish.rank3].filter(Boolean));
+
+    const candidates = hs.filter(h => {
+      const ninki = Number(h.ninki) || 0;
+      const maejun = Number(h.maejun) || 99;
+      if (ninki < ninkiMin) return false;
+      if (maejun > maejunMax) return false;
+      if (kyakuFilter && h.kyakushitsu !== kyakuFilter) return false;
+      return true;
+    });
+
+    if (candidates.length === 0) return;
+
+    candidates.forEach(h => {
+      totalCount++;
+      totalInvest += investPerHorse;
+      const isHit = ticketType === 'tan' ? h.banum === finish.rank1 : top3.has(h.banum);
+      if (isHit) {
+        hitCount++;
+        const odds = parseFloat(h.odds) || 0;
+        const payoutOdds = ticketType === 'tan' ? odds : Math.max(1.1, odds * 0.35);
+        totalReturn += Math.round(investPerHorse * payoutOdds);
+      }
+    });
+  });
+
+  const el = document.getElementById('sim-result');
+  if (totalCount === 0) {
+    el.innerHTML = `<div style="font-size:10px;color:#e94560;text-align:center;padding:10px;">条件に合致する馬がいませんでした</div>`;
+    return;
+  }
+
+  const hitRate = (hitCount/totalCount*100).toFixed(1);
+  const retRate = (totalReturn/totalInvest*100).toFixed(1);
+  el.innerHTML = `
+    <div style="background:#fff;border:2px solid ${rateColor(parseFloat(retRate))};border-radius:8px;padding:12px;text-align:center;">
+      <div style="font-size:9px;color:#888;margin-bottom:4px;">対象 ${totalCount}頭（投資 ${totalInvest.toLocaleString()}円）</div>
+      <div style="display:flex;justify-content:center;gap:20px;">
+        <div>
+          <div style="font-size:9px;color:#888;">的中率</div>
+          <div style="font-size:20px;font-weight:900;color:#1a1a2e;">${hitRate}%</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:#888;">回収率</div>
+          <div style="font-size:20px;font-weight:900;color:${rateColor(parseFloat(retRate))};">${retRate}%</div>
+        </div>
+      </div>
+      <div style="font-size:9px;color:#888;margin-top:6px;">回収 ${totalReturn.toLocaleString()}円 / 的中 ${hitCount}件</div>
     </div>
   `;
 }
