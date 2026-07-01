@@ -507,6 +507,15 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
       <div style="margin-bottom: 8px; background:#f7f8ff; border:1px solid #d0d7e8; border-radius:6px; padding:8px;">
         <div style="font-size:9px;font-weight:900;color:#2563eb;margin-bottom:6px;">💰 券種別配当（検証用・JRA結果から入力）</div>
         <div style="font-size:8px;color:#6080a0;margin-bottom:6px;">100円あたりの払戻金額。複勝・ワイドは複数ある場合は的中組み合わせのみ入力</div>
+
+        <!-- 払戻画像から一括入力 -->
+        <div style="background:#fff8e1;border:1px solid #f39c12;border-radius:6px;padding:8px;margin-bottom:8px;">
+          <div style="font-size:9px;font-weight:900;color:#e67e22;margin-bottom:4px;">📸 払戻画面のスクショから一括入力</div>
+          <div style="font-size:8px;color:#888;margin-bottom:6px;">netkeibaなどの払戻金画面をこのチャットに貼り付けて下のプロンプトと一緒に送信 → 出力されたJSONをここに貼り付けて「反映」</div>
+          <button class="btn" onclick="copyPayoutPrompt()" id="btn-copy-payout-prompt" style="width:100%;font-size:9px;padding:6px;background:linear-gradient(135deg,#f39c12,#e67e22);color:#fff;margin-bottom:6px;">📋 抽出プロンプトをコピー</button>
+          <textarea id="payout-json-input" class="inp" style="width:100%;min-height:50px;font-size:9px;" placeholder='{"tansho":940,"fukusho1":370,"fukusho2":980,"fukusho3":2330,"umaren":13070,"wide1":4470,"wide2":12910,"wide3":17960,"sanfuku":217840,"santan":1066160}'></textarea>
+          <button class="btn btn-gold" onclick="applyPayoutJSON()" style="width:100%;font-size:9px;padding:6px;margin-top:4px;">✅ 反映</button>
+        </div>
         <div style="display:grid;grid-template-columns:auto 1fr;gap:4px;align-items:center;">
           <span style="font-size:9px;color:#333;font-weight:700;">単勝</span>
           <input type="number" id="payout-tansho" class="inp" placeholder="例: 940" style="font-size:10px;">
@@ -984,7 +993,20 @@ const PROMPTS = {
 2:70
 3:55
 
-出走全頭分を上記の形式で出力してください。このアプリの「タイム偏差値」一括貼り付け欄にそのままコピペして使うので、余計な文字（点、pt などの単位）は付けないでください。`
+出走全頭分を上記の形式で出力してください。このアプリの「タイム偏差値」一括貼り付け欄にそのままコピペして使うので、余計な文字（点、pt などの単位）は付けないでください。`,
+  6: `貼り付けた払戻金画面の画像から、各券種の払戻金額（100円あたり）を読み取ってください。
+
+出力は以下のJSON形式のみで、説明文や前置きは一切不要です。
+
+【出力形式】
+{"tansho": 単勝の払戻金額(数値), "fukusho1": 複勝1着目の払戻金額(数値), "fukusho2": 複勝2着目の払戻金額(数値), "fukusho3": 複勝3着目の払戻金額(数値), "umaren": 馬連の払戻金額(数値), "wide1": ワイド1点目の払戻金額(数値), "wide2": ワイド2点目の払戻金額(数値), "wide3": ワイド3点目の払戻金額(数値), "sanfuku": 三連複の払戻金額(数値), "santan": 三連単の払戻金額(数値)}
+
+【注意】
+- 金額は「円」を含めず数値のみ（例: 1,590円 → 1590）
+- 複勝は着順に関わらず、表示されている順番のまま fukusho1, fukusho2, fukusho3 に割り当てる
+- ワイドも表示されている順番のまま wide1, wide2, wide3 に割り当てる
+- 該当する券種が画像内に無い場合はそのキー自体を出力しない
+- 出力はJSONのみ。前後に説明文やコードブロックの \`\`\` は付けない`
 };
 
 function copyPromptDirect(num) {
@@ -2334,6 +2356,41 @@ function clearPayoutInputs() {
    'payout-umaren','payout-wide1','payout-wide2','payout-wide3',
    'payout-sanfuku','payout-santan']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+}
+
+// 払戻画面のスクショから抽出したJSONを一括反映
+function applyPayoutJSON() {
+  try {
+    const raw = document.getElementById('payout-json-input').value.trim();
+    if (!raw) { setStatus('❌ JSONを貼り付けてください', 'err'); return; }
+    const jsonStart = raw.indexOf('{');
+    const jsonEnd = raw.lastIndexOf('}');
+    if (jsonStart < 0 || jsonEnd < 0) { setStatus('❌ JSONが正しくありません（{ } が見つかりません）', 'err'); return; }
+    const extracted = raw.substring(jsonStart, jsonEnd + 1);
+    const parsed = JSON.parse(extracted);
+    setPayoutInputs(parsed);
+    const count = Object.values(parsed).filter(v => v !== null && v !== undefined && v !== '').length;
+    document.getElementById('payout-json-input').value = '';
+    setStatus(`✅ ${count}件の払戻金を反映しました`, 'ok');
+  } catch (e) {
+    setStatus('❌ JSONエラー: ' + e.message.substring(0, 40), 'err');
+  }
+}
+
+// 払戻抽出プロンプトをコピー
+function copyPayoutPrompt() {
+  const text = PROMPTS[6];
+  const btn = document.getElementById('btn-copy-payout-prompt');
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ コピーしました！';
+    setTimeout(() => { btn.textContent = '📋 抽出プロンプトをコピー'; }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = '✅ コピーしました！';
+    setTimeout(() => { btn.textContent = '📋 抽出プロンプトをコピー'; }, 2000);
+  });
 }
 
 function addRecord() {
