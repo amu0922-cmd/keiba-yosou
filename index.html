@@ -1449,6 +1449,15 @@ function autoSaveHorses() {
   if (horses.length > 0) {
     localStorage.setItem('kp_last_horses', JSON.stringify(horses));
     localStorage.setItem('kp_last_race', currentRaceName);
+    // savedJsons内の該当レースも同期（調教・コメント等の編集がレース一覧経由の再読込で消えないようにする）
+    if (currentRaceName && savedJsons[currentRaceName]) {
+      savedJsons[currentRaceName] = {
+        ...savedJsons[currentRaceName],
+        horses: JSON.stringify(horses),
+        horseCount: horses.length,
+      };
+      localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
+    }
   }
 }
 
@@ -4726,6 +4735,26 @@ async function loadFromSupabase() {
 
 async function saveToSupabase() {
   try {
+    // クラウド保存直前に、現在編集中のhorsesをsavedJsonsにも確実に同期
+    // （調教・コメント編集後にレース一覧経由で再読込しても最新状態が反映されるようにする）
+    if (currentRaceName && horses.length > 0) {
+      if (!savedJsons[currentRaceName]) {
+        savedJsons[currentRaceName] = {
+          horses: JSON.stringify(horses),
+          db: JSON.stringify(db),
+          horseCount: horses.length,
+          weightType: currentWeightType || '',
+          savedAt: new Date().toLocaleString('ja-JP')
+        };
+      } else {
+        savedJsons[currentRaceName] = {
+          ...savedJsons[currentRaceName],
+          horses: JSON.stringify(horses),
+          horseCount: horses.length,
+        };
+      }
+      localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
+    }
     // raceUrlsをlocalStorageから収集
     const raceUrls = {};
     for (let i = 0; i < localStorage.length; i++) {
