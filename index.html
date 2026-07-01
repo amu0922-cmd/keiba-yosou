@@ -197,6 +197,11 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <div style="font-size: 9px; color: #6080a0; background: #f5f6fa; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; line-height: 1.6;">出馬表画像から人気・オッズ・馬体重・斤量を「馬番:値」形式で全頭抽出。一括貼り付け欄にそのまま使える形式。</div>
         <button class="btn" id="btn-copy-p4" onclick="copyPromptDirect(4)" style="width: 100%; padding: 10px; font-size: 11px;background:linear-gradient(135deg,#7c3aed,#4f1fb5);color:#fff;">📋 ワンタップコピー</button>
       </div>
+      <div style="margin-bottom: 4px;">
+        <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px; color: #1a1a2e;">⑤タイム指数偏差値を抽出</div>
+        <div style="font-size: 9px; color: #6080a0; background: #f5f6fa; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; line-height: 1.6;">タイム指数画像から馬番とタイム偏差値を「馬番:値」形式で全頭抽出。一括貼り付け欄にそのまま使える形式。</div>
+        <button class="btn" id="btn-copy-p5" onclick="copyPromptDirect(5)" style="width: 100%; padding: 10px; font-size: 11px;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;">📋 ワンタップコピー</button>
+      </div>
 
       <div class="card-title">📥 JSON読込</div>
       <div style="margin-bottom: 10px;">
@@ -1114,7 +1119,19 @@ JSONデータのみをワンタップでコピーできるように、**JSON部�
 2:56.0
 3:58.0
 
-上記の4ブロック形式で、出走全頭分を出力してください。各ブロックはこのアプリの「人気・オッズ一括貼り付け」欄にそのままコピペして使うので、余計な文字（頭、kg、倍などの単位）は付けないでください。`
+上記の4ブロック形式で、出走全頭分を出力してください。各ブロックはこのアプリの「人気・オッズ一括貼り付け」欄にそのままコピペして使うので、余計な文字（頭、kg、倍などの単位）は付けないでください。`,
+  5: `貼り付けた画像から、出走する全頭の「馬番」と「タイム指数偏差値」を読み取ってください。
+
+出力は「馬番:指数偏差値」の形式で、1頭1行ずつ、全頭分を出力してください。馬番の対応にズレが生じないよう、左端の馬番を慎重に確認してください。
+
+説明文や前置きは一切不要です。以下の形式のみを出力してください。
+
+例
+1:45
+2:70
+3:55
+
+出走全頭分を上記の形式で出力してください。このアプリの「タイム偏差値」一括貼り付け欄にそのままコピペして使うので、余計な文字（点、pt などの単位）は付けないでください。`
 };
 
 function copyPromptDirect(num) {
