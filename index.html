@@ -182,23 +182,13 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <div style="font-size: 9px; color: #6080a0; background: #f5f6fa; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; line-height: 1.6;">出馬表画像からJSON形式で情報を抽出。枠番・馬番の対応を慎重に確認して紐づけ。</div>
         <button class="btn btn-gold" id="btn-copy-p1" onclick="copyPromptDirect(1)" style="width: 100%; padding: 10px; font-size: 11px;">📋 ワンタップコピー</button>
       </div>
-      <div style="margin-bottom: 10px;">
-        <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px; color: #1a1a2e;">②レース傾向PDFをDB化</div>
-        <div style="font-size: 9px; color: #6080a0; background: #f5f6fa; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; line-height: 1.6;">レース傾向PDFを解析し、各項目のスコアをJSON形式で出力。根拠説明付き。</div>
-        <button class="btn btn-blue" id="btn-copy-p2" onclick="copyPromptDirect(2)" style="width: 100%; padding: 10px; font-size: 11px;">📋 ワンタップコピー</button>
-      </div>
       <div style="margin-bottom: 4px;">
-        <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px; color: #1a1a2e;">③レース結果を着順JSON化</div>
-        <div style="font-size: 9px; color: #6080a0; background: #f5f6fa; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; line-height: 1.6;">レース結果画像から着順JSONを抽出。予想の振り返り分析に使用。</div>
-        <button class="btn btn-green" id="btn-copy-p3" onclick="copyPromptDirect(3)" style="width: 100%; padding: 10px; font-size: 11px;">📋 ワンタップコピー</button>
-      </div>
-      <div style="margin-bottom: 4px;">
-        <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px; color: #1a1a2e;">④人気・オッズ・馬体重・斤量を抽出</div>
+        <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px; color: #1a1a2e;">②人気・オッズ・馬体重・斤量を抽出</div>
         <div style="font-size: 9px; color: #6080a0; background: #f5f6fa; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; line-height: 1.6;">出馬表画像から人気・オッズ・馬体重・斤量を「馬番:値」形式で全頭抽出。一括貼り付け欄にそのまま使える形式。</div>
         <button class="btn" id="btn-copy-p4" onclick="copyPromptDirect(4)" style="width: 100%; padding: 10px; font-size: 11px;background:linear-gradient(135deg,#7c3aed,#4f1fb5);color:#fff;">📋 ワンタップコピー</button>
       </div>
       <div style="margin-bottom: 4px;">
-        <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px; color: #1a1a2e;">⑤タイム指数偏差値を抽出</div>
+        <div style="font-weight: 700; margin-bottom: 6px; font-size: 11px; color: #1a1a2e;">③タイム指数偏差値を抽出</div>
         <div style="font-size: 9px; color: #6080a0; background: #f5f6fa; border: 1px solid #e0e6f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; line-height: 1.6;">タイム指数画像から馬番とタイム偏差値を「馬番:値」形式で全頭抽出。一括貼り付け欄にそのまま使える形式。</div>
         <button class="btn" id="btn-copy-p5" onclick="copyPromptDirect(5)" style="width: 100%; padding: 10px; font-size: 11px;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;">📋 ワンタップコピー</button>
       </div>
@@ -952,143 +942,6 @@ const PROMPTS = {
 {"horses": [{"banum": 馬番, "waku": 枠番, "age": 年齢(数値), "name": "馬名", "jockey": "騎手", "sire": "種牡馬", "odds": 単勝オッズ, "kyakushitsu": "脚質", "ninki": 人気(数値1-18), "maeclass": "前走クラス", "maejun": 前走着順(数値), "timdev": "タイム偏差値"}]}
 
 出力はJSONのみ。`,
-  2: `下記のレース傾向PDFを解析し、過去のレース結果に基づいて各項目のスコアを算出してください。
-
-
-
-【重要】
-
-各カテゴリーについて、過去の成績データから以下のスコアを計算してください：
-
-- 得票数が多い＝高スコア（+20～+25点）
-
-- 得票数が少ない＝低スコア（-15～-20点）
-
-- 中程度＝0点～±5点
-
-
-
-【出力形式】
-
-{
-
-  "jockey": {"騎手1": 20, "騎手2": 15, ...},
-
-  "sire": {"種牡馬1": 18, "種牡馬2": 12, ...},
-
-  "age": {"2": -20, "3": -5, "4": 10, "5": 8, ...},
-
-  "kyakushitsu": {"逃げ": -10, "先行": 5, "差し": 15, "追い込み": 0, "自在": 0},
-
-
-  "maejun": {"1": 10, "2": 8, "3": 5, ...},
-
-  "maeclass": {"GI": 10, "GII": 6, "GIII": 4, "L": 0, "OP": -2, "3勝": -3, "2勝": -5, "1勝": -8},
-
-  "waku": {"1": 0, "2": 0, "3": 0, "4": 5, "5": 5, "6": 5, "7": 0, "8": -5},
-
-  "timdev": {"0～": -20, "35～": -15, "40～": -10, "45～": -5, "50～": 0, "55～": 3, "60～": 5, "65～": 10, "70～": 15, "75～": 20},
-
-  "baju": {"～419": -10, "420～439": -5, "440～459": 0, "460～479": 5, "480～499": 3, "500～": -5}
-
-}
-
-
-
-【各カテゴリーの説明】
-
-- jockey: 騎手ごとのスコア（ルメール、岩田望、川田など**必ず個人名で配点**すること。また、**「その他の騎手: 0点」のような項目はJSONにも説明文にも一切出力・表示しない**こと）
-
-- sire: 種牡馬ごとのスコア（ディープインパクト、キタサンブラックなど）
-
-- age: 馬の年齢ごと（2歳～8歳）のスコア
-
-- kyakushitsu: 脚質ごと（逃げ、先行、差し、追い込み、自在）のスコア
-
-
-- maejun: 前走着順ごと（1着～12着）のスコア
-
-- maeclass: 前走レースクラスごと（GI、GII、GIII、L、OP、3勝、2勝、1勝）のスコア
-
-- waku: 枠順ごと（1枠～8枠）のスコア
-
-- timdev: タイム偏差値ごと（0～、35～、40～、45～、50～、55～、60～、65～、70～、75～）のスコア
-
--baju:馬体重ごとのスコア
-
-
-
-【出力時の注意】
-
-提供されたデータ内に該当項目が無い場合はネット上を探して補完する。その際に出展元を最後の説明に追加する。
-
-騎手のデータは乗り替わりや継続騎乗での加点、減点と同じ開催場所、距離での勝率をネット上を探して補完する。
-
-例:ダービーは武豊が勝率高いけど東京芝2400mの他のレースではルメールが勝率が高い場合2つ合わせて加点、減点する。
-
-
-
-各スコアを付与した理由を、データから見えることとして簡潔に説明してください。
-
-例：
-
-"jockey": {"ルメール": 25 /* 過去5年の優勝率45%、データセット内での連対率60% */}
-
-"age": {"3": -5 /* 3歳馬は経験不足で不利、当該レースでの平均着順6.5着 */}
-
-"maeclass": {"GI": 10 /* GI戦経験馬が優勝している傾向、連対率62% */}
-
-
-
-【最終出力】
-
-JSONと、その下に各配点の根拠をまとめた説明を記載してください。
-
-説明文は以下の形式で：
-
-
-
-《騎手》
-
-- ルメール: +25点 → 理由
-
-- 岩田望: +20点 → 理由
-
-...
-
-
-
-《種牡馬》
-
-- ディープインパクト: +20点 → 理由
-
-...
-
-
-
-【この形式で出力してください】
-
-※非常に重要※
-
-JSONデータのみをワンタップでコピーできるように、**JSON部分だけを独立したマークダウン形式のコードブロック（\`\`\`json ～ \`\`\`）で囲んで出力**してください。
-
-配点根拠の説明文は、コードブロックの外に通常のテキストとして出力してください。
-
-
-
-\`\`\`json
-
-{"jockey": {...}, "sire": {...}, ...}
-
-\`\`\``,
-  3: `下記のレース結果画像から、着順JSONを抽出してください。出力はJSONのみ。説明文不要。
-
-【出力形式】
-{"results": [{"rank": 着順(数値), "banum": 馬番(数値), "name": "馬名", "time": "タイム", "odds": 単勝オッズ, "ninki": 人気(数値)}]}
-
-着順順（1着から）に並べてください。出力はJSONのみ。
-
-また、このJSONをワンタップでコピー出来るようにしてください。`,
   4: `貼り付けた画像から、出走する全頭の「人気」「オッズ」「馬体重」「斤量」を抽出してください。
 
 出力は必ず以下の4つのブロックに分けて、それぞれ「馬番:値」の形式で1頭1行ずつ、全頭分を出力してください。馬番の対応にズレが生じないよう、左端の馬番を慎重に確認してください。
