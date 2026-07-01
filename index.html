@@ -260,6 +260,11 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <textarea id="timdev-input" placeholder="1: 45&#10;2: 70&#10;3: 55"></textarea>
         <button class="btn btn-blue" onclick="applyTimdev()" style="width: 100%; margin-top: 4px;">✅ 反映</button>
       </div>
+      <div style="margin-top: 10px;">
+        <label style="font-size: 10px; color: #6080a0; display: block; margin-bottom: 4px;">🏋️ 斤量（馬番: kg）</label>
+        <textarea id="weight-input" placeholder="1: 57.5&#10;2: 56.0&#10;3: 58.0"></textarea>
+        <button class="btn btn-blue" onclick="applyWeight()" style="width: 100%; margin-top: 4px;">✅ 反映</button>
+      </div>
     </div>
   </div>
 
@@ -1344,6 +1349,33 @@ function applyBaju() {
       renderTable(); renderAnalysis();
       setStatus(`✅ ${count}頭の馬体重を反映`, 'ok');
       document.getElementById('baju-input').value = '';
+      syncCurrentBackup();
+    } else {
+      setStatus('❌ 反映できた馬がありません', 'err');
+    }
+  } catch (e) {
+    setStatus('❌ エラー: ' + e.message.substring(0, 20), 'err');
+  }
+}
+
+function applyWeight() {
+  try {
+    const text = document.getElementById('weight-input').value.trim();
+    if (!text) { setStatus('❌ 入力してください', 'err'); return; }
+    if (horses.length === 0) { setStatus('❌ 馬を読込してください', 'err'); return; }
+    const lines = text.split('\n').filter(l => l.trim());
+    let count = 0;
+    lines.forEach(line => {
+      const m = line.match(/(\d+)\s*:\s*([\d.]+)/);
+      if (m) {
+        const horse = horses.find(h => h.banum === parseInt(m[1]));
+        if (horse) { horse.weight = parseFloat(m[2]); count++; }
+      }
+    });
+    if (count > 0) {
+      renderTable(); renderAnalysis();
+      setStatus(`✅ ${count}頭の斤量を反映`, 'ok');
+      document.getElementById('weight-input').value = '';
       syncCurrentBackup();
     } else {
       setStatus('❌ 反映できた馬がありません', 'err');
