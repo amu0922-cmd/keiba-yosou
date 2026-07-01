@@ -866,8 +866,9 @@ function setRaceName(name) {
 function registerNewRace() {
   const nameEl = document.getElementById('new-race-name');
   const wtEl = document.getElementById('new-race-weighttype');
-  const name = nameEl.value.trim();
-  const selectedWt = wtEl ? wtEl.value : '';
+  // 入力欄が空でも現在表示中のレース名があればそれをフォールバックとして使う
+  const name = (nameEl.value.trim()) || currentRaceName || '';
+  const selectedWt = (wtEl ? wtEl.value : '') || currentWeightType || '';
   if (!name) { setStatus('❌ レース名を入力してください', 'err'); return; }
   const now = new Date().toLocaleString('ja-JP');
   if (savedJsons[name]) {
@@ -1152,10 +1153,16 @@ function importJSON() {
     }));
     
     document.getElementById('count-badge').textContent = horses.length;
-    setRaceName(parsed.name || '');
-    setWeightType('');
+    // 既にレース名・負担重量が設定されている場合（レース一覧から先行登録済み）はそれを維持
+    // JSON内にname指定があり、かつ現在レース名が未設定の場合のみそちらを使う
+    if (parsed.name && !currentRaceName) {
+      setRaceName(parsed.name);
+    } else if (currentRaceName) {
+      setRaceName(currentRaceName); // savedJsonsへの紐付けを維持したまま出馬表を反映
+    }
+    // 負担重量は上書きしない（先行登録した値を維持）
     renderTable();
-    setStatus(`✅ ${horses.length}頭を読込`, 'ok');
+    setStatus(`✅ ${horses.length}頭を読込${currentRaceName ? `（「${currentRaceName}」に追加）` : ''}`, 'ok');
   } catch (e) {
     setStatus('❌ エラー: ' + e.message.substring(0, 30), 'err');
   }
@@ -2183,6 +2190,12 @@ function loadSavedJSON(name) {
     db = dbData;
     setWeightType(data.weightType || ''); // setRaceNameより前にweightTypeをセット
     setRaceName(name);
+
+    // 先行登録フォームのレース名欄にも反映（再登録時に再入力不要にする）
+    const newRaceNameEl = document.getElementById('new-race-name');
+    if (newRaceNameEl) newRaceNameEl.value = name;
+    const newRaceWtEl = document.getElementById('new-race-weighttype');
+    if (newRaceWtEl) newRaceWtEl.value = data.weightType || '';
 
     renderTable();
     renderDBSection();
