@@ -876,10 +876,20 @@ function registerNewRace() {
   }
   // レース名・負担重量・現在のDB設定で先行登録(出馬表は空)
   const existingHorses = savedJsons[name]?.horses || '[]';
+  // horseCountを正確に計算（文字列なら安全にパース、失敗時は0）
+  let existingHorseCount = 0;
+  try {
+    if (Array.isArray(existingHorses)) {
+      existingHorseCount = existingHorses.length;
+    } else if (typeof existingHorses === 'string') {
+      const parsedH = JSON.parse(existingHorses);
+      existingHorseCount = Array.isArray(parsedH) ? parsedH.length : 0;
+    }
+  } catch(e) { existingHorseCount = 0; }
   savedJsons[name] = {
     horses: typeof existingHorses === 'string' ? existingHorses : JSON.stringify(existingHorses),
     db: JSON.stringify(db),
-    horseCount: Array.isArray(existingHorses) ? existingHorses.length : (JSON.parse(existingHorses instanceof String ? existingHorses : '[]')).length,
+    horseCount: existingHorseCount,
     weightType: selectedWt || currentWeightType || '',
     savedAt: now
   };
@@ -1483,6 +1493,8 @@ function autoSaveHorses() {
 }
 
 function renderTable() {
+  // horsesが配列でない場合は空配列にリセット（データ破損時のフォールバック）
+  if (!Array.isArray(horses)) horses = [];
   // 出馬表が新しく読み込まれた時のみ予想・展開タブをリセット
   // (人気・オッズ更新時はリセットしない)
   if (_resetAnalysisOnNextRender) {
@@ -2246,6 +2258,7 @@ function loadSavedJSON(name) {
       updateRankFromInput();
     }
 
+    _justLoadedHorses = false; // フラグリセット（未反映のまま残留するのを防ぐ）
     setStatus(`✅ 「${name}」を読込（${horses.length}頭・DB設定）`, 'ok');
   } catch (e) {
     console.error('loadSavedJSON error:', e);
@@ -3339,6 +3352,8 @@ function calcWeightScore(horseList, h) {
 }
 
 function calcPaceFromHorses(horseList) {
+  // horseListが配列でない場合は空配列として扱う（データ破損時のフォールバック）
+  if (!Array.isArray(horseList)) horseList = [];
   // 脚質カウント
   const cnt = { '逃げ': 0, '先行': 0, '差し': 0, '追い込み': 0, '自在': 0 };
   horseList.forEach(h => { if (cnt[h.kyakushitsu] !== undefined) cnt[h.kyakushitsu]++; });
