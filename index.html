@@ -221,12 +221,19 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <span>🎯 レース一覧</span>
         <button id="sort-btn" onclick="toggleSortOrder()" style="font-size:9px;padding:3px 8px;background:#e8f0fe;border:1px solid #2563eb;border-radius:4px;color:#2563eb;font-weight:700;cursor:pointer;">🔽 新しい順</button>
       </div>
-      <!-- 新規レース登録(DB設定のみで先行登録) -->
+      <!-- 新規レース登録(レース名+負担重量+DB設定で先行登録) -->
       <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
         <input type="text" id="new-race-name" class="inp" placeholder="レース名（例: 6/28 函館記念）" style="flex:1;font-size:10px;">
-        <button class="btn btn-gold" onclick="registerNewRace()" style="font-size:10px;padding:6px 10px;white-space:nowrap;">➕ 登録</button>
+        <select id="new-race-weighttype" class="inp" style="font-size:10px;flex:0 0 72px;">
+          <option value="">負担重量</option>
+          <option value="定量">定量</option>
+          <option value="別定">別定</option>
+          <option value="ハンデ">ハンデ</option>
+          <option value="馬齢">馬齢</option>
+        </select>
       </div>
-      <div style="font-size:8px;color:#6080a0;margin-bottom:8px;">DB設定だけで先行登録→出馬表が揃ったら読込で自動更新</div>
+      <button class="btn btn-gold" onclick="registerNewRace()" style="width:100%;font-size:10px;padding:7px;margin-bottom:6px;">➕ レース名・負担重量・DB設定で先行登録</button>
+      <div style="font-size:8px;color:#6080a0;margin-bottom:8px;">レース名・負担重量・現在のDB設定だけで先行登録できます。出馬表は後から出馬表タブで読込→自動反映</div>
       <div id="saved-list" style="max-height: 200px; overflow-y: auto;"></div>
     </div>
 
@@ -267,7 +274,14 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <span>🏇 出馬表（<span id="count-badge">0</span>頭）</span>
         <button class="btn" onclick="saveTableAsImage()" style="margin-left:auto;padding:4px 10px;font-size:9px;background:linear-gradient(135deg,#1a6fb5,#1a3a8a);color:#fff;border-radius:5px;">📸 画像保存</button>
         <span id="race-name-badge" style="display:flex;align-items:center;justify-content:center;margin-top:6px;padding:4px 14px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;font-size:14px;font-weight:900;border-radius:20px;letter-spacing:0.05em;position:relative;"></span>
-        <div style="display:flex;gap:6px;width:100%;margin-top:6px;">
+        <div id="race-name-display-row" style="display:flex;align-items:center;gap:8px;width:100%;margin-top:6px;">
+          <div style="flex:1;font-size:11px;color:#555;">
+            <span id="race-name-readonly" style="font-weight:700;color:#1a1a2e;">（レース未設定）</span>
+            <span id="weight-type-readonly" style="margin-left:8px;padding:2px 8px;background:#f0f4ff;border-radius:4px;font-size:10px;font-weight:700;color:#2563eb;">負担重量未設定</span>
+          </div>
+          <button class="btn" onclick="toggleRaceNameEdit()" style="font-size:9px;padding:5px 10px;background:#f0f0f5;color:#666;border-radius:5px;">✏️ 編集</button>
+        </div>
+        <div id="race-name-edit-row" style="display:none;gap:6px;width:100%;margin-top:6px;">
           <input type="text" id="race-name-input" class="inp" placeholder="レース名を入力（例：宝塚記念）" style="flex:1;font-size:10px;">
           <select id="weight-type-select" class="inp" style="font-size:10px;flex:0 0 70px;" onchange="setWeightType(this.value);scheduleAutoSave();">
             <option value="">負担重量</option>
@@ -276,7 +290,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
             <option value="ハンデ">ハンデ</option>
             <option value="馬齢">馬齢</option>
           </select>
-          <button class="btn" onclick="applyRaceName()" style="font-size:10px;padding:6px 12px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;border-radius:5px;">設定</button>
+          <button class="btn" onclick="applyRaceName();toggleRaceNameEdit();" style="font-size:10px;padding:6px 12px;background:linear-gradient(135deg,#e94560,#c0293a);color:#fff;border-radius:5px;">設定</button>
         </div>
 
       </div>
@@ -754,16 +768,29 @@ let _lastRecTickets = null;
 let _resetAnalysisOnNextRender = false;
 let _justLoadedHorses = false; // horses読込直後のみtrue(setRaceNameでのsavedJsons更新を制御)
 
+function toggleRaceNameEdit() {
+  const displayRow = document.getElementById('race-name-display-row');
+  const editRow = document.getElementById('race-name-edit-row');
+  if (!displayRow || !editRow) return;
+  const isEditing = editRow.style.display !== 'none';
+  displayRow.style.display = isEditing ? 'flex' : 'none';
+  editRow.style.display = isEditing ? 'none' : 'flex';
+}
+
 function setWeightType(type) {
   currentWeightType = type || '';
   const sel = document.getElementById('weight-type-select');
   if (sel) sel.value = currentWeightType;
+  const readonlyEl = document.getElementById('weight-type-readonly');
+  if (readonlyEl) readonlyEl.textContent = currentWeightType || '負担重量未設定';
 }
 
 function setRaceName(name) {
   currentRaceName = name || '';
   const raceInput = document.getElementById('race-name-input');
   if (raceInput) raceInput.value = currentRaceName;
+  const readonlyNameEl = document.getElementById('race-name-readonly');
+  if (readonlyNameEl) readonlyNameEl.textContent = currentRaceName || '（レース未設定）';
   // 最後に表示したレース名を記憶（起動時の復元に使用）
   if (name) localStorage.setItem('kp_last_race', name);
 
@@ -838,25 +865,34 @@ function setRaceName(name) {
 // DB設定だけで新規レースを先行登録
 function registerNewRace() {
   const nameEl = document.getElementById('new-race-name');
+  const wtEl = document.getElementById('new-race-weighttype');
   const name = nameEl.value.trim();
+  const selectedWt = wtEl ? wtEl.value : '';
   if (!name) { setStatus('❌ レース名を入力してください', 'err'); return; }
   const now = new Date().toLocaleString('ja-JP');
   if (savedJsons[name]) {
-    if (!confirm(`「${name}」は既に登録済みです。DB設定を更新しますか？`)) return;
+    if (!confirm(`「${name}」は既に登録済みです。負担重量・DB設定を更新しますか？`)) return;
   }
-  // 現在のDB設定を保存(出馬表は空)
+  // レース名・負担重量・現在のDB設定で先行登録(出馬表は空)
   const existingHorses = savedJsons[name]?.horses || '[]';
   savedJsons[name] = {
     horses: typeof existingHorses === 'string' ? existingHorses : JSON.stringify(existingHorses),
     db: JSON.stringify(db),
     horseCount: Array.isArray(existingHorses) ? existingHorses.length : (JSON.parse(existingHorses instanceof String ? existingHorses : '[]')).length,
-    weightType: currentWeightType || '',
+    weightType: selectedWt || currentWeightType || '',
     savedAt: now
   };
   localStorage.setItem('kp_saved_jsons', JSON.stringify(savedJsons));
   renderSavedJsonList();
+
+  // 現在表示中のレースとして即座に反映(出馬表タブに切替時に表示されるように)
+  currentWeightType = selectedWt || currentWeightType || '';
+  setWeightType(currentWeightType);
+  setRaceName(name);
+
   nameEl.value = '';
-  setStatus(`✅ 「${name}」を登録しました（出馬表は未登録）`, 'ok');
+  if (wtEl) wtEl.value = '';
+  setStatus(`✅ 「${name}」を登録しました（${selectedWt || '負担重量未設定'}・出馬表は未登録）`, 'ok');
   scheduleAutoSave();
 }
 
