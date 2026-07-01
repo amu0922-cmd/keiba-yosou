@@ -1111,10 +1111,24 @@ function importJSON() {
     
     const jsonStart = raw.indexOf('{');
     const jsonEnd = raw.lastIndexOf('}');
-    if (jsonStart < 0 || jsonEnd < 0) { setStatus('❌ JSONが正しくありません', 'err'); return; }
+    if (jsonStart < 0 || jsonEnd < 0) { setStatus('❌ JSONが正しくありません（{ } が見つかりません）', 'err'); return; }
     
     raw = raw.substring(jsonStart, jsonEnd + 1);
-    const parsed = JSON.parse(raw);
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (parseErr) {
+      const posMatch = parseErr.message.match(/position (\d+)/);
+      let detail = parseErr.message;
+      if (posMatch) {
+        const pos = parseInt(posMatch[1]);
+        const context = raw.substring(Math.max(0, pos - 20), pos + 20);
+        detail = `${parseErr.message} 付近: "${context}"`;
+      }
+      console.error('JSON parse error detail:', detail, raw);
+      setStatus('❌ JSONエラー: ' + detail.substring(0, 60), 'err');
+      return;
+    }
     const list = parsed.horses || parsed;
     
     if (!Array.isArray(list)) { setStatus('❌ horses配列がありません', 'err'); return; }
@@ -1877,10 +1891,25 @@ function importDBJSON() {
     
     const jsonStart = raw.indexOf('{');
     const jsonEnd = raw.lastIndexOf('}');
-    if (jsonStart < 0 || jsonEnd < 0) { setStatus('❌ JSONが正しくありません', 'err'); return; }
+    if (jsonStart < 0 || jsonEnd < 0) { setStatus('❌ JSONが正しくありません（{ } が見つかりません）', 'err'); return; }
     
     const extracted = raw.substring(jsonStart, jsonEnd + 1);
-    const parsed = JSON.parse(extracted);
+    let parsed;
+    try {
+      parsed = JSON.parse(extracted);
+    } catch (parseErr) {
+      // どの位置でエラーが起きたか詳細を表示（次回同じ問題が起きた時に原因を特定しやすくする）
+      const posMatch = parseErr.message.match(/position (\d+)/);
+      let detail = parseErr.message;
+      if (posMatch) {
+        const pos = parseInt(posMatch[1]);
+        const context = extracted.substring(Math.max(0, pos - 20), pos + 20);
+        detail = `${parseErr.message} 付近: "${context}"`;
+      }
+      console.error('JSON parse error detail:', detail, extracted);
+      setStatus('❌ JSONエラー: ' + detail.substring(0, 60), 'err');
+      return;
+    }
     
     db = parsed;
     renderDBSection();
@@ -1889,7 +1918,7 @@ function importDBJSON() {
     setStatus('✅ DB設定を読込', 'ok');
     document.getElementById('db-json').value = '';
   } catch (e) {
-    setStatus('❌ JSONエラー', 'err');
+    setStatus('❌ エラー: ' + e.message.substring(0, 50), 'err');
   }
 }
 
