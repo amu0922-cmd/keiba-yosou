@@ -2799,7 +2799,6 @@ function runBestSimulator() {
       });
     });
 
-    const wtOptions = ['', '定量', '別定', 'ハンデ', '馬齢'];
     const kyakuOptions = ['', '差し', '先行', '逃げ', '追い込み'];
     const ninkiOptions = [1, 2, 3, 4, 5, 6, 7, 8, 10];
     const maejunOptions = [1, 2, 3, 4, 5, 6, 99];
@@ -2807,9 +2806,7 @@ function runBestSimulator() {
     const investPerHorse = 1000;
     const MIN_SAMPLE = 5; // サンプル数が少なすぎる結果は除外
 
-    let bestRet = null, bestHit = null;
-
-    // ② 軽量化した計算: フラット配列を1回走査するだけ（オブジェクト生成やSet操作なし）
+    // ② 軽量化した計算: フラット配列を1回走査するだけ
     function calcFast(wt, kyakuFilter, ninkiMin, maejunMax, ticketType) {
       let totalCount = 0, hitCount = 0, totalReturn = 0;
       for (let i = 0; i < flatHorses.length; i++) {
@@ -2836,7 +2833,9 @@ function runBestSimulator() {
       };
     }
 
-    wtOptions.forEach(wt => {
+    // ③ 負担重量ごとに最良条件を探索する関数
+    function findBestForWt(wt) {
+      let bestRet = null, bestHit = null;
       kyakuOptions.forEach(kyakuFilter => {
         ninkiOptions.forEach(ninkiMin => {
           maejunOptions.forEach(maejunMax => {
@@ -2844,69 +2843,109 @@ function runBestSimulator() {
               const r = calcFast(wt, kyakuFilter, ninkiMin, maejunMax, ticketType);
               if (!r || r.totalCount < MIN_SAMPLE) return;
               const cond = { wt, kyakuFilter, ninkiMin, maejunMax, ticketType, investPerHorse };
-
               if (!bestRet || r.retRate > bestRet.retRate) bestRet = { ...r, cond };
               if (!bestHit || r.hitRate > bestHit.hitRate) bestHit = { ...r, cond };
             });
           });
         });
       });
-    });
+      return { bestRet, bestHit };
+    }
+
+    // 「全種別」＋負担重量別（定量・別定・ハンデ・馬齢）それぞれ計算
+    const wtTabs = [
+      { key: 'all', label: '全種別', wt: '' },
+      { key: '定量', label: '定量', wt: '定量' },
+      { key: '別定', label: '別定', wt: '別定' },
+      { key: 'ハンデ', label: 'ハンデ', wt: 'ハンデ' },
+      { key: '馬齢', label: '馬齢', wt: '馬齢' },
+    ];
+    const resultsByWt = {};
+    wtTabs.forEach(tab => { resultsByWt[tab.key] = findBestForWt(tab.wt); });
 
     const fmtCond = c => {
       const parts = [];
-      parts.push(c.wt || '全種別');
       parts.push(c.kyakuFilter || '脚質指定なし');
       parts.push(`${c.ninkiMin}人気以上`);
       parts.push(c.maejunMax >= 99 ? '前走指定なし' : `前走${c.maejunMax}着以内`);
       parts.push(c.ticketType === 'tan' ? '単勝' : '複勝');
       return parts.join(' / ');
     };
-
     const rateColor = r => r >= 150 ? '#16a34a' : r >= 100 ? '#f39c12' : '#e94560';
 
-    if (!bestRet || !bestHit) {
-      el.innerHTML = `<div style="font-size:10px;color:#e94560;text-align:center;padding:8px;">十分なデータがありません（各条件で最低${MIN_SAMPLE}頭必要）</div>`;
-      return;
+    function renderResultCards(res) {
+      const { bestRet, bestHit } = res;
+      if (!bestRet || !bestHit) {
+        return `<div style="font-size:10px;color:#e94560;text-align:center;padding:12px;">十分なデータがありません（最低${MIN_SAMPLE}頭必要）</div>`;
+      }
+      return `
+        <div style="background:#fff8e1;border:2px solid #f39c12;border-radius:8px;padding:10px;margin-bottom:8px;">
+          <div style="font-size:9px;font-weight:900;color:#f39c12;margin-bottom:4px;">🥇 回収率が最も高い条件</div>
+          <div style="font-size:9px;color:#555;margin-bottom:6px;">${fmtCond(bestRet.cond)}</div>
+          <div style="display:flex;justify-content:center;gap:16px;">
+            <div style="text-align:center;">
+              <div style="font-size:8px;color:#888;">的中率</div>
+              <div style="font-size:16px;font-weight:900;color:#1a1a2e;">${bestRet.hitRate.toFixed(1)}%</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:8px;color:#888;">回収率</div>
+              <div style="font-size:16px;font-weight:900;color:${rateColor(bestRet.retRate)};">${bestRet.retRate.toFixed(1)}%</div>
+            </div>
+          </div>
+          <div style="font-size:8px;color:#888;text-align:center;margin-top:4px;">対象${bestRet.totalCount}頭 / 的中${bestRet.hitCount}件</div>
+        </div>
+        <div style="background:#e8f8f0;border:2px solid #27ae60;border-radius:8px;padding:10px;">
+          <div style="font-size:9px;font-weight:900;color:#27ae60;margin-bottom:4px;">🎯 的中率が最も高い条件</div>
+          <div style="font-size:9px;color:#555;margin-bottom:6px;">${fmtCond(bestHit.cond)}</div>
+          <div style="display:flex;justify-content:center;gap:16px;">
+            <div style="text-align:center;">
+              <div style="font-size:8px;color:#888;">的中率</div>
+              <div style="font-size:16px;font-weight:900;color:#27ae60;">${bestHit.hitRate.toFixed(1)}%</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:8px;color:#888;">回収率</div>
+              <div style="font-size:16px;font-weight:900;color:${rateColor(bestHit.retRate)};">${bestHit.retRate.toFixed(1)}%</div>
+            </div>
+          </div>
+          <div style="font-size:8px;color:#888;text-align:center;margin-top:4px;">対象${bestHit.totalCount}頭 / 的中${bestHit.hitCount}件</div>
+        </div>
+      `;
     }
 
+    // グローバルに結果を保持（タブ切替時に再計算せず参照する）
+    window._simBestResults = resultsByWt;
+    window._simRenderResultCards = renderResultCards;
+
+    // タブボタン + 初期表示（全種別）
+    const tabBtns = wtTabs.map((tab, i) => `
+      <button onclick="switchSimWtTab('${tab.key}')" id="sim-wt-tab-${tab.key}" style="flex:1;padding:7px 4px;font-size:10px;font-weight:900;border:none;border-radius:6px;cursor:pointer;background:${i===0?'#7c3aed':'#f0f0f5'};color:${i===0?'#fff':'#888'};">${tab.label}</button>
+    `).join('');
+
     el.innerHTML = `
-      <div style="background:#fff8e1;border:2px solid #f39c12;border-radius:8px;padding:10px;margin-bottom:8px;">
-        <div style="font-size:9px;font-weight:900;color:#f39c12;margin-bottom:4px;">🥇 回収率が最も高い条件</div>
-        <div style="font-size:9px;color:#555;margin-bottom:6px;">${fmtCond(bestRet.cond)}</div>
-        <div style="display:flex;justify-content:center;gap:16px;">
-          <div style="text-align:center;">
-            <div style="font-size:8px;color:#888;">的中率</div>
-            <div style="font-size:16px;font-weight:900;color:#1a1a2e;">${bestRet.hitRate.toFixed(1)}%</div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:8px;color:#888;">回収率</div>
-            <div style="font-size:16px;font-weight:900;color:${rateColor(bestRet.retRate)};">${bestRet.retRate.toFixed(1)}%</div>
-          </div>
-        </div>
-        <div style="font-size:8px;color:#888;text-align:center;margin-top:4px;">対象${bestRet.totalCount}頭 / 的中${bestRet.hitCount}件</div>
-      </div>
-      <div style="background:#e8f8f0;border:2px solid #27ae60;border-radius:8px;padding:10px;">
-        <div style="font-size:9px;font-weight:900;color:#27ae60;margin-bottom:4px;">🎯 的中率が最も高い条件</div>
-        <div style="font-size:9px;color:#555;margin-bottom:6px;">${fmtCond(bestHit.cond)}</div>
-        <div style="display:flex;justify-content:center;gap:16px;">
-          <div style="text-align:center;">
-            <div style="font-size:8px;color:#888;">的中率</div>
-            <div style="font-size:16px;font-weight:900;color:#27ae60;">${bestHit.hitRate.toFixed(1)}%</div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:8px;color:#888;">回収率</div>
-            <div style="font-size:16px;font-weight:900;color:${rateColor(bestHit.retRate)};">${bestHit.retRate.toFixed(1)}%</div>
-          </div>
-        </div>
-        <div style="font-size:8px;color:#888;text-align:center;margin-top:4px;">対象${bestHit.totalCount}頭 / 的中${bestHit.hitCount}件</div>
-      </div>
+      <div style="display:flex;gap:4px;margin-bottom:10px;">${tabBtns}</div>
+      <div id="sim-wt-tab-content">${renderResultCards(resultsByWt['all'])}</div>
       <div style="font-size:8px;color:#aaa;text-align:center;margin-top:6px;">※最低サンプル数${MIN_SAMPLE}頭以上の条件のみ対象</div>
     `;
   }, 50);
 }
 
-// シミュレーター実行（スコア計算は予想タブと同一ロジック）
+// 負担重量タブ切替（再計算せずキャッシュ済み結果を表示するだけ）
+function switchSimWtTab(key) {
+  if (!window._simBestResults || !window._simRenderResultCards) return;
+  const contentEl = document.getElementById('sim-wt-tab-content');
+  if (contentEl) contentEl.innerHTML = window._simRenderResultCards(window._simBestResults[key]);
+
+  ['all','定量','別定','ハンデ','馬齢'].forEach(k => {
+    const btn = document.getElementById('sim-wt-tab-' + k);
+    if (btn) {
+      const active = k === key;
+      btn.style.background = active ? '#7c3aed' : '#f0f0f5';
+      btn.style.color = active ? '#fff' : '#888';
+    }
+  });
+}
+
+// シミュレーター実行（スコア計算は予想タブと同一ロジック）ク）
 // シミュレーション計算の共通ロジック（条件オブジェクトを受け取り結果を返す）
 function calcSimResult(cond) {
   const { wt, kyakuFilter, ninkiMin, maejunMax, ticketType, investPerHorse } = cond;
