@@ -773,11 +773,13 @@ function setRaceName(name) {
     const now = new Date().toLocaleString('ja-JP');
     const dbStr = JSON.stringify(db);
     const horsesStr = JSON.stringify(horses);
+    // weightTypeが空の場合は既存の値を維持（未設定状態での誤上書きを防ぐ）
+    const wtToSave = currentWeightType || (savedJsons[name]?.weightType || '');
     if (!savedJsons[name]) {
       savedJsons[name] = {
         horses: horsesStr, db: dbStr,
         horseCount: horses.length,
-        weightType: currentWeightType,
+        weightType: wtToSave,
         savedAt: now
       };
     } else {
@@ -785,7 +787,7 @@ function setRaceName(name) {
         ...savedJsons[name],
         horses: horsesStr, db: dbStr,
         horseCount: horses.length,
-        weightType: currentWeightType,
+        weightType: wtToSave,
         savedAt: now
       };
     }
@@ -7549,6 +7551,10 @@ window.addEventListener('load', () => {
       _resetAnalysisOnNextRender = true;
     _justLoadedHorses = true;
       horses = JSON.parse(savedHorses);
+      // savedJsonsに保存済みのweightTypeがあればそれを優先復元（未設定のまま上書きされるのを防ぐ）
+      if (savedRace && savedJsons && savedJsons[savedRace] && savedJsons[savedRace].weightType) {
+        setWeightType(savedJsons[savedRace].weightType);
+      }
       if (savedRace) setRaceName(savedRace);
       document.getElementById('count-badge').textContent = horses.length;
       renderTable();
