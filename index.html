@@ -524,25 +524,36 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
           <textarea id="payout-json-input" class="inp" style="width:100%;min-height:50px;font-size:9px;" placeholder='{"tansho":940,"fukusho1":370,"fukusho2":980,"fukusho3":2330,"umaren":13070,"wide1":4470,"wide2":12910,"wide3":17960,"sanfuku":217840,"santan":1066160}'></textarea>
           <button class="btn btn-gold" onclick="applyPayoutJSON()" style="width:100%;font-size:9px;padding:6px;margin-top:4px;">✅ 反映</button>
         </div>
-        <div style="display:grid;grid-template-columns:auto 1fr;gap:4px;align-items:center;">
+        <div style="font-size:8px;color:#e67e22;font-weight:700;margin-bottom:4px;">✅ 複勝・ワイドが複数ある場合は、実際に的中した番号にチェックを入れてください</div>
+        <div style="display:grid;grid-template-columns:auto auto 1fr;gap:4px;align-items:center;">
+          <span></span>
           <span style="font-size:9px;color:#333;font-weight:700;">単勝</span>
           <input type="number" id="payout-tansho" class="inp" placeholder="例: 940" style="font-size:10px;">
+          <input type="checkbox" id="payout-fukusho1-hit" style="width:16px;height:16px;">
           <span style="font-size:9px;color:#333;font-weight:700;">複勝①</span>
           <input type="number" id="payout-fukusho1" class="inp" placeholder="例: 370" style="font-size:10px;">
+          <input type="checkbox" id="payout-fukusho2-hit" style="width:16px;height:16px;">
           <span style="font-size:9px;color:#333;font-weight:700;">複勝②</span>
           <input type="number" id="payout-fukusho2" class="inp" placeholder="例: 980" style="font-size:10px;">
+          <input type="checkbox" id="payout-fukusho3-hit" style="width:16px;height:16px;">
           <span style="font-size:9px;color:#333;font-weight:700;">複勝③</span>
           <input type="number" id="payout-fukusho3" class="inp" placeholder="例: 2330" style="font-size:10px;">
+          <span></span>
           <span style="font-size:9px;color:#333;font-weight:700;">馬連</span>
           <input type="number" id="payout-umaren" class="inp" placeholder="例: 13070" style="font-size:10px;">
+          <input type="checkbox" id="payout-wide1-hit" style="width:16px;height:16px;">
           <span style="font-size:9px;color:#333;font-weight:700;">ワイド①</span>
           <input type="number" id="payout-wide1" class="inp" placeholder="例: 4470" style="font-size:10px;">
+          <input type="checkbox" id="payout-wide2-hit" style="width:16px;height:16px;">
           <span style="font-size:9px;color:#333;font-weight:700;">ワイド②</span>
           <input type="number" id="payout-wide2" class="inp" placeholder="例: 12910" style="font-size:10px;">
+          <input type="checkbox" id="payout-wide3-hit" style="width:16px;height:16px;">
           <span style="font-size:9px;color:#333;font-weight:700;">ワイド③</span>
           <input type="number" id="payout-wide3" class="inp" placeholder="例: 17960" style="font-size:10px;">
+          <span></span>
           <span style="font-size:9px;color:#333;font-weight:700;">三連複</span>
           <input type="number" id="payout-sanfuku" class="inp" placeholder="例: 217840" style="font-size:10px;">
+          <span></span>
           <span style="font-size:9px;color:#333;font-weight:700;">三連単</span>
           <input type="number" id="payout-santan" class="inp" placeholder="例: 1066160" style="font-size:10px;">
         </div>
@@ -2528,6 +2539,23 @@ function recalcRecordScoring(horsesSnapshot, dbSnapshot, finishRanks, betLines, 
 
 // 「1レース1000円均等買い」シミュレーション用の仮想投資・回収を計算
 // 実際の購入金額に関わらず、記録された券種（配当が入力されている券種）に1000円を均等分割して買ったと仮定
+// labelToKeysのうち、複勝・ワイドで複数候補がある場合はチェックボックスで選択された番号だけに絞る
+function getHitKeysForLabel(label, payouts) {
+  const labelToKeys = {
+    '単勝': ['tansho'], '複勝': ['fukusho1','fukusho2','fukusho3'], '馬連': ['umaren'],
+    'ワイド': ['wide1','wide2','wide3'], '三連複': ['sanfuku'], '三連単': ['santan'],
+  };
+  let keys = labelToKeys[label] || [];
+  if (label === '複勝') {
+    const checked = ['fukusho1','fukusho2','fukusho3'].filter(k => payouts?.[`hit${k[0].toUpperCase()}${k.slice(1)}`]);
+    if (checked.length > 0) keys = checked;
+  } else if (label === 'ワイド') {
+    const checked = ['wide1','wide2','wide3'].filter(k => payouts?.[`hit${k[0].toUpperCase()}${k.slice(1)}`]);
+    if (checked.length > 0) keys = checked;
+  }
+  return keys;
+}
+
 function calcSimInvestReturn(hitLabels, payouts, anaHit) {
   const labelToKeys = {
     '単勝': ['tansho'], '複勝': ['fukusho1','fukusho2','fukusho3'], '馬連': ['umaren'],
@@ -2543,7 +2571,7 @@ function calcSimInvestReturn(hitLabels, payouts, anaHit) {
 
   let totalReturn = 0;
   (hitLabels || []).forEach(label => {
-    const keys = labelToKeys[label] || [];
+    const keys = getHitKeysForLabel(label, payouts);
     keys.forEach(k => {
       if (payouts && payouts[k] != null && payouts[k] !== '' && enteredKeys.includes(k)) {
         // 配当は100円あたりの金額なので、仮想購入額(perPoint)に対する払戻を按分計算
@@ -2581,7 +2609,7 @@ function calcInvestReturn(hitLabels, payouts, anaHit) {
 
   let totalReturn = 0;
   (hitLabels || []).forEach(label => {
-    const keys = labelToKeys[label] || [];
+    const keys = getHitKeysForLabel(label, payouts);
     keys.forEach(k => {
       if (payouts && payouts[k] != null && payouts[k] !== '') {
         totalReturn += Number(payouts[k]);
@@ -2615,11 +2643,19 @@ function getPayoutInputs() {
     wide3:    parseInt(document.getElementById('payout-wide3')?.value) || null,
     sanfuku:  parseInt(document.getElementById('payout-sanfuku')?.value) || null,
     santan:   parseInt(document.getElementById('payout-santan')?.value) || null,
+    // 複勝・ワイドが複数入力されている場合、どの番号が実際に的中したか（チェックボックス）
+    hitFukusho1: document.getElementById('payout-fukusho1-hit')?.checked || false,
+    hitFukusho2: document.getElementById('payout-fukusho2-hit')?.checked || false,
+    hitFukusho3: document.getElementById('payout-fukusho3-hit')?.checked || false,
+    hitWide1: document.getElementById('payout-wide1-hit')?.checked || false,
+    hitWide2: document.getElementById('payout-wide2-hit')?.checked || false,
+    hitWide3: document.getElementById('payout-wide3-hit')?.checked || false,
   };
 }
 function setPayoutInputs(p) {
   if (!p) p = {};
   const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+  const setChk = (id, val) => { const el = document.getElementById(id); if(el) el.checked = !!val; };
   set('payout-tansho',   p.tansho);
   set('payout-fukusho1', p.fukusho1 || p.fukusho);
   set('payout-fukusho2', p.fukusho2);
@@ -2630,12 +2666,21 @@ function setPayoutInputs(p) {
   set('payout-wide3',    p.wide3);
   set('payout-sanfuku',  p.sanfuku);
   set('payout-santan',   p.santan);
+  setChk('payout-fukusho1-hit', p.hitFukusho1);
+  setChk('payout-fukusho2-hit', p.hitFukusho2);
+  setChk('payout-fukusho3-hit', p.hitFukusho3);
+  setChk('payout-wide1-hit', p.hitWide1);
+  setChk('payout-wide2-hit', p.hitWide2);
+  setChk('payout-wide3-hit', p.hitWide3);
 }
 function clearPayoutInputs() {
   ['payout-tansho','payout-fukusho1','payout-fukusho2','payout-fukusho3',
    'payout-umaren','payout-wide1','payout-wide2','payout-wide3',
    'payout-sanfuku','payout-santan']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  ['payout-fukusho1-hit','payout-fukusho2-hit','payout-fukusho3-hit',
+   'payout-wide1-hit','payout-wide2-hit','payout-wide3-hit']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.checked = false; });
 }
 
 // 払戻画面のスクショから抽出したJSONを一括反映
