@@ -2526,6 +2526,45 @@ function recalcRecordScoring(horsesSnapshot, dbSnapshot, finishRanks, betLines, 
   return { anaResult, hitLabels, purchase, invest, return: ret, rate: (invest > 0 ? (ret/invest*100) : 0).toFixed(1) };
 }
 
+// 「1レース1000円均等買い」シミュレーション用の仮想投資・回収を計算
+// 実際の購入金額に関わらず、記録された券種（配当が入力されている券種）に1000円を均等分割して買ったと仮定
+function calcSimInvestReturn(hitLabels, payouts, anaHit) {
+  const labelToKeys = {
+    '単勝': ['tansho'], '複勝': ['fukusho1','fukusho2','fukusho3'], '馬連': ['umaren'],
+    'ワイド': ['wide1','wide2','wide3'], '三連複': ['sanfuku'], '三連単': ['santan'],
+  };
+  const allKeys = ['tansho','fukusho1','fukusho2','fukusho3','umaren','wide1','wide2','wide3','sanfuku','santan'];
+  const enteredKeys = allKeys.filter(k => payouts && payouts[k] != null && payouts[k] !== '');
+
+  if (enteredKeys.length === 0) return { invest: 0, return: 0 }; // 配当未入力＝シミュレーション対象外
+
+  const SIM_TOTAL = 1000;
+  const perPoint = SIM_TOTAL / enteredKeys.length; // 1点あたりの仮想購入額
+
+  let totalReturn = 0;
+  (hitLabels || []).forEach(label => {
+    const keys = labelToKeys[label] || [];
+    keys.forEach(k => {
+      if (payouts && payouts[k] != null && payouts[k] !== '' && enteredKeys.includes(k)) {
+        // 配当は100円あたりの金額なので、仮想購入額(perPoint)に対する払戻を按分計算
+        totalReturn += Number(payouts[k]) * (perPoint / 100);
+      }
+    });
+  });
+
+  // 穴馬候補的中時（別定・ハンデ）は複勝配当があれば加算
+  if (anaHit && payouts) {
+    const fukuKeys = ['fukusho1','fukusho2','fukusho3'];
+    const alreadyCounted = (hitLabels||[]).includes('複勝');
+    if (!alreadyCounted) {
+      const fukuKey = fukuKeys.find(k => payouts[k] != null && payouts[k] !== '' && enteredKeys.includes(k));
+      if (fukuKey) totalReturn += Number(payouts[fukuKey]) * (perPoint / 100);
+    }
+  }
+
+  return { invest: SIM_TOTAL, return: Math.round(totalReturn) };
+}
+
 function calcInvestReturn(hitLabels, payouts, anaHit) {
   const labelToKeys = {
     '単勝': ['tansho'],
@@ -2756,7 +2795,7 @@ function renderRecordList() {
       </div>
       <div style="font-size: 9px; color: #6080a0; margin-bottom: 4px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
         <span>(${r.date})</span>
-        ${r.invest > 0 ? `<span>投¥${r.invest.toLocaleString()} | 回¥${r.return.toLocaleString()} | ${r.rate}%</span>` : `<span style="color:#aaa;">未購入（分析用データ）</span>`}
+        
         ${(() => {
           const hasAnaHit = !r.hitLabels?.length && r.anaResult?.some(a => a.hit);
           if (r.hitLabels?.length) {
@@ -2798,19 +2837,26 @@ function renderStats() {
     return;
   }
 
-  // 基本集計
+  // 各レコードに「1レース1000円均等買い」シミュレーション値を付与（実際の購入額ではなく、配当が入力されていれば1000円買った想定で統一）
+  const recordsWithSim = records.map(r => {
+    const anaHit = r.anaResult && r.anaResult.some(a => a.hit);
+    const sim = calcSimInvestReturn(r.hitLabels, r.payouts, anaHit);
+    return { ...r, simInvest: sim.invest, simReturn: sim.return };
+  });
+
+  // 基本集計（シミュレーション値ベース）
   const total = records.length;
   const hits = records.filter(r => r.hitLabels && r.hitLabels.length > 0).length;
-  const totalInv = records.reduce((s,r) => s+Number(r.invest||0), 0);
-  const totalRet = records.reduce((s,r) => s+Number(r.return||0), 0);
+  const totalInv = recordsWithSim.reduce((s,r) => s+Number(r.simInvest||0), 0);
+  const totalRet = recordsWithSim.reduce((s,r) => s+Number(r.simReturn||0), 0);
 
   // 負担重量別
   const wtStats = {};
   ['定量','別定','ハンデ','馬齢'].forEach(wt => {
-    const rs = records.filter(r => r.weightType === wt);
+    const rs = recordsWithSim.filter(r => r.weightType === wt);
     if (!rs.length) return;
-    const inv = rs.reduce((s,r)=>s+Number(r.invest||0),0);
-    const ret = rs.reduce((s,r)=>s+Number(r.return||0),0);
+    const inv = rs.reduce((s,r)=>s+Number(r.simInvest||0),0);
+    const ret = rs.reduce((s,r)=>s+Number(r.simReturn||0),0);
     const h = rs.filter(r=>r.hitLabels&&r.hitLabels.length>0).length;
     wtStats[wt] = { count:rs.length, hit:h, inv, ret, rate: inv>0?ret/inv*100:0 };
   });
@@ -2828,12 +2874,12 @@ function renderStats() {
 
   // ペース別
   const paceStats = {};
-  records.forEach(r => {
+  recordsWithSim.forEach(r => {
     const p = (r.paceInfo||'').includes('ハイ') ? '🔥ハイ' : (r.paceInfo||'').includes('スロー') ? '🐢スロー' : '⚡ミドル';
     if (!paceStats[p]) paceStats[p] = {count:0,hit:0,inv:0,ret:0};
     paceStats[p].count++;
-    paceStats[p].inv += Number(r.invest||0);
-    paceStats[p].ret += Number(r.return||0);
+    paceStats[p].inv += Number(r.simInvest||0);
+    paceStats[p].ret += Number(r.simReturn||0);
     if(r.hitLabels&&r.hitLabels.length>0) paceStats[p].hit++;
   });
 
@@ -3389,12 +3435,17 @@ function renderRecordGraphs() {
     return;
   }
 
-  const sorted = [...records].sort((a,b) => new Date(a.date)-new Date(b.date));
+  // 「1レース1000円均等買い」シミュレーション値を各レコードに付与
+  const sorted = [...records].sort((a,b) => new Date(a.date)-new Date(b.date)).map(r => {
+    const anaHit = r.anaResult && r.anaResult.some(a => a.hit);
+    const sim = calcSimInvestReturn(r.hitLabels, r.payouts, anaHit);
+    return { ...r, simInvest: sim.invest, simReturn: sim.return };
+  }).filter(r => r.simInvest > 0); // 配当未入力（シミュレーション対象外）のレースは除外
 
-  // サマリー計算
-  const totalInvest = sorted.reduce((s,r)=>s+Number(r.invest||0),0);
-  const totalReturn = sorted.reduce((s,r)=>s+Number(r.return||0),0);
-  const hitCount = sorted.filter(r=>Number(r.return||0)>0).length;
+  // サマリー計算（1レース1000円換算）
+  const totalInvest = sorted.reduce((s,r)=>s+Number(r.simInvest||0),0);
+  const totalReturn = sorted.reduce((s,r)=>s+Number(r.simReturn||0),0);
+  const hitCount = sorted.filter(r=>Number(r.simReturn||0)>0).length;
   const totalRate = totalInvest > 0 ? ((totalReturn/totalInvest)*100).toFixed(1) : '-';
   const hitRate = sorted.length > 0 ? ((hitCount/sorted.length)*100).toFixed(1) : '-';
   document.getElementById('graph-total-rate').textContent = totalRate !== '-' ? totalRate+'%' : '-';
@@ -3411,8 +3462,8 @@ function renderRecordGraphs() {
     data: {
       labels,
       datasets: [
-        { label: '投資', data: sorted.map(r=>Number(r.invest||0)), backgroundColor: 'rgba(37,99,235,0.6)', borderRadius: 3 },
-        { label: '回収', data: sorted.map(r=>Number(r.return||0)), backgroundColor: sorted.map(r=>Number(r.return||0)>=Number(r.invest||0)?'rgba(22,163,74,0.7)':'rgba(233,69,96,0.6)'), borderRadius: 3 }
+        { label: '投資(仮想1000円)', data: sorted.map(r=>Number(r.simInvest||0)), backgroundColor: 'rgba(37,99,235,0.6)', borderRadius: 3 },
+        { label: '回収(仮想)', data: sorted.map(r=>Number(r.simReturn||0)), backgroundColor: sorted.map(r=>Number(r.simReturn||0)>=Number(r.simInvest||0)?'rgba(22,163,74,0.7)':'rgba(233,69,96,0.6)'), borderRadius: 3 }
       ]
     },
     options: {
@@ -3428,8 +3479,8 @@ function renderRecordGraphs() {
   // ② 累計回収率推移折れ線
   let cumInvest = 0, cumReturn = 0;
   const rateData = sorted.map(r => {
-    cumInvest += Number(r.invest||0);
-    cumReturn += Number(r.return||0);
+    cumInvest += Number(r.simInvest||0);
+    cumReturn += Number(r.simReturn||0);
     return cumInvest > 0 ? Math.round((cumReturn/cumInvest)*100) : 0;
   });
   const lineCtx = document.getElementById('graph-line').getContext('2d');
@@ -3465,8 +3516,8 @@ function renderRecordGraphs() {
   sorted.forEach(r => {
     const t = r.purchase || 'その他';
     if (!typeMap[t]) typeMap[t] = { invest:0, return:0 };
-    typeMap[t].invest += Number(r.invest||0);
-    typeMap[t].return += Number(r.return||0);
+    typeMap[t].invest += Number(r.simInvest||0);
+    typeMap[t].return += Number(r.simReturn||0);
   });
   const typeLabels = Object.keys(typeMap);
   const typeRates = typeLabels.map(t => typeMap[t].invest > 0 ? Math.round((typeMap[t].return/typeMap[t].invest)*100) : 0);
@@ -3500,10 +3551,10 @@ function renderRecordGraphs() {
   sorted.forEach(r => {
     const f = r.formation || 'その他';
     if (!formMap[f]) formMap[f] = { invest:0, return:0, count:0, hit:0 };
-    formMap[f].invest += Number(r.invest||0);
-    formMap[f].return += Number(r.return||0);
+    formMap[f].invest += Number(r.simInvest||0);
+    formMap[f].return += Number(r.simReturn||0);
     formMap[f].count++;
-    if (Number(r.return||0) > 0) formMap[f].hit++;
+    if (Number(r.simReturn||0) > 0) formMap[f].hit++;
   });
   const formLabels = Object.keys(formMap);
   const formRates = formLabels.map(f => formMap[f].invest > 0 ? Math.round((formMap[f].return/formMap[f].invest)*100) : 0);
@@ -3880,7 +3931,7 @@ function renderAnalysis() {
       if (!r.purchase || r.purchase === '購入なし') return;
       if (!stats[r.purchase]) stats[r.purchase] = {hit:0, total:0};
       stats[r.purchase].total++;
-      if (r.return > r.invest) stats[r.purchase].hit++;
+      if (r.hitLabels && r.hitLabels.length > 0) stats[r.purchase].hit++;
     });
     let best = null, bestRate = 0;
     Object.entries(stats).forEach(([p, s]) => {
@@ -4339,8 +4390,12 @@ function showLearningEngine() {
 
 // ===== DB最適化提案エンジン =====
 function analyzeDbOptimization() {
-  // horsesSnapshotを持つ成績のみ対象
-  const validRecs = records.filter(r => r.horsesSnapshot && r.horsesSnapshot.length > 0 && r.finishRanks?.rank1);
+  // horsesSnapshotを持つ成績のみ対象（シミュレーション値も付与）
+  const validRecs = records.filter(r => r.horsesSnapshot && r.horsesSnapshot.length > 0 && r.finishRanks?.rank1).map(r => {
+    const anaHit = r.anaResult && r.anaResult.some(a => a.hit);
+    const sim = calcSimInvestReturn(r.hitLabels, r.payouts, anaHit);
+    return { ...r, simInvest: sim.invest, simReturn: sim.return };
+  });
   if (validRecs.length < 3) {
     return `<div style="padding:12px;color:#888;font-size:11px;">📊 出馬表スナップショット付きのデータが3件以上必要です。<br>着順入力→転送→記録の流れで3レース以上保存してください。</div>`;
   }
@@ -4411,7 +4466,7 @@ function analyzeDbOptimization() {
   const totalRecs = validRecs.length;
   const hitRecs   = validRecs.filter(r => r.hitLabels?.length > 0).length;
   const hitRate   = Math.round(hitRecs / totalRecs * 100);
-  const totalProfit = validRecs.reduce((s, r) => s + ((r.return||0) - (r.invest||0)), 0);
+  const totalProfit = validRecs.reduce((s, r) => s + ((r.simReturn||0) - (r.simInvest||0)), 0);
 
   let html = `
     <div style="background:#0f1a0f;border-radius:10px;padding:12px;margin-bottom:10px;">
@@ -7049,20 +7104,24 @@ function imgGenerateGraph() {
     const months = parseInt(period);
     const cutoff = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
     return d >= cutoff;
-  }).sort((a,b) => new Date(a.date) - new Date(b.date));
+  }).sort((a,b) => new Date(a.date) - new Date(b.date)).map(r => {
+    const anaHit = r.anaResult && r.anaResult.some(a => a.hit);
+    const sim = calcSimInvestReturn(r.hitLabels, r.payouts, anaHit);
+    return { ...r, simInvest: sim.invest, simReturn: sim.return };
+  });
 
   if (filtered.length === 0) { setStatus('❌ 該当期間のデータがありません', 'err'); return; }
 
-  // 月別集計
+  // 月別集計（1レース1000円均等買いシミュレーション）
   const monthly = {};
   filtered.forEach(r => {
     const d = new Date(r.date);
     const key = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}`;
     if (!monthly[key]) monthly[key] = { invest:0, ret:0, win:0, total:0 };
-    monthly[key].invest += Number(r.invest)||0;
-    monthly[key].ret    += Number(r.return)||0;
+    monthly[key].invest += Number(r.simInvest)||0;
+    monthly[key].ret    += Number(r.simReturn)||0;
     monthly[key].total  += 1;
-    if ((Number(r.return)||0) > 0) monthly[key].win += 1;
+    if ((Number(r.simReturn)||0) > 0) monthly[key].win += 1;
   });
 
   const months  = Object.keys(monthly).sort();
@@ -7087,11 +7146,11 @@ function imgGenerateGraph() {
   ctx.font = '11px sans-serif';
   ctx.fillText(`${months[0]} 〜 ${months[months.length-1]}　全${filtered.length}レース`, W/2, 50);
 
-  // サマリー
-  const totalInvest  = filtered.reduce((s,r)=>s+(Number(r.invest)||0),0);
-  const totalReturn  = filtered.reduce((s,r)=>s+(Number(r.return)||0),0);
+  // サマリー（1レース1000円均等買いシミュレーション）
+  const totalInvest  = filtered.reduce((s,r)=>s+(Number(r.simInvest)||0),0);
+  const totalReturn  = filtered.reduce((s,r)=>s+(Number(r.simReturn)||0),0);
   const totalProfit  = totalReturn - totalInvest;
-  const totalWin     = filtered.filter(r=>(Number(r.return)||0)>0).length;
+  const totalWin     = filtered.filter(r=>(Number(r.simReturn)||0)>0).length;
   const winRate      = Math.round(totalWin/filtered.length*100);
   const roi          = totalInvest > 0 ? Math.round(totalReturn/totalInvest*100) : 0;
 
@@ -7315,7 +7374,9 @@ function showRecordDetail(idx) {
   }
 
   const hitCount = (r.hitLabels||[]).length;
-  const profit = (r.return||0) - (r.invest||0);
+  const _anaHitDetail = r.anaResult && r.anaResult.some(a => a.hit);
+  const _simDetail = calcSimInvestReturn(r.hitLabels, r.payouts, _anaHitDetail);
+  const profit = _simDetail.return - _simDetail.invest;
 
   modal.innerHTML = `
     <div style="max-width:480px;margin:0 auto;">
@@ -7358,8 +7419,8 @@ function showRecordDetail(idx) {
       <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:12px;">
         <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:6px;font-weight:700;">💰 成績データ</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
-          <div style="color:#aaa;">投資額</div><div style="color:#fff;font-weight:700;">¥${(r.invest||0).toLocaleString()}</div>
-          <div style="color:#aaa;">払戻額</div><div style="color:#fff;font-weight:700;">¥${(r.return||0).toLocaleString()}</div>
+          <div style="color:#aaa;">投資額(仮想1000円)</div><div style="color:#fff;font-weight:700;">¥${_simDetail.invest.toLocaleString()}</div>
+          <div style="color:#aaa;">払戻額(仮想)</div><div style="color:#fff;font-weight:700;">¥${_simDetail.return.toLocaleString()}</div>
           <div style="color:#aaa;">損益</div><div style="color:${profit>=0?'#34c759':'#ff3b30'};font-weight:900;">${profit>=0?'+':''}¥${profit.toLocaleString()}</div>
           ${r.distance?`<div style="color:#aaa;">距離</div><div style="color:#fff;">${r.distance}m</div>`:''}
           ${r.memo?`<div style="color:#aaa;">メモ</div><div style="color:#fff;">${r.memo}</div>`:''}
