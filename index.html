@@ -7345,8 +7345,14 @@ function transferToRecord() {
           if (label === '複勝') {
             hit = nums.some(n => [r1,r2,r3].includes(n));
           } else if (label === 'ワイド') {
+            // ワイドは「軸(ハイフン前)」×「相手(ハイフン後、複数の場合はいずれか1頭)」の組み合わせで判定
+            const partsH = body.split('-');
+            const jikuH = partsH[0] ? parseInt(partsH[0].trim()) : null;
+            const aiteH = partsH[1] ? partsH[1].split(/[・.]/).map(n=>parseInt(n.trim())).filter(n=>!isNaN(n)) : [];
             const top3 = [r1,r2,r3].filter(Boolean);
-            hit = nums.filter(n => top3.includes(n)).length >= 2;
+            const jikuInH = jikuH !== null && top3.includes(jikuH);
+            const aiteInH = aiteH.some(n => top3.includes(n));
+            hit = jikuInH && aiteInH;
           }
           if (hit && !hitLabels.includes(label)) hitLabels.push(label);
         });
@@ -7361,8 +7367,15 @@ function transferToRecord() {
           } else if (label === '馬連') {
             hit = r1 && r2 && nums.includes(r1) && nums.includes(r2);
           } else if (label === 'ワイド') {
+            // ワイドは「軸(ハイフン前)」×「相手(ハイフン後、複数の場合はいずれか1頭)」の組み合わせで判定
+            // 例: "12-7.11.3" → 軸12番 かつ (7番 or 11番 or 3番) が両方3着以内なら的中
+            const parts3 = body2.split('-');
+            const jiku3 = parts3[0] ? parseInt(parts3[0].trim()) : null;
+            const aite3 = parts3[1] ? parts3[1].split('.').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n)) : [];
             const top3w = [r1,r2,r3].filter(Boolean);
-            hit = nums.filter(n => top3w.includes(n)).length >= 2;
+            const jikuIn = jiku3 !== null && top3w.includes(jiku3);
+            const aiteIn = aite3.some(n => top3w.includes(n));
+            hit = jikuIn && aiteIn;
           } else if (label === '三連複') {
             const parts2 = body2.split('-');
             const jiku2 = parts2.slice(0,-1).map(n=>parseInt(n.trim())).filter(n=>!isNaN(n));
