@@ -2408,7 +2408,7 @@ function recalcAllRecords() {
 
     // そのレコード固有のDB設定を使用（変更しない）
     const dbForThis = r.dbSnapshot || {};
-    const result = recalcRecordScoring(latestHorses, dbForThis, r.finishRanks, r.betLines || [], r.weightType, r.payouts || {});
+    const result = recalcRecordScoring(latestHorses, dbForThis, r.finishRanks, r.betLines || [], r.weightType, r.payouts || {}, r.condition);
 
     r.horsesSnapshot = latestHorses;
     r.anaResult = result.anaResult;
@@ -2427,23 +2427,34 @@ function recalcAllRecords() {
   setStatus(`✅ ${updated}件のレコードを再計算しました`, 'ok');
 }
 
-function recalcRecordScoring(horsesSnapshot, dbSnapshot, finishRanks, betLines, weightType, payouts) {
-  const PACE_MAP = {'high':{'逃げ':-15,'先行':-10,'差し':15,'追い込み':20,'自在':0},'mid':{'逃げ':0,'先行':5,'差し':5,'追い込み':0,'自在':5},'slow':{'逃げ':20,'先行':15,'差し':-5,'追い込み':-15,'自在':5}};
-  const nigeCount = horsesSnapshot.filter(h => h.kyakushitsu === '逃げ').length;
-  const paceKey = nigeCount >= 3 ? 'high' : (nigeCount === 0 ? 'slow' : 'mid');
+function recalcRecordScoring(horsesSnapshot, dbSnapshot, finishRanks, betLines, weightType, payouts, condition) {
+  // ペース判定は予想タブのcalcPaceFromHorsesと完全同一ロジックにする（逃げ・先行の両方を見る）
+  const paceKey = (() => {
+    try { return calcPaceFromHorses(horsesSnapshot); } catch(e) { return 'mid'; }
+  })();
+  const bonusMap = paceBonus[paceKey] || {};
 
-  // totalScore再計算（予想タブと同一ロジック：パドック・調教・コメント・ペース補正込み）
+  // 馬場状態補正（そのレコードのcondition＝登録時の実際の馬場を使用。現在表示中のレースには依存しない）
+  const babaAdj = (() => {
+    if (condition === '重' || condition === '不良') {
+      return { '逃げ': 15, '先行': 10, '差し': -10, '追い込み': -15, '自在': 3 };
+    } else if (condition === '稍重') {
+      return { '逃げ': 8, '先行': 5, '差し': -5, '追い込み': -8, '自在': 2 };
+    }
+    return null;
+  })();
+  const effectiveBonusMap = babaAdj ? Object.fromEntries(Object.entries(bonusMap).map(([k,v]) => [k, v + (babaAdj[k]||0)])) : bonusMap;
+
+  // totalScore再計算（予想タブ renderAnalysis() と完全同一ロジック）
   const ranked = horsesSnapshot.map(h => {
-    const pAdj = h.paddock==='A'?20:h.paddock==='C'?-15:0;
-    const cAdj = (h.chokyoFinal==='A'||h.chokyoPrev==='A')?20:(h.chokyoFinal==='C'||h.chokyoPrev==='C')?-20:0;
-    const cmAdj = h.comment==='A'?20:h.comment==='C'?-20:0;
-    const paceAdj = PACE_MAP[paceKey]?.[h.kyakushitsu]||0;
-    const neg = h.negAdj||0;
-    const wScore = dbSnapshot.weight?.[h.baju]||0;
-    const trend = (dbSnapshot.jockey?.[h.jockey]||0)+(dbSnapshot.sire?.[h.sire]||0)+(dbSnapshot.kyakushitsu?.[h.kyakushitsu]||0)
-      +(dbSnapshot.ninki?.[String(h.ninki)]||0)+(dbSnapshot.maejun?.[String(h.maejun)]||0)+(dbSnapshot.maeclass?.[h.maeclass]||0)
-      +(dbSnapshot.waku?.[String(h.waku)]||0)+(dbSnapshot.timdev?.[h.timdev]||0)+(dbSnapshot.age?.[String(h.age)]||0)+pAdj;
-    const totalScore = trend+cAdj+cmAdj+paceAdj+neg+wScore;
+    const _paddockPt = h.paddock==='A'?20:h.paddock==='C'?-15:0;
+    const trendScore = (getJockeyScore(dbSnapshot.jockey, h.jockey) || 0) + (dbSnapshot.sire?.[h.sire] || 0) + (dbSnapshot.age?.[h.age] || 0) + (dbSnapshot.kyakushitsu?.[h.kyakushitsu] || 0) + (dbSnapshot.ninki?.[h.ninki] || 0) + (dbSnapshot.maejun?.[h.maejun] || 0) + (dbSnapshot.maeclass?.[h.maeclass] || 0) + (dbSnapshot.waku?.[h.waku] || 0) + (dbSnapshot.timdev?.[h.timdev] || 0) + (dbSnapshot.baju?.[h.baju] || 0) + _paddockPt;
+    const chokyoScore = ({'A': 20, 'B': 0, 'C': -20}[h.chokyoFinal] || 0) + ({'A': 20, 'B': 0, 'C': -20}[h.chokyoPrev] || 0);
+    const commentScore = {'◎': 20, '◯': 0, '△': -20, '×': -20}[h.comment] || 0;
+    const paceAdj = effectiveBonusMap[h.kyakushitsu] || 0;
+    const negAdj = h.negAdj || 0;
+    const weightScore = calcWeightScore(horsesSnapshot, h);
+    const totalScore = trendScore + chokyoScore + commentScore + paceAdj + negAdj + weightScore;
     return {...h, totalScore};
   }).sort((a,b)=>b.totalScore-a.totalScore);
 
