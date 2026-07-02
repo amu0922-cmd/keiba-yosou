@@ -499,10 +499,11 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
           <option value="不良">不良</option>
         </select>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
-        <input type="text" id="record-invest" class="inp" placeholder="投資¥" style="font-size: 10px;">
-        <input type="text" id="record-return" class="inp" placeholder="回収¥" style="font-size: 10px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px;">
+        <input type="text" id="record-invest" class="inp" placeholder="投資¥（任意）" style="font-size: 10px;">
+        <input type="text" id="record-return" class="inp" placeholder="回収¥（任意）" style="font-size: 10px;">
       </div>
+      <div style="font-size:8px;color:#aaa;margin-bottom:8px;">実際に購入していないレースは空欄でOK。出馬表・着順があれば分析タブのシミュレーターやコースバイアス分析に使えます</div>
       <!-- 券種別配当入力 -->
       <div style="margin-bottom: 8px; background:#f7f8ff; border:1px solid #d0d7e8; border-radius:6px; padding:8px;">
         <div style="font-size:9px;font-weight:900;color:#2563eb;margin-bottom:6px;">💰 券種別配当（検証用・JRA結果から入力）</div>
@@ -2288,14 +2289,12 @@ function updateRecord(idx) {
   const memo = document.getElementById('record-memo').value;
   const payouts = getPayoutInputs();
   
-  if (invest === 0) { setStatus('❌ 金額を入力', 'err'); return; }
-  
   // 既存データ（出馬表スナップショット・着順・買い目等）を引き継ぎ
   const existing = records[idx];
   records[idx] = {
     ...existing,
     race, date, formation, purchase, distance, course, condition, rank, score, weightType,
-    invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo, payouts
+    invest, return: ret, rate: (invest > 0 ? (ret / invest * 100) : 0).toFixed(1), memo, payouts
     // anaResultは既存データを引き継ぎ(editでは再計算しない)
   };
   
@@ -2418,8 +2417,6 @@ function addRecord() {
   const memo = document.getElementById('record-memo').value;
   const payouts = getPayoutInputs();
   
-  if (invest === 0) { setStatus('❌ 金額を入力', 'err'); return; }
-  
   // 転送データを取得（transferToRecord()で保存したデータを使用）
   const pt = window._pendingTransfer || {};
   const finishRanks = pt.finishRanks || { rank1: null, rank2: null, rank3: null };
@@ -2478,7 +2475,7 @@ function addRecord() {
   records.push({
     id: Date.now(), race, date, formation, purchase, distance, course, condition, rank, score,
     weightType: wt,
-    invest, return: ret, rate: (ret / invest * 100).toFixed(1), memo,
+    invest, return: ret, rate: (invest > 0 ? (ret / invest * 100) : 0).toFixed(1), memo,
     payouts,
     anaResult, // 穴馬候補の実際の着順
     // 拡張データ
@@ -2512,7 +2509,7 @@ function renderRecordList() {
       </div>
       <div style="font-size: 9px; color: #6080a0; margin-bottom: 4px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
         <span>(${r.date})</span>
-        <span>投¥${r.invest.toLocaleString()} | 回¥${r.return.toLocaleString()} | ${r.rate}%</span>
+        ${r.invest > 0 ? `<span>投¥${r.invest.toLocaleString()} | 回¥${r.return.toLocaleString()} | ${r.rate}%</span>` : `<span style="color:#aaa;">未購入（分析用データ）</span>`}
         ${r.hitLabels?.length ? `<span style="background:#34c759;color:#fff;font-size:8px;font-weight:700;padding:1px 6px;border-radius:4px;">🎯 ${r.hitLabels.join('・')}的中</span>` : (r.finishRanks?.rank1 ? `<span style="background:#555;color:#fff;font-size:8px;font-weight:700;padding:1px 6px;border-radius:4px;">💧ハズレ</span>` : '')}
         ${r.finishRanks?.rank1 ? `<span style="font-size:8px;color:#888;">1着${r.finishRanks.rank1}番${r.finishRanks.rank2?' 2着'+r.finishRanks.rank2+'番':''}${r.finishRanks.rank3?' 3着'+r.finishRanks.rank3+'番':''}</span>` : ''}
       </div>
