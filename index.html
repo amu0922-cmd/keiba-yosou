@@ -439,6 +439,14 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
         <input type="file" id="full-backup-file" accept=".json" style="display:none;" onchange="importFullBackup(event)">
         <div id="full-backup-status" style="font-size:9px;margin-top:6px;text-align:center;color:#aab0c0;"></div>
       </div>
+
+      <!-- 全レコード再計算 -->
+      <div style="background:linear-gradient(135deg,#0891b2,#0e7490);border-radius:8px;padding:10px;margin-bottom:12px;">
+        <div style="font-size:10px;font-weight:900;color:#fff;margin-bottom:6px;">🔄 全レコード再計算</div>
+        <div style="font-size:8px;color:#e0f4f8;margin-bottom:8px;">DB設定は各レース登録時点のものを維持したまま、出馬表（調教・パドック等）を最新化して穴馬候補・的中・投資回収を再計算します。後から調教を追記したレースなどに使用</div>
+        <button class="btn" onclick="recalcAllRecords()" style="width:100%;font-size:10px;font-weight:900;background:#fff;color:#0e7490;">🔄 全レコードを再計算</button>
+        <div id="recalc-status" style="font-size:9px;margin-top:6px;text-align:center;color:#e0f4f8;"></div>
+      </div>
         <input type="text" id="record-race" class="inp" placeholder="レース名" style="font-size: 10px;">
         <input type="date" id="record-date" class="inp" style="font-size: 10px;">
       </div>
@@ -453,7 +461,7 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
           <option value="通常・混線">通常・混線</option>
           <option value="波乱">波乱</option>
         </select>
-        <input type="text" id="record-purchase" class="inp" placeholder="買い目（例: 単勝・ワイド）" style="font-size: 10px;">
+        <input type="hidden" id="record-purchase" value="">
       </div>
       <div style="display: grid; grid-template-columns: 1fr; gap: 6px; margin-bottom: 8px;">
         <select id="record-weighttype" class="sel" style="font-size: 10px;">
@@ -499,11 +507,10 @@ textarea { width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d0d7e
           <option value="不良">不良</option>
         </select>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px;">
-        <input type="text" id="record-invest" class="inp" placeholder="投資¥（任意）" style="font-size: 10px;">
-        <input type="text" id="record-return" class="inp" placeholder="回収¥（任意）" style="font-size: 10px;">
-      </div>
-      <div style="font-size:8px;color:#aaa;margin-bottom:8px;">実際に購入していないレースは空欄でOK。出馬表・着順があれば分析タブのシミュレーターやコースバイアス分析に使えます</div>
+      <!-- invest/returnは券種別配当から自動算出（下記入力欄参照） -->
+      <input type="hidden" id="record-invest" value="0">
+      <input type="hidden" id="record-return" value="0">
+      <div style="font-size:8px;color:#aaa;margin-bottom:8px;">💰 投資・回収額は下の券種別配当と的中判定から自動計算されます（1点100円換算）。購入していないレースは配当も空欄でOK</div>
       <!-- 券種別配当入力 -->
       <div style="margin-bottom: 8px; background:#f7f8ff; border:1px solid #d0d7e8; border-radius:6px; padding:8px;">
         <div style="font-size:9px;font-weight:900;color:#2563eb;margin-bottom:6px;">💰 券種別配当（検証用・JRA結果から入力）</div>
@@ -2285,7 +2292,6 @@ function updateRecord(idx) {
   const race = document.getElementById('record-race').value || '無名';
   const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
   const formation = document.getElementById('record-formation').value || '';
-  const purchase = document.getElementById('record-purchase')?.value || '';
   const weightType = document.getElementById('record-weighttype')?.value || '';
   const distance = document.getElementById('record-distance').value || '';
   const course = document.getElementById('record-course').value || '';
@@ -2312,10 +2318,18 @@ function updateRecord(idx) {
         return { banum: bn, name: h.name || '', ninki: h.ninki || null, hit: top3.includes(bn), rank: bn===finR.rank1?1:bn===finR.rank2?2:bn===finR.rank3?3:null };
       }).filter(a => !isNaN(a.banum));
 
+  // 投資額・回収額は券種別配当と的中結果から自動算出（既存のhitLabelsを使用）
+  const anaHitAuto2 = anaResult && anaResult.some(a => a.hit);
+  const { invest: autoInvest2, return: autoReturn2 } = calcInvestReturn(existing.hitLabels, payouts, anaHitAuto2);
+  // 買い目表示は的中した券種から自動生成（穴馬的中も反映）
+  const purchase = (existing.hitLabels||[]).length > 0 ? existing.hitLabels.join('・')
+    : anaHitAuto2 ? '穴馬複勝'
+    : (existing.finishRanks?.rank1 ? 'ハズレ' : '');
+
   records[idx] = {
     ...existing,
     race, date, formation, purchase, distance, course, condition, rank, score, weightType,
-    invest, return: ret, rate: (invest > 0 ? (ret / invest * 100) : 0).toFixed(1), memo, payouts,
+    invest: autoInvest2, return: autoReturn2, rate: (autoInvest2 > 0 ? (autoReturn2 / autoInvest2 * 100) : 0).toFixed(1), memo, payouts,
     anaResult
   };
   
@@ -2353,6 +2367,191 @@ function resetRecordForm() {
   clearPayoutInputs();
 }
 
+
+// 券種別配当と的中結果から投資額・回収額を自動算出（1点100円換算）
+// hitLabels: 的中した券種名の配列（'単勝','複勝','馬連','ワイド','三連複' 等）
+// payouts: getPayoutInputs()の戻り値（各券種の100円あたり配当）
+// anaHit: 穴馬候補が的中したか（別定・ハンデ戦で複勝的中扱いにする）
+// 1レコード分を最新のhorsesSnapshot（savedJsonsの調教・パドック等）とそのレコード固有のdbSnapshotで再計算
+// horsesSnapshot: 最新の出馬表データ（savedJsonsから取得）
+// dbSnapshot: そのレコード登録時点のDB設定（変更しない）
+// finishRanks: 保存済みの着順
+// betLines: 保存済みの買い目（単勝/馬連/ワイド/三連複、通常戦用）
+// weightType: そのレコードの負担重量
+// 全レコードを最新出馬表(savedJsons)＋各レコード固有DBで再計算
+function recalcAllRecords() {
+  const statusEl = document.getElementById('recalc-status');
+  if (!records || records.length === 0) {
+    if (statusEl) statusEl.textContent = '対象レコードがありません';
+    return;
+  }
+  if (!confirm(`${records.length}件のレコードを再計算します。よろしいですか？`)) return;
+
+  let updated = 0, skipped = 0;
+  records.forEach(r => {
+    if (!r.horsesSnapshot || !r.finishRanks?.rank1) { skipped++; return; }
+
+    // savedJsonsに最新の出馬表があれば、そちらのhorses（調教・パドック等）で上書き
+    let latestHorses = r.horsesSnapshot;
+    const matchKey = Object.keys(savedJsons).find(k => k === r.race || k.includes(r.race));
+    if (matchKey && savedJsons[matchKey]?.horses) {
+      try {
+        const parsedH = typeof savedJsons[matchKey].horses === 'string'
+          ? JSON.parse(savedJsons[matchKey].horses)
+          : savedJsons[matchKey].horses;
+        if (Array.isArray(parsedH) && parsedH.length > 0) {
+          // 馬番をキーに最新データをマージ（着順スナップショット自体は既存のfinishRanksを使う）
+          latestHorses = parsedH;
+        }
+      } catch(e) {}
+    }
+
+    // そのレコード固有のDB設定を使用（変更しない）
+    const dbForThis = r.dbSnapshot || {};
+    const result = recalcRecordScoring(latestHorses, dbForThis, r.finishRanks, r.betLines || [], r.weightType, r.payouts || {});
+
+    r.horsesSnapshot = latestHorses;
+    r.anaResult = result.anaResult;
+    r.hitLabels = result.hitLabels;
+    r.purchase = result.purchase;
+    r.invest = result.invest;
+    r.return = result.return;
+    r.rate = result.rate;
+    updated++;
+  });
+
+  saveRecordsLocal();
+  renderRecordList();
+  scheduleAutoSave();
+  if (statusEl) statusEl.textContent = `✅ ${updated}件を再計算しました（対象外${skipped}件）`;
+  setStatus(`✅ ${updated}件のレコードを再計算しました`, 'ok');
+}
+
+function recalcRecordScoring(horsesSnapshot, dbSnapshot, finishRanks, betLines, weightType, payouts) {
+  const PACE_MAP = {'high':{'逃げ':-15,'先行':-10,'差し':15,'追い込み':20,'自在':0},'mid':{'逃げ':0,'先行':5,'差し':5,'追い込み':0,'自在':5},'slow':{'逃げ':20,'先行':15,'差し':-5,'追い込み':-15,'自在':5}};
+  const nigeCount = horsesSnapshot.filter(h => h.kyakushitsu === '逃げ').length;
+  const paceKey = nigeCount >= 3 ? 'high' : (nigeCount === 0 ? 'slow' : 'mid');
+
+  // totalScore再計算（予想タブと同一ロジック：パドック・調教・コメント・ペース補正込み）
+  const ranked = horsesSnapshot.map(h => {
+    const pAdj = h.paddock==='A'?20:h.paddock==='C'?-15:0;
+    const cAdj = (h.chokyoFinal==='A'||h.chokyoPrev==='A')?20:(h.chokyoFinal==='C'||h.chokyoPrev==='C')?-20:0;
+    const cmAdj = h.comment==='A'?20:h.comment==='C'?-20:0;
+    const paceAdj = PACE_MAP[paceKey]?.[h.kyakushitsu]||0;
+    const neg = h.negAdj||0;
+    const wScore = dbSnapshot.weight?.[h.baju]||0;
+    const trend = (dbSnapshot.jockey?.[h.jockey]||0)+(dbSnapshot.sire?.[h.sire]||0)+(dbSnapshot.kyakushitsu?.[h.kyakushitsu]||0)
+      +(dbSnapshot.ninki?.[String(h.ninki)]||0)+(dbSnapshot.maejun?.[String(h.maejun)]||0)+(dbSnapshot.maeclass?.[h.maeclass]||0)
+      +(dbSnapshot.waku?.[String(h.waku)]||0)+(dbSnapshot.timdev?.[h.timdev]||0)+(dbSnapshot.age?.[String(h.age)]||0)+pAdj;
+    const totalScore = trend+cAdj+cmAdj+paceAdj+neg+wScore;
+    return {...h, totalScore};
+  }).sort((a,b)=>b.totalScore-a.totalScore);
+
+  // 穴馬候補（別定・ハンデのみ）
+  let anaResult = [];
+  if (weightType === '別定' || weightType === 'ハンデ') {
+    const topScore = ranked[0]?.totalScore || 0;
+    const wideJikuBanum = ranked[0]?.banum;
+    const totalHorses = ranked.length;
+    const anaHorses = ranked.filter((h, idx) => {
+      const ninki = Number(h.ninki);
+      const isDashi = h.kyakushitsu === '差し';
+      const isMaejun13 = [1,2,3].includes(Number(h.maejun));
+      const scoreDiff = topScore - h.totalScore;
+      const isUpperHalf = (idx + 1) <= Math.ceil(totalHorses * 0.5);
+      return ninki >= 6 && isUpperHalf && scoreDiff <= 50 && isDashi && isMaejun13;
+    });
+    const anaCandidates = anaHorses.filter(h => h.banum !== wideJikuBanum).slice(0, 2);
+    const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
+    anaResult = anaCandidates.map(h => ({
+      banum: h.banum, name: h.name, ninki: h.ninki,
+      hit: hit23.has(h.banum),
+      rank: h.banum === finishRanks.rank1 ? 1 : h.banum === finishRanks.rank2 ? 2 : h.banum === finishRanks.rank3 ? 3 : null
+    }));
+  }
+
+  // hitLabels再計算（通常戦: 保存済みbetLinesと着順を突き合わせ）
+  const r1 = finishRanks.rank1, r2 = finishRanks.rank2, r3 = finishRanks.rank3;
+  const betLabelList = ['単勝','馬連','ワイド','三連複'];
+  let hitLabels = [];
+  if (r1 && Array.isArray(betLines)) {
+    betLines.forEach((line, i) => {
+      const label = betLabelList[i];
+      const body = (line||'').replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
+      const nums = body.split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+      let hit = false;
+      if (label === '単勝') {
+        hit = nums.includes(r1);
+      } else if (label === '馬連') {
+        hit = r1 && r2 && nums.includes(r1) && nums.includes(r2);
+      } else if (label === 'ワイド') {
+        const parts = body.split('-');
+        const jiku = parts[0] ? parseInt(parts[0].trim()) : null;
+        const aite = parts[1] ? parts[1].split('.').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n)) : [];
+        const top3 = [r1,r2,r3].filter(Boolean);
+        hit = jiku !== null && top3.includes(jiku) && aite.some(n => top3.includes(n));
+      } else if (label === '三連複') {
+        const parts = body.split('-');
+        const jiku = parts.slice(0,-1).map(n=>parseInt(n.trim())).filter(n=>!isNaN(n));
+        const aite = parts[parts.length-1].split('.').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n));
+        if (r1 && r2 && r3) {
+          const actual = [r1,r2,r3];
+          const jikuOk = jiku.every(j=>actual.includes(j));
+          const rem = actual.filter(a=>!jiku.includes(a));
+          const aiteOk = rem.every(rv=>aite.includes(rv));
+          hit = jikuOk && aiteOk;
+        }
+      }
+      if (hit) hitLabels.push(label);
+    });
+  }
+
+  const anaHit = anaResult.some(a => a.hit);
+  const { invest, return: ret } = calcInvestReturn(hitLabels, payouts, anaHit);
+  const purchase = hitLabels.length > 0 ? hitLabels.join('・')
+    : anaHit ? '穴馬複勝'
+    : (finishRanks.rank1 ? 'ハズレ' : '');
+
+  return { anaResult, hitLabels, purchase, invest, return: ret, rate: (invest > 0 ? (ret/invest*100) : 0).toFixed(1) };
+}
+
+function calcInvestReturn(hitLabels, payouts, anaHit) {
+  const labelToKeys = {
+    '単勝': ['tansho'],
+    '複勝': ['fukusho1', 'fukusho2', 'fukusho3'],
+    '馬連': ['umaren'],
+    'ワイド': ['wide1', 'wide2', 'wide3'],
+    '三連複': ['sanfuku'],
+    '三連単': ['santan'],
+  };
+  // 配当が入力されている券種＝「購入した」とみなして点数をカウント
+  const allKeys = ['tansho','fukusho1','fukusho2','fukusho3','umaren','wide1','wide2','wide3','sanfuku','santan'];
+  let investPoints = 0;
+  allKeys.forEach(k => { if (payouts && payouts[k] != null && payouts[k] !== '') investPoints++; });
+
+  let totalReturn = 0;
+  (hitLabels || []).forEach(label => {
+    const keys = labelToKeys[label] || [];
+    keys.forEach(k => {
+      if (payouts && payouts[k] != null && payouts[k] !== '') {
+        totalReturn += Number(payouts[k]);
+      }
+    });
+  });
+
+  // 穴馬候補的中時（別定・ハンデ）は複勝配当があれば加算
+  if (anaHit && payouts) {
+    const fukuKeys = ['fukusho1','fukusho2','fukusho3'];
+    const alreadyCounted = (hitLabels||[]).includes('複勝');
+    if (!alreadyCounted) {
+      const fukuVal = fukuKeys.map(k=>payouts[k]).find(v => v != null && v !== '');
+      if (fukuVal != null) totalReturn += Number(fukuVal);
+    }
+  }
+
+  const invest = investPoints * 100;
+  return { invest, return: totalReturn };
+}
 
 function getPayoutInputs() {
   return {
@@ -2428,7 +2627,6 @@ function addRecord() {
   const race = document.getElementById('record-race').value || '無名';
   const date = document.getElementById('record-date').value || new Date().toISOString().split('T')[0];
   const formation = document.getElementById('record-formation').value || '';
-  const purchase = document.getElementById('record-purchase')?.value || '';
   const weightType = document.getElementById('record-weighttype')?.value || '';
   const distance = document.getElementById('record-distance').value || '';
   const course = document.getElementById('record-course').value || '';
@@ -2502,10 +2700,18 @@ function addRecord() {
     }));
   }
 
+  // 投資額・回収額は券種別配当と的中結果から自動算出
+  const anaHitAuto = anaResult && anaResult.some(a => a.hit);
+  const { invest: autoInvest, return: autoReturn } = calcInvestReturn(hitLabels, payouts, anaHitAuto);
+  // 買い目表示は的中した券種から自動生成（穴馬的中も反映）
+  const purchase = hitLabels.length > 0 ? hitLabels.join('・')
+    : anaHitAuto ? '穴馬複勝'
+    : (finishRanks.rank1 ? 'ハズレ' : '');
+
   records.push({
     id: Date.now(), race, date, formation, purchase, distance, course, condition, rank, score,
     weightType: wt,
-    invest, return: ret, rate: (invest > 0 ? (ret / invest * 100) : 0).toFixed(1), memo,
+    invest: autoInvest, return: autoReturn, rate: (autoInvest > 0 ? (autoReturn / autoInvest * 100) : 0).toFixed(1), memo,
     payouts,
     anaResult, // 穴馬候補の実際の着順
     // 拡張データ
@@ -2540,7 +2746,18 @@ function renderRecordList() {
       <div style="font-size: 9px; color: #6080a0; margin-bottom: 4px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
         <span>(${r.date})</span>
         ${r.invest > 0 ? `<span>投¥${r.invest.toLocaleString()} | 回¥${r.return.toLocaleString()} | ${r.rate}%</span>` : `<span style="color:#aaa;">未購入（分析用データ）</span>`}
-        ${r.hitLabels?.length ? `<span style="background:#34c759;color:#fff;font-size:8px;font-weight:700;padding:1px 6px;border-radius:4px;">🎯 ${r.hitLabels.join('・')}的中</span>` : (r.finishRanks?.rank1 ? `<span style="background:#555;color:#fff;font-size:8px;font-weight:700;padding:1px 6px;border-radius:4px;">💧ハズレ</span>` : '')}
+        ${(() => {
+          const hasAnaHit = !r.hitLabels?.length && r.anaResult?.some(a => a.hit);
+          if (r.hitLabels?.length) {
+            return `<span style="background:#34c759;color:#fff;font-size:8px;font-weight:700;padding:1px 6px;border-radius:4px;">🎯 ${r.hitLabels.join('・')}的中</span>`;
+          } else if (hasAnaHit) {
+            const hitBanums = r.anaResult.filter(a => a.hit).map(a => a.banum).join('・');
+            return `<span style="background:#f39c12;color:#fff;font-size:8px;font-weight:700;padding:1px 6px;border-radius:4px;">🎰 穴馬的中(${hitBanums}番)</span>`;
+          } else if (r.finishRanks?.rank1) {
+            return `<span style="background:#555;color:#fff;font-size:8px;font-weight:700;padding:1px 6px;border-radius:4px;">💧ハズレ</span>`;
+          }
+          return '';
+        })()}
         ${r.finishRanks?.rank1 ? `<span style="font-size:8px;color:#888;">1着${r.finishRanks.rank1}番${r.finishRanks.rank2?' 2着'+r.finishRanks.rank2+'番':''}${r.finishRanks.rank3?' 3着'+r.finishRanks.rank3+'番':''}</span>` : ''}
       </div>
       ${r.distance ? `<div style="font-size: 8px; color: #8090a0; margin-bottom: 2px;">📍 ${r.distance}m | ${r.course || '?'} | ${r.condition || '?'}</div>` : ''}
@@ -7450,9 +7667,9 @@ function transferToRecord() {
 
   // 成績タブへ移動
   switchTo('record');
-  setStatus(`✅ 転送完了！投資・払戻を入力して「記録」を押してください`, 'ok');
+  setStatus(`✅ 転送完了！券種別配当を入力して「記録」を押してください（投資・回収は自動計算）`, 'ok');
   setTimeout(() => {
-    document.getElementById('record-invest')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('payout-tansho')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 300);
 }
 
