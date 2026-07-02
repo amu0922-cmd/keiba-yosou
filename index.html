@@ -2423,47 +2423,54 @@ function addRecord() {
   const betLines    = pt.betLines    || [];
   const hitLabels   = pt.hitLabels   || [];
   const horsesSnapshot = pt.horsesSnapshot || JSON.parse(JSON.stringify(horses));
+  const rankedSnapshot = pt.rankedSnapshot || null;
   const dbSnapshot     = pt.dbSnapshot     || JSON.parse(JSON.stringify(db));
   const paceInfo       = pt.paceInfo       || '';
   window._pendingTransfer = null; // 使用後クリア
 
   // 穴馬候補の実際の着順を自動計算(別定・ハンデ戦のみ)
+  // rankedSnapshotがあれば予想タブと完全同一のtotalScore（パドック・調教・コメント・ペース補正込み）を使用
   let anaResult = null;
   const wt = weightType || currentWeightType;
   if (wt === '別定' || wt === 'ハンデ') {
-    const pace = paceInfo || '';
-    const PACE_BONUS_MAP = {
-      'high': {'逃げ':-15,'先行':-10,'差し':15,'追い込み':20,'自在':0},
-      'mid':  {'逃げ':0,'先行':5,'差し':5,'追い込み':0,'自在':5},
-      'slow': {'逃げ':20,'先行':15,'差し':-5,'追い込み':-15,'自在':5}
-    };
-    const paceKey = pace.includes('ハイ') ? 'high' : pace.includes('スロー') ? 'slow' : 'mid';
-    const scored = [...horsesSnapshot].sort((a, b) => {
-      const sa = (dbSnapshot.jockey?.[a.jockey]||0)+(dbSnapshot.sire?.[a.sire]||0)
-                +(dbSnapshot.kyakushitsu?.[a.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(a.ninki)]||0)
-                +(dbSnapshot.maejun?.[String(a.maejun)]||0)+(dbSnapshot.maeclass?.[a.maeclass]||0)
-                +(dbSnapshot.waku?.[String(a.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[a.kyakushitsu]||0);
-      const sb = (dbSnapshot.jockey?.[b.jockey]||0)+(dbSnapshot.sire?.[b.sire]||0)
-                +(dbSnapshot.kyakushitsu?.[b.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(b.ninki)]||0)
-                +(dbSnapshot.maejun?.[String(b.maejun)]||0)+(dbSnapshot.maeclass?.[b.maeclass]||0)
-                +(dbSnapshot.waku?.[String(b.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[b.kyakushitsu]||0);
-      return sb - sa;
-    });
-    const calcScoreA = (h) =>
+    const scored = rankedSnapshot && rankedSnapshot.length > 0
+      ? rankedSnapshot // 既にtotalScore順でソート済み
+      : (() => {
+          // フォールバック: rankedSnapshotがない古いデータ向けの簡易スコア
+          const pace = paceInfo || '';
+          const PACE_BONUS_MAP = {
+            'high': {'逃げ':-15,'先行':-10,'差し':15,'追い込み':20,'自在':0},
+            'mid':  {'逃げ':0,'先行':5,'差し':5,'追い込み':0,'自在':5},
+            'slow': {'逃げ':20,'先行':15,'差し':-5,'追い込み':-15,'自在':5}
+          };
+          const paceKey = pace.includes('ハイ') ? 'high' : pace.includes('スロー') ? 'slow' : 'mid';
+          return [...horsesSnapshot].sort((a, b) => {
+            const s = h => (dbSnapshot.jockey?.[h.jockey]||0)+(dbSnapshot.sire?.[h.sire]||0)
+              +(dbSnapshot.kyakushitsu?.[h.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(h.ninki)]||0)
+              +(dbSnapshot.maejun?.[String(h.maejun)]||0)+(dbSnapshot.maeclass?.[h.maeclass]||0)
+              +(dbSnapshot.waku?.[String(h.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[h.kyakushitsu]||0);
+            return s(b) - s(a);
+          });
+        })();
+    const getScore = h => rankedSnapshot ? (h.totalScore||0) : (
       (dbSnapshot.jockey?.[h.jockey]||0)+(dbSnapshot.sire?.[h.sire]||0)
       +(dbSnapshot.kyakushitsu?.[h.kyakushitsu]||0)+(dbSnapshot.ninki?.[String(h.ninki)]||0)
       +(dbSnapshot.maejun?.[String(h.maejun)]||0)+(dbSnapshot.maeclass?.[h.maeclass]||0)
-      +(dbSnapshot.waku?.[String(h.waku)]||0)+(PACE_BONUS_MAP[paceKey]?.[h.kyakushitsu]||0);
-    const topScore = scored[0] ? calcScoreA(scored[0]) : 0;
+      +(dbSnapshot.waku?.[String(h.waku)]||0)
+    );
+    const topScore = scored[0] ? getScore(scored[0]) : 0;
     const wideJikuBanum = scored[0]?.banum;
-    const n = scored.length;
-    const anaCandidates = scored.filter((h, idx) => {
+    const totalHorses = scored.length;
+    // 予想タブと完全同一ロジック: 全馬フィルタ後にwideJikuを除外
+    const anaHorses = scored.filter((h, idx) => {
       const ninki = Number(h.ninki);
       const isDashi = h.kyakushitsu === '差し';
       const isMaejun13 = [1,2,3].includes(Number(h.maejun));
-      const scoreDiff = topScore - calcScoreA(h);
-      return ninki >= 6 && (idx+1) <= Math.ceil(n * 0.5) && scoreDiff <= 50 && isDashi && isMaejun13 && h.banum !== wideJikuBanum;
-    }).slice(0, 2);
+      const scoreDiff = topScore - getScore(h);
+      const isUpperHalf = (idx + 1) <= Math.ceil(totalHorses * 0.5);
+      return ninki >= 6 && isUpperHalf && scoreDiff <= 50 && isDashi && isMaejun13;
+    });
+    const anaCandidates = anaHorses.filter(h => h.banum !== wideJikuBanum).slice(0, 2);
     const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
     anaResult = anaCandidates.map(h => ({
       banum: h.banum, name: h.name, ninki: h.ninki,
@@ -7327,9 +7334,12 @@ function transferToRecord() {
   const r3 = parseInt(document.getElementById('rank3-input')?.value) || null;
   const isHandicapRace = currentWeightType === '別定' || currentWeightType === 'ハンデ';
 
+  let rankedSnapshotForTransfer = null;
   try {
-    const { lines, recLines } = imgCalcBets();
+    const { lines, recLines, ranked } = imgCalcBets();
     betLines = lines;
+    // totalScore付きのranked配列を保存（成績記録時に予想タブと完全同一ロジックで穴馬候補を再現するため）
+    rankedSnapshotForTransfer = ranked ? JSON.parse(JSON.stringify(ranked)) : null;
     if (r1) {
       if (isHandicapRace && recLines && recLines.length > 0) {
         // ハンデ・別定戦は推奨買い目(複勝+ワイド)で判定
@@ -7401,6 +7411,7 @@ function transferToRecord() {
     purchase: purchaseStr,
     hitLabels,
     horsesSnapshot: JSON.parse(JSON.stringify(horses)),
+    rankedSnapshot: rankedSnapshotForTransfer,
     dbSnapshot: JSON.parse(JSON.stringify(db)),
     paceInfo: (() => { try { return getPaceLabel(calcPaceFromHorses(horses)); } catch(e) { return ''; } })(),
     raceName: currentRaceName || ''
