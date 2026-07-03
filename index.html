@@ -2580,13 +2580,16 @@ function calcSimInvestReturn(hitLabels, payouts, anaHit) {
     });
   });
 
-  // 穴馬候補的中時（別定・ハンデ）は複勝配当があれば加算
+  // 穴馬候補的中時（別定・ハンデ）は複勝配当があれば加算（チェックボックスで選択された番号のみ）
   if (anaHit && payouts) {
-    const fukuKeys = ['fukusho1','fukusho2','fukusho3'];
     const alreadyCounted = (hitLabels||[]).includes('複勝');
     if (!alreadyCounted) {
-      const fukuKey = fukuKeys.find(k => payouts[k] != null && payouts[k] !== '' && enteredKeys.includes(k));
-      if (fukuKey) totalReturn += Number(payouts[fukuKey]) * (perPoint / 100);
+      const fukuKeys = getHitKeysForLabel('複勝', payouts);
+      fukuKeys.forEach(fukuKey => {
+        if (payouts[fukuKey] != null && payouts[fukuKey] !== '' && enteredKeys.includes(fukuKey)) {
+          totalReturn += Number(payouts[fukuKey]) * (perPoint / 100);
+        }
+      });
     }
   }
 
@@ -2617,13 +2620,16 @@ function calcInvestReturn(hitLabels, payouts, anaHit) {
     });
   });
 
-  // 穴馬候補的中時（別定・ハンデ）は複勝配当があれば加算
+  // 穴馬候補的中時（別定・ハンデ）は複勝配当があれば加算（チェックボックスで選択された番号のみ）
   if (anaHit && payouts) {
-    const fukuKeys = ['fukusho1','fukusho2','fukusho3'];
     const alreadyCounted = (hitLabels||[]).includes('複勝');
     if (!alreadyCounted) {
-      const fukuVal = fukuKeys.map(k=>payouts[k]).find(v => v != null && v !== '');
-      if (fukuVal != null) totalReturn += Number(fukuVal);
+      const fukuKeys = getHitKeysForLabel('複勝', payouts);
+      fukuKeys.forEach(fukuKey => {
+        if (payouts[fukuKey] != null && payouts[fukuKey] !== '') {
+          totalReturn += Number(payouts[fukuKey]);
+        }
+      });
     }
   }
 
