@@ -7631,10 +7631,14 @@ function updateJudgment() {
         hit = nums.includes(rank1) && nums.includes(rank2);
       }
     } else if (label === 'ワイド') {
-      // ワイドは購入馬番から2頭が3着以内に入ればOK
-      const nums = body.split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+      // ワイドは「軸(ハイフン前)」×「相手(ハイフン後、複数の場合はいずれか1頭)」の組み合わせで判定
+      const partsW = body.split('-');
+      const jikuW = partsW[0] ? parseInt(partsW[0].trim()) : null;
+      const aiteW = partsW[1] ? partsW[1].split('.').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n)) : [];
       const top3 = [rank1, rank2, rank3].filter(Boolean);
-      hit = nums.filter(n => top3.includes(n)).length >= 2;
+      const jikuInW = jikuW !== null && top3.includes(jikuW);
+      const aiteInW = aiteW.some(n => top3.includes(n));
+      hit = jikuInW && aiteInW;
 
     } else if (label === '三連複') {
       // 例: 10-12-5.8.13.16.18
