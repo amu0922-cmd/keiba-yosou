@@ -2477,11 +2477,12 @@ function recalcRecordScoring(horsesSnapshot, dbSnapshot, finishRanks, betLines, 
     const totalHorses = ranked.length;
     const anaHorses = ranked.filter((h, idx) => {
       const ninki = Number(h.ninki);
-      const isDashi = h.kyakushitsu === '差し';
-      const isMaejun13 = [1,2,3].includes(Number(h.maejun));
+      // 新ロジック: 最終調教A評価 または 厩舎コメント◎（脚質・前走着順は問わない）
+      const isChokyoA = h.chokyoFinal === 'A';
+      const isCommentMaru = h.comment === '◎';
       const scoreDiff = topScore - h.totalScore;
       const isUpperHalf = (idx + 1) <= Math.ceil(totalHorses * 0.5);
-      return ninki >= 6 && isUpperHalf && scoreDiff <= 50 && isDashi && isMaejun13;
+      return ninki >= 6 && isUpperHalf && scoreDiff <= 50 && (isChokyoA || isCommentMaru);
     });
     const anaCandidates = anaHorses.filter(h => h.banum !== wideJikuBanum).slice(0, 2);
     const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
@@ -2790,13 +2791,14 @@ function addRecord() {
     const wideJikuBanum = scored[0]?.banum;
     const totalHorses = scored.length;
     // 予想タブと完全同一ロジック: 全馬フィルタ後にwideJikuを除外
+    // 新ロジック: 最終調教A評価 または 厩舎コメント◎（脚質・前走着順は問わない）
     const anaHorses = scored.filter((h, idx) => {
       const ninki = Number(h.ninki);
-      const isDashi = h.kyakushitsu === '差し';
-      const isMaejun13 = [1,2,3].includes(Number(h.maejun));
+      const isChokyoA = h.chokyoFinal === 'A';
+      const isCommentMaru = h.comment === '◎';
       const scoreDiff = topScore - getScore(h);
       const isUpperHalf = (idx + 1) <= Math.ceil(totalHorses * 0.5);
-      return ninki >= 6 && isUpperHalf && scoreDiff <= 50 && isDashi && isMaejun13;
+      return ninki >= 6 && isUpperHalf && scoreDiff <= 50 && (isChokyoA || isCommentMaru);
     });
     const anaCandidates = anaHorses.filter(h => h.banum !== wideJikuBanum).slice(0, 2);
     const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
@@ -4131,18 +4133,19 @@ function renderAnalysis() {
         const isUpperHalf = (idx + 1) <= Math.ceil(totalHorses * 0.5);
         const isNearTop = scoreDiff <= 50;
         const isAnaBeta = ninki >= 6;
-        const isDashi = h.kyakushitsu === '差し';
-        const isMaejunGood = [1,2,3].includes(Number(h.maejun));
-        return isAnaBeta && isUpperHalf && isNearTop && isDashi && isMaejunGood;
+        // 新ロジック: 最終調教A評価 または 厩舎コメント◎（脚質・前走着順は問わない）
+        const isChokyoA = h.chokyoFinal === 'A';
+        const isCommentMaru = h.comment === '◎';
+        return isAnaBeta && isUpperHalf && isNearTop && (isChokyoA || isCommentMaru);
       });
       const anaNums = anaHorses.map(h => String(h.banum)).filter(n => n !== wideJiku);
       const bestAna = anaNums[0] || null;
       const tickets = [];
-      let reason = `🎯 ${currentWeightType}戦：シミュレーション回収率797%\n差し馬×前走1-3着×6人気以上 → 複勝1000円1点集中\n💴 配分: 複勝1000円`;
+      let reason = `🎯 ${currentWeightType}戦：シミュレーション回収率268%\n調教A評価または厩舎コメント◎×6人気以上 → 複勝1000円1点集中\n💴 配分: 複勝1000円`;
       if (bestAna) {
         tickets.push(`《複勝 ${bestAna}》`);
         reason += `\n✅ 穴馬候補: ${bestAna}番`;
-        reason += `\n📌 差し×前走1-3着×6人気以上×スコア上位50%`;
+        reason += `\n📌 調教A評価or厩舎コメント◎×6人気以上×スコア上位50%`;
       } else {
         reason += `\n⚠️ 穴馬候補なし → 見送り推奨`;
       }
@@ -6271,9 +6274,10 @@ function imgCalcBets() {
       const isUpperHalf = (idx + 1) <= Math.ceil(totalHorsesImg2 * 0.5);
       const isNearTop = scoreDiff <= 50;
       const isAnaBeta = ninki >= 6;
-      const isDashi = h.kyakushitsu === '差し';
-      const isMaejunGood = [1,2,3].includes(Number(h.maejun));
-      return isAnaBeta && isUpperHalf && isNearTop && isDashi && isMaejunGood;
+      // 新ロジック: 最終調教A評価 または 厩舎コメント◎（脚質・前走着順は問わない）
+      const isChokyoA = h.chokyoFinal === 'A';
+      const isCommentMaru = h.comment === '◎';
+      return isAnaBeta && isUpperHalf && isNearTop && (isChokyoA || isCommentMaru);
     });
     const anaNums = anaHorsesImg.map(h => Number(h.banum)).filter(n => n !== wideJikuImg);
     const bestAnaImg = anaNums[0] || null;
