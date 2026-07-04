@@ -7626,9 +7626,16 @@ function updateJudgment() {
       hit = nums.includes(rank1);
 
     } else if (label === '馬連') {
-      const nums = body.split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+      // 馬連は「軸(ハイフン前)」×「相手(ハイフン後、複数の場合はいずれか1頭)」の組み合わせで判定
+      // 1着・2着（順不同）のうち、軸が一方に入り、相手のいずれかがもう一方に入っていること
+      const partsM = body.split('-');
+      const jikuM = partsM[0] ? parseInt(partsM[0].trim()) : null;
+      const aiteM = partsM[1] ? partsM[1].split('.').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n)) : [];
       if (rank1 && rank2) {
-        hit = nums.includes(rank1) && nums.includes(rank2);
+        const top2 = [rank1, rank2];
+        const jikuInM = jikuM !== null && top2.includes(jikuM);
+        const aiteInM = aiteM.some(n => top2.includes(n));
+        hit = jikuInM && aiteInM;
       }
     } else if (label === 'ワイド') {
       // ワイドは「軸(ハイフン前)」×「相手(ハイフン後、複数の場合はいずれか1頭)」の組み合わせで判定
@@ -7660,7 +7667,11 @@ function updateJudgment() {
     }
 
     const nums = body.split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-    return { label, nums, hit };
+    // 表示用: 軸-相手の構造がわかるように整形（例: 4-5.6.1 → 4 - 5,6,1）
+    const displayStr = body.includes('-')
+      ? body.split('-').map(part => part.split('.').join(',')).join(' - ')
+      : body;
+    return { label, nums, hit, displayStr };
   });
 
   const hitCount = results.filter(r => r.hit).length;
@@ -7677,7 +7688,7 @@ function updateJudgment() {
           background:${r.hit?'rgba(52,199,89,0.12)':'rgba(0,0,0,0.3)'};
           border:1px solid ${r.hit?'#34c759':'rgba(255,255,255,0.1)'};">
           <span style="background:${r.hit?'#34c759':'#555'};color:#fff;font-size:9px;font-weight:900;padding:2px 8px;border-radius:5px;">${r.label}</span>
-          <span style="font-size:11px;color:#fff;">${r.nums.join(' - ')}</span>
+          <span style="font-size:11px;color:#fff;">${r.displayStr}</span>
           <span style="margin-left:auto;font-size:12px;color:${r.hit?'#34c759':'#ff3b30'};font-weight:700;">${r.hit?'✅ 的中':'❌ ハズレ'}</span>
         </div>
       `).join('')}
@@ -7811,13 +7822,28 @@ function autoFillHits() {
   const hits = [];
   lines.forEach((line, i) => {
     const label = betLabels[i];
-    const nums = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '')
-      .split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+    const body = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
+    const nums = body.split(/[-.]/).map(n => parseInt(n.trim())).filter(n => !isNaN(n));
     let hit = false;
-    if (label === '単勝') hit = nums.includes(rank1);
-    else if (label === '馬連') hit = rank1 && rank2 && nums.includes(rank1) && nums.includes(rank2);
-    else if (label === 'ワイド') { const t3a=[rank1,rank2,rank3].filter(Boolean); hit = nums.filter(n=>t3a.includes(n)).length>=2; }
-    else if (label === '三連複') hit = rank1 && rank2 && rank3 && nums.includes(rank1) && nums.includes(rank2) && nums.includes(rank3);
+    if (label === '単勝') {
+      hit = nums.includes(rank1);
+    } else if (label === '馬連') {
+      const parts = body.split('-');
+      const jiku = parts[0] ? parseInt(parts[0].trim()) : null;
+      const aite = parts[1] ? parts[1].split('.').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n)) : [];
+      if (rank1 && rank2) {
+        const top2 = [rank1, rank2];
+        hit = jiku !== null && top2.includes(jiku) && aite.some(n => top2.includes(n));
+      }
+    } else if (label === 'ワイド') {
+      const parts = body.split('-');
+      const jiku = parts[0] ? parseInt(parts[0].trim()) : null;
+      const aite = parts[1] ? parts[1].split('.').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n)) : [];
+      const top3a = [rank1,rank2,rank3].filter(Boolean);
+      hit = jiku !== null && top3a.includes(jiku) && aite.some(n => top3a.includes(n));
+    } else if (label === '三連複') {
+      hit = rank1 && rank2 && rank3 && nums.includes(rank1) && nums.includes(rank2) && nums.includes(rank3);
+    }
     if (hit) hits.push(label);
   });
   const hitsEl = document.getElementById('img-hits');
