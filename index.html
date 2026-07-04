@@ -2483,9 +2483,11 @@ function recalcRecordScoring(horsesSnapshot, dbSnapshot, finishRanks, betLines, 
     });
     const anaCandidates = anaHorses.slice(0, 2);
     const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
+    const jikuHitCheck = wideJikuBanum !== undefined && hit23.has(wideJikuBanum);
     anaResult = anaCandidates.map(h => ({
       banum: h.banum, name: h.name, ninki: h.ninki,
-      hit: hit23.has(h.banum),
+      // hit: 軸(1番人気)×この穴馬のワイドとして成立したか（軸も穴馬も3着以内）
+      hit: jikuHitCheck && hit23.has(h.banum),
       rank: h.banum === finishRanks.rank1 ? 1 : h.banum === finishRanks.rank2 ? 2 : h.banum === finishRanks.rank3 ? 3 : null
     }));
   }
@@ -2584,18 +2586,9 @@ function calcSimInvestReturn(hitLabels, payouts, anaHit) {
     });
   });
 
-  // 穴馬候補的中時（別定・ハンデ）は複勝配当があれば加算（チェックボックスで選択された番号のみ）
-  if (anaHit && payouts) {
-    const alreadyCounted = (hitLabels||[]).includes('複勝');
-    if (!alreadyCounted) {
-      const fukuKeys = getHitKeysForLabel('複勝', payouts);
-      fukuKeys.forEach(fukuKey => {
-        if (payouts[fukuKey] != null && payouts[fukuKey] !== '' && enteredKeys.includes(fukuKey)) {
-          totalReturn += Number(payouts[fukuKey]) * (perPoint / 100);
-        }
-      });
-    }
-  }
+  // 注: 穴馬候補は現在ワイドで購入する仕様のため、hitLabelsに'ワイド'が含まれていれば
+  // 上記のループで既にワイド配当が加算されている。旧ロジック（穴馬複勝1点買い）の名残である
+  // 「穴馬的中時に複勝配当を別加算する」処理は削除済み。
 
   return { invest: SIM_TOTAL, return: Math.round(totalReturn) };
 }
@@ -2624,18 +2617,8 @@ function calcInvestReturn(hitLabels, payouts, anaHit) {
     });
   });
 
-  // 穴馬候補的中時（別定・ハンデ）は複勝配当があれば加算（チェックボックスで選択された番号のみ）
-  if (anaHit && payouts) {
-    const alreadyCounted = (hitLabels||[]).includes('複勝');
-    if (!alreadyCounted) {
-      const fukuKeys = getHitKeysForLabel('複勝', payouts);
-      fukuKeys.forEach(fukuKey => {
-        if (payouts[fukuKey] != null && payouts[fukuKey] !== '') {
-          totalReturn += Number(payouts[fukuKey]);
-        }
-      });
-    }
-  }
+  // 注: 穴馬候補は現在ワイドで購入する仕様のため、hitLabelsに'ワイド'が含まれていれば
+  // 上記のループで既にワイド配当が加算されている。旧ロジックの名残は削除済み。
 
   const invest = investPoints * 100;
   return { invest, return: totalReturn };
@@ -2796,9 +2779,11 @@ function addRecord() {
     });
     const anaCandidates = anaHorses.slice(0, 2);
     const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
+    const jikuHitCheck2 = wideJikuBanum !== undefined && hit23.has(wideJikuBanum);
     anaResult = anaCandidates.map(h => ({
       banum: h.banum, name: h.name, ninki: h.ninki,
-      hit: hit23.has(h.banum),
+      // hit: 軸(1番人気)×この穴馬のワイドとして成立したか（軸も穴馬も3着以内）
+      hit: jikuHitCheck2 && hit23.has(h.banum),
       rank: h.banum === finishRanks.rank1 ? 1 : h.banum === finishRanks.rank2 ? 2 : h.banum === finishRanks.rank3 ? 3 : null
     }));
   }
@@ -4127,13 +4112,19 @@ function renderAnalysis() {
         const isCommentMaru = h.comment === '◎';
         return ninki >= 6 && (isChokyoA || isCommentMaru) && String(h.banum) !== wideJiku;
       });
-      const anaNums = anaHorses.map(h => String(h.banum));
+      const anaNums = anaHorses.map(h => String(h.banum)).slice(0, 2); // 穴馬候補は最大2頭
       const bestAna = anaNums[0] || null;
+      const secondAna = anaNums[1] || null;
       const tickets = [];
-      let reason = `🎯 ${currentWeightType}戦：シミュレーション回収率273%\n軸(1番人気)×穴馬(調教A評価or厩舎コメント◎・6人気以上) → ワイド1000円1点\n💴 配分: ワイド1000円`;
+      const pointCount = anaNums.length;
+      let reason = `🎯 ${currentWeightType}戦：シミュレーション回収率273%\n軸(1番人気)×穴馬(調教A評価or厩舎コメント◎・6人気以上) → ワイド1000円${pointCount>1?`÷${pointCount}点`:'1点'}\n💴 配分: ワイド計1000円`;
       if (bestAna) {
         tickets.push(`《ワイド ${wideJiku}-${bestAna}》`);
         reason += `\n✅ 軸:${wideJiku}番(1番人気) × 穴馬候補:${bestAna}番`;
+        if (secondAna) {
+          tickets.push(`《ワイド ${wideJiku}-${secondAna}》`);
+          reason += `・${secondAna}番`;
+        }
         reason += `\n📌 調教A評価or厩舎コメント◎×6人気以上`;
       } else {
         reason += `\n⚠️ 穴馬候補なし → 見送り推奨`;
@@ -6263,10 +6254,12 @@ function imgCalcBets() {
       const isCommentMaru = h.comment === '◎';
       return ninki >= 6 && (isChokyoA || isCommentMaru) && Number(h.banum) !== wideJikuImg;
     });
-    const anaNums = anaHorsesImg.map(h => Number(h.banum));
+    const anaNums = anaHorsesImg.map(h => Number(h.banum)).slice(0, 2);
     const bestAnaImg = anaNums[0] || null;
+    const secondAnaImg = anaNums[1] || null;
     if (bestAnaImg) {
       recLines.push(`ワイド ${wideJikuImg}-${bestAnaImg}`);
+      if (secondAnaImg) recLines.push(`ワイド ${wideJikuImg}-${secondAnaImg}`);
     }
   } else if (ninkiBadImg || oddsBadImg) {
     recLines.push(`複勝  ${jiku1Num}`);
@@ -7361,18 +7354,40 @@ function showRecordDetail(idx) {
   const betColors = ['#ff2d55','#007aff','#34c759','#ff9500'];
 
   // 買い目・判定HTML
-  const betHTML = (r.betLines || []).map((line, i) => {
-    const label = betLabels[i];
-    const isHit = (r.hitLabels || []).includes(label);
-    const nums = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
-    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;margin-bottom:4px;
-      background:${isHit?'rgba(52,199,89,0.15)':'rgba(255,255,255,0.05)'};
-      border:1px solid ${isHit?'#34c759':'rgba(255,255,255,0.1)'};">
-      <span style="background:${betColors[i]};color:#fff;font-size:9px;font-weight:900;padding:2px 8px;border-radius:5px;">${label}</span>
-      <span style="font-size:12px;color:#fff;">${nums}</span>
-      <span style="margin-left:auto;font-size:12px;font-weight:700;color:${isHit?'#34c759':'#ff3b30'}">${isHit?'✅ 的中':'❌ ハズレ'}</span>
-    </div>`;
-  }).join('');
+  const isHandicapDetail = r.weightType === '別定' || r.weightType === 'ハンデ';
+  let betHTML = '';
+  if (isHandicapDetail && r.anaResult && r.anaResult.length > 0) {
+    // 別定・ハンデ戦: 穴馬候補（軸×穴馬ワイド）を表示
+    const finR = r.finishRanks || {};
+    const top3Set = new Set([finR.rank1, finR.rank2, finR.rank3].filter(Boolean));
+    // 軸馬番号を推定（1番人気）
+    const jikuH = (r.horsesSnapshot || []).find(h => Number(h.ninki) === 1);
+    const jikuBanum = jikuH ? jikuH.banum : null;
+    const jikuHit = jikuBanum !== null && top3Set.has(jikuBanum);
+    betHTML = r.anaResult.map(a => {
+      const isHit = jikuHit && a.hit;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;margin-bottom:4px;
+        background:${isHit?'rgba(52,199,89,0.15)':'rgba(255,255,255,0.05)'};
+        border:1px solid ${isHit?'#34c759':'rgba(255,255,255,0.1)'};">
+        <span style="background:#34c759;color:#fff;font-size:9px;font-weight:900;padding:2px 8px;border-radius:5px;">ワイド</span>
+        <span style="font-size:12px;color:#fff;">${jikuBanum ?? '?'} - ${a.banum}</span>
+        <span style="margin-left:auto;font-size:12px;font-weight:700;color:${isHit?'#34c759':'#ff3b30'}">${isHit?'✅ 的中':'❌ ハズレ'}</span>
+      </div>`;
+    }).join('');
+  } else {
+    betHTML = (r.betLines || []).map((line, i) => {
+      const label = betLabels[i];
+      const isHit = (r.hitLabels || []).includes(label);
+      const nums = line.replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;margin-bottom:4px;
+        background:${isHit?'rgba(52,199,89,0.15)':'rgba(255,255,255,0.05)'};
+        border:1px solid ${isHit?'#34c759':'rgba(255,255,255,0.1)'};">
+        <span style="background:${betColors[i]};color:#fff;font-size:9px;font-weight:900;padding:2px 8px;border-radius:5px;">${label}</span>
+        <span style="font-size:12px;color:#fff;">${nums}</span>
+        <span style="margin-left:auto;font-size:12px;font-weight:700;color:${isHit?'#34c759':'#ff3b30'}">${isHit?'✅ 的中':'❌ ハズレ'}</span>
+      </div>`;
+    }).join('');
+  }
 
   // 着順HTML
   const rankHTML = r.finishRanks?.rank1 ? `
