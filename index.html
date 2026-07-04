@@ -2492,11 +2492,18 @@ function recalcRecordScoring(horsesSnapshot, dbSnapshot, finishRanks, betLines, 
     }));
   }
 
-  // hitLabels再計算（通常戦: 保存済みbetLinesと着順を突き合わせ）
+  // hitLabels再計算
   const r1 = finishRanks.rank1, r2 = finishRanks.rank2, r3 = finishRanks.rank3;
   const betLabelList = ['単勝','馬連','ワイド','三連複'];
   let hitLabels = [];
-  if (r1 && Array.isArray(betLines)) {
+
+  // 別定・ハンデ戦: anaResult（軸×穴馬ワイド）の的中結果から'ワイド'を追加
+  if ((weightType === '別定' || weightType === 'ハンデ') && anaResult.some(a => a.hit)) {
+    hitLabels.push('ワイド');
+  }
+
+  // 通常戦: 保存済みbetLinesと着順を突き合わせ（別定・ハンデ戦にはbetLinesが無関係なため実質スキップされる）
+  if (r1 && Array.isArray(betLines) && !(weightType === '別定' || weightType === 'ハンデ')) {
     betLines.forEach((line, i) => {
       const label = betLabelList[i];
       const body = (line||'').replace(/^(単勝|馬連|ワイド|三連複)\s+/, '');
@@ -7358,14 +7365,11 @@ function showRecordDetail(idx) {
   let betHTML = '';
   if (isHandicapDetail && r.anaResult && r.anaResult.length > 0) {
     // 別定・ハンデ戦: 穴馬候補（軸×穴馬ワイド）を表示
-    const finR = r.finishRanks || {};
-    const top3Set = new Set([finR.rank1, finR.rank2, finR.rank3].filter(Boolean));
-    // 軸馬番号を推定（1番人気）
+    // 軸馬番号を推定（1番人気）※表示用のみ。的中判定はanaResult保存時のhit値をそのまま信頼する
     const jikuH = (r.horsesSnapshot || []).find(h => Number(h.ninki) === 1);
     const jikuBanum = jikuH ? jikuH.banum : null;
-    const jikuHit = jikuBanum !== null && top3Set.has(jikuBanum);
     betHTML = r.anaResult.map(a => {
-      const isHit = jikuHit && a.hit;
+      const isHit = !!a.hit; // recalcRecordScoring/addRecordで既に「軸×穴馬のワイド成立」を意味する値
       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;margin-bottom:4px;
         background:${isHit?'rgba(52,199,89,0.15)':'rgba(255,255,255,0.05)'};
         border:1px solid ${isHit?'#34c759':'rgba(255,255,255,0.1)'};">
