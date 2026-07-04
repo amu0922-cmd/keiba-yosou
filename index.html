@@ -2569,7 +2569,9 @@ function getHitKeysForLabel(label, payouts) {
   return keys;
 }
 
-function calcSimInvestReturn(hitLabels, payouts, anaHit) {
+// actualPoints: 実際に購入した点数（別定・ハンデ戦は穴馬候補数=1〜2点、通常戦はbetLines本数=通常4点）
+// 省略時は配当入力欄の数で按分する（後方互換）
+function calcSimInvestReturn(hitLabels, payouts, anaHit, actualPoints) {
   const labelToKeys = {
     '単勝': ['tansho'], '複勝': ['fukusho1','fukusho2','fukusho3'], '馬連': ['umaren'],
     'ワイド': ['wide1','wide2','wide3'], '三連複': ['sanfuku'], '三連単': ['santan'],
@@ -2580,7 +2582,9 @@ function calcSimInvestReturn(hitLabels, payouts, anaHit) {
   if (enteredKeys.length === 0) return { invest: 0, return: 0 }; // 配当未入力＝シミュレーション対象外
 
   const SIM_TOTAL = 1000;
-  const perPoint = SIM_TOTAL / enteredKeys.length; // 1点あたりの仮想購入額
+  // 実購入点数が分かればそちらを優先（券種別配当は検証用に全券種入力されがちなため）
+  const pointCount = (actualPoints && actualPoints > 0) ? actualPoints : enteredKeys.length;
+  const perPoint = SIM_TOTAL / pointCount; // 1点あたりの仮想購入額
 
   let totalReturn = 0;
   (hitLabels || []).forEach(label => {
@@ -2593,11 +2597,16 @@ function calcSimInvestReturn(hitLabels, payouts, anaHit) {
     });
   });
 
-  // 注: 穴馬候補は現在ワイドで購入する仕様のため、hitLabelsに'ワイド'が含まれていれば
-  // 上記のループで既にワイド配当が加算されている。旧ロジック（穴馬複勝1点買い）の名残である
-  // 「穴馬的中時に複勝配当を別加算する」処理は削除済み。
-
   return { invest: SIM_TOTAL, return: Math.round(totalReturn) };
+}
+
+// レコードの実購入点数を推定（別定・ハンデ戦=穴馬候補数、通常戦=betLines本数）
+function estimatePurchasePoints(r) {
+  const isHandicap = r.weightType === '別定' || r.weightType === 'ハンデ';
+  if (isHandicap) {
+    return (r.anaResult && r.anaResult.length > 0) ? r.anaResult.length : 1;
+  }
+  return (r.betLines && r.betLines.length > 0) ? r.betLines.length : 1;
 }
 
 function calcInvestReturn(hitLabels, payouts, anaHit) {
@@ -2885,7 +2894,7 @@ function renderStats() {
   // 各レコードに「1レース1000円均等買い」シミュレーション値を付与（実際の購入額ではなく、配当が入力されていれば1000円買った想定で統一）
   const recordsWithSim = records.map(r => {
     const anaHit = r.anaResult && r.anaResult.some(a => a.hit);
-    const sim = calcSimInvestReturn(r.hitLabels, r.payouts, anaHit);
+    const sim = calcSimInvestReturn(r.hitLabels, r.payouts, anaHit, estimatePurchasePoints(r));
     return { ...r, simInvest: sim.invest, simReturn: sim.return };
   });
 
@@ -3483,7 +3492,7 @@ function renderRecordGraphs() {
   // 「1レース1000円均等買い」シミュレーション値を各レコードに付与
   const sorted = [...records].sort((a,b) => new Date(a.date)-new Date(b.date)).map(r => {
     const anaHit = r.anaResult && r.anaResult.some(a => a.hit);
-    const sim = calcSimInvestReturn(r.hitLabels, r.payouts, anaHit);
+    const sim = calcSimInvestReturn(r.hitLabels, r.payouts, anaHit, estimatePurchasePoints(r));
     return { ...r, simInvest: sim.invest, simReturn: sim.return };
   }).filter(r => r.simInvest > 0); // 配当未入力（シミュレーション対象外）のレースは除外
 
@@ -4440,7 +4449,7 @@ function analyzeDbOptimization() {
   // horsesSnapshotを持つ成績のみ対象（シミュレーション値も付与）
   const validRecs = records.filter(r => r.horsesSnapshot && r.horsesSnapshot.length > 0 && r.finishRanks?.rank1).map(r => {
     const anaHit = r.anaResult && r.anaResult.some(a => a.hit);
-    const sim = calcSimInvestReturn(r.hitLabels, r.payouts, anaHit);
+    const sim = calcSimInvestReturn(r.hitLabels, r.payouts, anaHit, estimatePurchasePoints(r));
     return { ...r, simInvest: sim.invest, simReturn: sim.return };
   });
   if (validRecs.length < 3) {
@@ -7151,7 +7160,7 @@ function imgGenerateGraph() {
     return d >= cutoff;
   }).sort((a,b) => new Date(a.date) - new Date(b.date)).map(r => {
     const anaHit = r.anaResult && r.anaResult.some(a => a.hit);
-    const sim = calcSimInvestReturn(r.hitLabels, r.payouts, anaHit);
+    const sim = calcSimInvestReturn(r.hitLabels, r.payouts, anaHit, estimatePurchasePoints(r));
     return { ...r, simInvest: sim.invest, simReturn: sim.return };
   });
 
@@ -7439,7 +7448,7 @@ function showRecordDetail(idx) {
 
   const hitCount = (r.hitLabels||[]).length;
   const _anaHitDetail = r.anaResult && r.anaResult.some(a => a.hit);
-  const _simDetail = calcSimInvestReturn(r.hitLabels, r.payouts, _anaHitDetail);
+  const _simDetail = calcSimInvestReturn(r.hitLabels, r.payouts, _anaHitDetail, estimatePurchasePoints(r));
   const profit = _simDetail.return - _simDetail.invest;
 
   modal.innerHTML = `
