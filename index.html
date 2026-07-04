@@ -2505,7 +2505,13 @@ function recalcRecordScoring(horsesSnapshot, dbSnapshot, finishRanks, betLines, 
       if (label === '単勝') {
         hit = nums.includes(r1);
       } else if (label === '馬連') {
-        hit = r1 && r2 && nums.includes(r1) && nums.includes(r2);
+        const partsM3 = body.split('-');
+        const jikuM3 = partsM3[0] ? parseInt(partsM3[0].trim()) : null;
+        const aiteM3 = partsM3[1] ? partsM3[1].split('.').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n)) : [];
+        if (r1 && r2) {
+          const top2m3 = [r1, r2];
+          hit = jikuM3 !== null && top2m3.includes(jikuM3) && aiteM3.some(n => top2m3.includes(n));
+        }
       } else if (label === 'ワイド') {
         const parts = body.split('-');
         const jiku = parts[0] ? parseInt(parts[0].trim()) : null;
@@ -7750,7 +7756,14 @@ function transferToRecord() {
           if (label === '単勝') {
             hit = nums.includes(r1);
           } else if (label === '馬連') {
-            hit = r1 && r2 && nums.includes(r1) && nums.includes(r2);
+            // 馬連は「軸(ハイフン前)」×「相手(ハイフン後、複数の場合はいずれか1頭)」の組み合わせで判定
+            const partsM2 = body2.split('-');
+            const jikuM2 = partsM2[0] ? parseInt(partsM2[0].trim()) : null;
+            const aiteM2 = partsM2[1] ? partsM2[1].split('.').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n)) : [];
+            if (r1 && r2) {
+              const top2m = [r1, r2];
+              hit = jikuM2 !== null && top2m.includes(jikuM2) && aiteM2.some(n => top2m.includes(n));
+            }
           } else if (label === 'ワイド') {
             // ワイドは「軸(ハイフン前)」×「相手(ハイフン後、複数の場合はいずれか1頭)」の組み合わせで判定
             // 例: "12-7.11.3" → 軸12番 かつ (7番 or 11番 or 3番) が両方3着以内なら的中
