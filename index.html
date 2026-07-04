@@ -2469,22 +2469,19 @@ function recalcRecordScoring(horsesSnapshot, dbSnapshot, finishRanks, betLines, 
     return {...h, totalScore};
   }).sort((a,b)=>b.totalScore-a.totalScore);
 
-  // 穴馬候補（別定・ハンデのみ）
+  // 穴馬候補（別定・ハンデのみ）: 軸馬は1番人気固定、穴馬は調教A評価または厩舎コメント◎
   let anaResult = [];
   if (weightType === '別定' || weightType === 'ハンデ') {
-    const topScore = ranked[0]?.totalScore || 0;
-    const wideJikuBanum = ranked[0]?.banum;
-    const totalHorses = ranked.length;
-    const anaHorses = ranked.filter((h, idx) => {
+    // 軸は1番人気馬（DBスコアではなく市場人気を採用。検証の結果こちらが安定）
+    const ninki1Horse = horsesSnapshot.find(h => Number(h.ninki) === 1);
+    const wideJikuBanum = ninki1Horse ? ninki1Horse.banum : ranked[0]?.banum;
+    const anaHorses = ranked.filter(h => {
       const ninki = Number(h.ninki);
-      // 新ロジック: 最終調教A評価 または 厩舎コメント◎（脚質・前走着順は問わない）
       const isChokyoA = h.chokyoFinal === 'A';
       const isCommentMaru = h.comment === '◎';
-      const scoreDiff = topScore - h.totalScore;
-      const isUpperHalf = (idx + 1) <= Math.ceil(totalHorses * 0.5);
-      return ninki >= 6 && isUpperHalf && scoreDiff <= 50 && (isChokyoA || isCommentMaru);
+      return ninki >= 6 && (isChokyoA || isCommentMaru) && h.banum !== wideJikuBanum;
     });
-    const anaCandidates = anaHorses.filter(h => h.banum !== wideJikuBanum).slice(0, 2);
+    const anaCandidates = anaHorses.slice(0, 2);
     const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
     anaResult = anaCandidates.map(h => ({
       banum: h.banum, name: h.name, ninki: h.ninki,
@@ -2787,20 +2784,17 @@ function addRecord() {
       +(dbSnapshot.maejun?.[String(h.maejun)]||0)+(dbSnapshot.maeclass?.[h.maeclass]||0)
       +(dbSnapshot.waku?.[String(h.waku)]||0)
     );
-    const topScore = scored[0] ? getScore(scored[0]) : 0;
-    const wideJikuBanum = scored[0]?.banum;
-    const totalHorses = scored.length;
-    // 予想タブと完全同一ロジック: 全馬フィルタ後にwideJikuを除外
+    // 軸は1番人気馬（DBスコアではなく市場人気を採用。検証の結果こちらが安定）
+    const ninki1HorseRec = horsesSnapshot.find(h => Number(h.ninki) === 1);
+    const wideJikuBanum = ninki1HorseRec ? ninki1HorseRec.banum : scored[0]?.banum;
     // 新ロジック: 最終調教A評価 または 厩舎コメント◎（脚質・前走着順は問わない）
-    const anaHorses = scored.filter((h, idx) => {
+    const anaHorses = scored.filter(h => {
       const ninki = Number(h.ninki);
       const isChokyoA = h.chokyoFinal === 'A';
       const isCommentMaru = h.comment === '◎';
-      const scoreDiff = topScore - getScore(h);
-      const isUpperHalf = (idx + 1) <= Math.ceil(totalHorses * 0.5);
-      return ninki >= 6 && isUpperHalf && scoreDiff <= 50 && (isChokyoA || isCommentMaru);
+      return ninki >= 6 && (isChokyoA || isCommentMaru) && h.banum !== wideJikuBanum;
     });
-    const anaCandidates = anaHorses.filter(h => h.banum !== wideJikuBanum).slice(0, 2);
+    const anaCandidates = anaHorses.slice(0, 2);
     const hit23 = new Set([finishRanks.rank1, finishRanks.rank2, finishRanks.rank3]);
     anaResult = anaCandidates.map(h => ({
       banum: h.banum, name: h.name, ninki: h.ninki,
@@ -4121,31 +4115,26 @@ function renderAnalysis() {
     const is2kyou = formation.includes('2強') || formation.includes('鉄板');
     const isHaran = formation.includes('波乱') || formation.includes('混戦');
 
-    // ===== 別定・ハンデ戦: 複勝1頭+ワイド2点(シミュレーション回収率258%) =====
+    // ===== 別定・ハンデ戦: 軸(1番人気)×穴馬(調教A/コメント◎)のワイド(シミュレーション回収率273%) =====
     const isHandicap = currentWeightType === '別定' || currentWeightType === 'ハンデ';
     if (isHandicap) {
-      const topScore = ranked[0]?.totalScore || 0;
-      const totalHorses = ranked.length;
-      const wideJiku = String(ranked[0].banum);
-      const anaHorses = ranked.filter((h, idx) => {
+      // 軸は1番人気馬（DBスコアではなく市場人気を採用。検証の結果こちらが安定）
+      const ninki1HorseA = ranked.find(h => Number(h.ninki) === 1);
+      const wideJiku = String(ninki1HorseA ? ninki1HorseA.banum : ranked[0].banum);
+      const anaHorses = ranked.filter(h => {
         const ninki = Number(h.ninki);
-        const scoreDiff = topScore - (h.totalScore || 0);
-        const isUpperHalf = (idx + 1) <= Math.ceil(totalHorses * 0.5);
-        const isNearTop = scoreDiff <= 50;
-        const isAnaBeta = ninki >= 6;
-        // 新ロジック: 最終調教A評価 または 厩舎コメント◎（脚質・前走着順は問わない）
         const isChokyoA = h.chokyoFinal === 'A';
         const isCommentMaru = h.comment === '◎';
-        return isAnaBeta && isUpperHalf && isNearTop && (isChokyoA || isCommentMaru);
+        return ninki >= 6 && (isChokyoA || isCommentMaru) && String(h.banum) !== wideJiku;
       });
-      const anaNums = anaHorses.map(h => String(h.banum)).filter(n => n !== wideJiku);
+      const anaNums = anaHorses.map(h => String(h.banum));
       const bestAna = anaNums[0] || null;
       const tickets = [];
-      let reason = `🎯 ${currentWeightType}戦：シミュレーション回収率268%\n調教A評価または厩舎コメント◎×6人気以上 → 複勝1000円1点集中\n💴 配分: 複勝1000円`;
+      let reason = `🎯 ${currentWeightType}戦：シミュレーション回収率273%\n軸(1番人気)×穴馬(調教A評価or厩舎コメント◎・6人気以上) → ワイド1000円1点\n💴 配分: ワイド1000円`;
       if (bestAna) {
-        tickets.push(`《複勝 ${bestAna}》`);
-        reason += `\n✅ 穴馬候補: ${bestAna}番`;
-        reason += `\n📌 調教A評価or厩舎コメント◎×6人気以上×スコア上位50%`;
+        tickets.push(`《ワイド ${wideJiku}-${bestAna}》`);
+        reason += `\n✅ 軸:${wideJiku}番(1番人気) × 穴馬候補:${bestAna}番`;
+        reason += `\n📌 調教A評価or厩舎コメント◎×6人気以上`;
       } else {
         reason += `\n⚠️ 穴馬候補なし → 見送り推奨`;
       }
@@ -6265,24 +6254,19 @@ function imgCalcBets() {
   // 別定・ハンデ戦は穴馬ワイド狙いモード
   const isHandicapImg = currentWeightType === '別定' || currentWeightType === 'ハンデ';
   if (isHandicapImg) {
-    const topScoreImg2 = ranked[0]?.totalScore || 0;
-    const totalHorsesImg2 = ranked.length;
-    const wideJikuImg = ranked[0].banum;
-    const anaHorsesImg = ranked.filter((h, idx) => {
+    // 軸は1番人気馬（DBスコアではなく市場人気を採用。検証の結果こちらが安定）
+    const ninki1HorseImg = ranked.find(h => Number(h.ninki) === 1);
+    const wideJikuImg = ninki1HorseImg ? ninki1HorseImg.banum : ranked[0].banum;
+    const anaHorsesImg = ranked.filter(h => {
       const ninki = Number(h.ninki);
-      const scoreDiff = topScoreImg2 - (h.totalScore || 0);
-      const isUpperHalf = (idx + 1) <= Math.ceil(totalHorsesImg2 * 0.5);
-      const isNearTop = scoreDiff <= 50;
-      const isAnaBeta = ninki >= 6;
-      // 新ロジック: 最終調教A評価 または 厩舎コメント◎（脚質・前走着順は問わない）
       const isChokyoA = h.chokyoFinal === 'A';
       const isCommentMaru = h.comment === '◎';
-      return isAnaBeta && isUpperHalf && isNearTop && (isChokyoA || isCommentMaru);
+      return ninki >= 6 && (isChokyoA || isCommentMaru) && Number(h.banum) !== wideJikuImg;
     });
-    const anaNums = anaHorsesImg.map(h => Number(h.banum)).filter(n => n !== wideJikuImg);
+    const anaNums = anaHorsesImg.map(h => Number(h.banum));
     const bestAnaImg = anaNums[0] || null;
     if (bestAnaImg) {
-      recLines.push(`複勝  ${bestAnaImg}`);
+      recLines.push(`ワイド ${wideJikuImg}-${bestAnaImg}`);
     }
   } else if (ninkiBadImg || oddsBadImg) {
     recLines.push(`複勝  ${jiku1Num}`);
